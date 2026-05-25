@@ -11,8 +11,8 @@ export class Renderer {
   }
 
   /** @param {object} frame - data returned from the WASM engine tick */
-  drawFrame(frame) {
-    this._impl.drawFrame(frame);
+  drawFrame(frame, playerPosition, renderState = {}) {
+    this._impl.drawFrame(frame, playerPosition, renderState);
   }
 
   resize(width, height) {

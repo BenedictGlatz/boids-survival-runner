@@ -1,12 +1,19 @@
 {
   "menu": {
+    "title": "Boids Survival Runner",
+    "play": "Play",
     "start": "Start Game",
     "pause": "Pause",
     "resume": "Resume",
-    "gameover": "Game Over"
+    "gameover": "Game Over",
+    "restart": "Restart",
+    "finalScore": "Final Score"
   },
   "hud": {
     "score": "Score",
-    "lives": "Lives"
+    "lives": "Lives",
+    "timer": "Time",
+    "wave": "Wave",
+    "boids": "Boids"
   }
 }
