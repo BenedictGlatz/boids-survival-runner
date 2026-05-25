@@ -3,6 +3,6 @@
  */
 export function buildControls(inputManager) {
   return {
-    position: inputManager.getPlayerPosition(),
+    direction: inputManager.getMovementDirection(),
   };
 }
