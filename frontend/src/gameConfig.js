@@ -1,0 +1,10 @@
+export const INITIAL_BOID_COUNT = 36;
+export const PLAYER_STARTING_LIVES = 3;
+export const HIT_COOLDOWN_MS = 900;
+export const WAVE_DURATION_SECONDS = 30;
+export const START_COUNTDOWN_SECONDS = 3;
+export const PLAYER_VISUAL_RADIUS = 16;
+export const BOID_VISUAL_RADIUS = 6;
+export const PLAYER_MAX_SPEED = 360;
+export const PLAYER_ACCELERATION = 1200;
+export const PLAYER_DECELERATION = 1500;
