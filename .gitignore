@@ -2,6 +2,7 @@
 /engine/target/
 /engine/pkg/
 /engine/wasm-pack.log
+/frontend/src/wasm/
 
 # JavaScript / Node.js
 /frontend/node_modules/
