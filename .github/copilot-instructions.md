@@ -20,6 +20,9 @@ The project is divided into two distinct, independently testable layers.
 - Exposes a clean, minimal API to the JavaScript frontend.
 - Responsible for all per-frame simulation calculations.
 - Must have zero dependencies on the DOM, browser APIs, or any rendering library.
+- Boids are not assumed to be homogeneous. The engine must support multiple boid variants in the
+  same run, with per-boid properties such as maximum speed, maximum acceleration, perception radius,
+  and rule weights.
 
 ### JavaScript Frontend Layer
 
@@ -83,7 +86,10 @@ is the top priority — always favour clear, teachable code over clever or obscu
 - Hot-path code (functions called every frame) must minimize or eliminate per-frame heap allocations.
 - Follow standard Rust naming conventions: `snake_case` for functions and variables, `PascalCase`
   for types and structs.
-- Simulation constants must use named constants with descriptive identifiers — no magic numbers.
+- Shared simulation defaults must use named constants with descriptive identifiers — no magic
+  numbers.
+- When a simulation value can differ between boids, store it on the boid or in an explicit boid
+  configuration/profile type instead of assuming one global constant for the entire flock.
 
 ### JavaScript
 
@@ -127,12 +133,17 @@ is the top priority — always favour clear, teachable code over clever or obscu
 - All WASM build artifacts are gitignored; the build must be fully reproducible via `wasm-pack build`.
 - Mathematical algorithms (e.g., swarm rules) are implemented as pure functions with no side
   effects, making them straightforward to unit-test and reason about in isolation.
+- Global constants are defaults, not invariants. If the game introduces new boid variants over
+  time, the data model and simulation code must preserve per-boid differences instead of collapsing
+  them into one shared parameter set.
 - JavaScript files must use `camelCase` file names.
 - Markdown files must use `kebab-case` file names.
 - The project must remain installationless and platform-independent for end users — no server-side
   runtime is required to play.
 
 ### Commit Discipline
+
+- This is a mandatory step — DO NOT SKIP IT. 
 
 - Every completed change must be committed immediately using the
   **[Conventional Commits](https://www.conventionalcommits.org/)** format:
