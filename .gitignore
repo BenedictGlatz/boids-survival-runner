@@ -1,0 +1,17 @@
+# Rust / WASM build artifacts
+/engine/target/
+/engine/pkg/
+/engine/wasm-pack.log
+
+# JavaScript / Node.js
+/frontend/node_modules/
+/frontend/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS artefacts
+.DS_Store
+Thumbs.db

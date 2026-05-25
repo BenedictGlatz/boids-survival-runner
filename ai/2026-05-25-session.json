@@ -1,0 +1,22 @@
+[
+  {
+    "model": "GPT-5.4",
+    "prompt": "I want to review the current copilot instructions with you. What naming convention do we use for JS Files and md files? Is that specified? If no, please make a remark to use kebasb case for md files"
+  },
+  {
+    "model": "GPT-5.4",
+    "prompt": "Please add a remark to use camel case for jns"
+  },
+  {
+    "model": "claude-sonnet-4.6",
+    "prompt": "Ich möchte mit dir zusammen eine Ordnerstruktur für dieses Projekt erstellen, Informationen zum Projekt findest du in den Copilot Instructions, bitte bestätige mir dass du diese lesen kannst"
+  },
+  {
+    "model": "claude-sonnet-4.6",
+    "prompt": "Sei so nett und erstelle jetzt bitte den Plan für die Ordnerstruktur"
+  },
+  {
+    "model": "claude-sonnet-4.6",
+    "prompt": "Bitte lege die Ordner jetzt so wie im Plan beschrieben an"
+  }
+]

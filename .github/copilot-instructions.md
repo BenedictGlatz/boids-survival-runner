@@ -105,6 +105,8 @@ The project is divided into two distinct, independently testable layers.
 - All WASM build artifacts are gitignored; the build must be fully reproducible via `wasm-pack build`.
 - Mathematical algorithms (e.g., swarm rules) are implemented as pure functions with no side
   effects, making them straightforward to unit-test and reason about in isolation.
+- JavaScript files must use `camelCase` file names.
+- Markdown files must use `kebab-case` file names.
 - The project must remain installationless and platform-independent for end users — no server-side
   runtime is required to play.
 
@@ -144,6 +146,8 @@ The project is divided into two distinct, independently testable layers.
   encouraged use of AI assistance.
 
 ### AI Prompt Logging
+
+- This is a mandatory step — DO NOT SKIP IT. Every user prompt must be appended to the active prompt-history file before replying.
 
 - Every prompt submitted to an LLM in the context of this repository must be logged in the
   `ai/` directory at the repository root.

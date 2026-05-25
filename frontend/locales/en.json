@@ -1,0 +1,12 @@
+{
+  "menu": {
+    "start": "Start Game",
+    "pause": "Pause",
+    "resume": "Resume",
+    "gameover": "Game Over"
+  },
+  "hud": {
+    "score": "Score",
+    "lives": "Lives"
+  }
+}
