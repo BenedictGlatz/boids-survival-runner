@@ -1,18 +1,58 @@
+use js_sys::{Float32Array, Uint32Array};
 use wasm_bindgen::prelude::*;
 
 /// The structured response returned to JavaScript after each frame tick.
 #[wasm_bindgen]
 pub struct FrameResponse {
-    /// Flat entity buffer: [x0, y0, vx0, vy0, x1, y1, vx1, vy1, …]
-    pub entity_count: u32,
-    /// Whether the player was hit this frame.
-    pub hit: bool,
+    entity_count: u32,
+    hit_count: u32,
+    positions: Vec<f32>,
+    tiers: Vec<u32>,
+}
+
+impl FrameResponse {
+    pub(crate) fn new(
+        entity_count: u32,
+        hit_count: u32,
+        positions: Vec<f32>,
+        tiers: Vec<u32>,
+    ) -> Self {
+        Self {
+            entity_count,
+            hit_count,
+            positions,
+            tiers,
+        }
+    }
 }
 
 #[wasm_bindgen]
 impl FrameResponse {
-    /// Creates a new frame response.
-    pub fn new(entity_count: u32, hit: bool) -> Self {
-        Self { entity_count, hit }
+    /// Number of boids represented in the positions buffer.
+    #[wasm_bindgen(getter)]
+    pub fn entity_count(&self) -> u32 {
+        self.entity_count
+    }
+
+    /// Number of player collisions detected during this frame.
+    #[wasm_bindgen(getter)]
+    pub fn hit_count(&self) -> u32 {
+        self.hit_count
+    }
+
+    /// Whether the player was hit during this frame.
+    #[wasm_bindgen(getter)]
+    pub fn hit(&self) -> bool {
+        self.hit_count > 0
+    }
+
+    /// Returns a flat positions buffer: [x0, y0, x1, y1, ...].
+    pub fn positions(&self) -> Float32Array {
+        Float32Array::from(self.positions.as_slice())
+    }
+
+    /// Returns one difficulty tier for each boid in the positions buffer.
+    pub fn tiers(&self) -> Uint32Array {
+        Uint32Array::from(self.tiers.as_slice())
     }
 }
