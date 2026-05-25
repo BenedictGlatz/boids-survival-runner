@@ -22,5 +22,33 @@
   {
     "model": "claude-sonnet-4.6",
     "prompt": "Please add to the copilot instructions that human readability is a top priority. This project is being done by university students who are trying to understand what the agents are implementing. Refrain from using overly obscure optimisations that make the code hard to read for beginners, especially in rust."
+  },
+  {
+    "model": "GPT-5.4",
+    "prompt": "Bitte erweitere die copilot instructions, die boids sind nicht immer gleichartig, über das Spiel hinweg kommen verschiedene boids ins spiel die eventuell andere eigenschaften haben, beispielsweise eine höhere beschleunigung oder eine höhere maximalgeschwindigkeit, bitte ergänze das in den Instructions und im bestehenden Code. Die Konsanten sind also gar nicht zwingend konstant, sondern über das spiel hinweg von boid zu boid unterschiedlich."
+  },
+  {
+    "model": "GitHub Copilot",
+    "prompt": "Ich möchte mit dir eine erste Implementation des Frontends planen. Das Frontend soll im Browser möglichst Full-Screen sein. Ein Start screen mit einem Play Button ist nötig, nachdem auf diesen button gedrückt wird beginnt das spiel. Dort müssen die leben des spielers, der score und alle anderen essentiellen UI Elemente sichtbar sein, sowieso das Spiel selbst natürlich. Die UI Elemente sollten in den ecken und am Rand befinden und über dem Spiel selbst \"schweben\", eventuell sogar semi transparent. Orientiere dich an simplen UIs wie denen aus den Bildern die ich dir geschickt habe"
+  },
+  {
+    "model": "GitHub Copilot",
+    "prompt": "Start Implementation"
+  },
+  {
+    "model": "GitHub Copilot",
+    "prompt": "Bitte sei so nett und setze noch das Boid Targeting aus der offenen Folgefrage um (Boid-Targeting: Für echte Spielbarkeit müssen Boids den Spieler aktiv verfolgen (seek_target()-Regel). Soll das direkt in Phase 1 mit rein, oder als explizite Phase 2 nach der ersten lauffähigen Version)\n\nStarte außerdem einen Dev server sodass ich die website local testen kann. Installiere im zweifelsfall über die kommandozeile die benötigte software"
+  },
+  {
+    "model": "GitHub Copilot",
+    "prompt": "Es gibt zwei Probleme: Erstens möche ich den player character mit wasd oder den pfeiltasten steuern, zudem muss er auch eine beschleunigung sowie eine maximalgeschwindigkeit haben, ansonsten ist das Spiel trivial. Außerdem sollten sich die Boids nicht überlappen können, ansonsten ist der \"Schwarm\" irgendwann nur noch 80 boids auf einem Punkt wie auf dem Bild zu sehen. Bitte setze diese Änderungen um"
+  },
+  {
+    "model": "GitHub Copilot",
+    "prompt": "Ich habe ein paar Änderungenwünsche. \r\n1. Die Lebenanzeige des Spieler soll direkt unter seinem player character sein, nicht am bildschirmrand\r\n2. Über die Waves hinweg sollen mehr Boids hinzukommen, diese sollen immer schwerer werden und eventuell auch eine andere Farbe haben um dies zu signalisieren\r\n3. Die Boids \"kleben\" aktuell zu stark zusammen wie auf dem Bild zu erkennen ist. Der Schwarm muss etwas \"lockerer\" sein\r\n4. Die Boids spawnen am anfang zu nahe am spieler, sodass ich während des spielstarts nahezu garantiert direkt leben verliere, bitte füge einen 3 sekündigen start timer hinzu bevor es los geht und platziere die boids etwas weiter weg vom spieler zum start des spiel"
+  },
+  {
+    "model": "GitHub Copilot",
+    "prompt": "Please package th current changes in the repo into commits as you are instructed to do in the copilot instructions. After that, synchronize."
   }
 ]
