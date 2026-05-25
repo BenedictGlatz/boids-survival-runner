@@ -51,6 +51,28 @@ The project is divided into two distinct, independently testable layers.
 
 ---
 
+## Human Readability
+
+**This project is developed by university students learning Rust and WebAssembly. Human readability
+is the top priority — always favour clear, teachable code over clever or obscure optimisations.**
+
+- Write code as if the reader is encountering Rust for the first time. Prefer straightforward
+  solutions over idiomatic one-liners that sacrifice clarity.
+- Avoid advanced Rust features (e.g. complex iterator chains, trait wizardry, macro-heavy patterns)
+  unless they are genuinely the simplest way to express the logic.
+- When a simpler approach exists — even if marginally less efficient — choose the simpler approach.
+- Every non-trivial block of logic must include a plain-language comment explaining *what* it does
+  and *why*, not just *how*.
+- Prefer explicit variable names over abbreviated or terse identifiers (e.g. `separation_force`
+  over `sep_f`).
+- Prefer `for` loops over iterator combinators when the loop body is non-trivial; iterators are
+  acceptable for simple transformations where readability is not reduced.
+- Do not apply micro-optimisations (e.g. manual SIMD, bit-twiddling tricks, unsafe pointer
+  arithmetic) unless a profiler identifies a concrete bottleneck and the optimisation is essential.
+  Any such optimisation must be accompanied by a detailed comment explaining the technique.
+
+---
+
 ## Coding Standards
 
 ### Rust

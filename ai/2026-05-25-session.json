@@ -18,5 +18,9 @@
   {
     "model": "claude-sonnet-4.6",
     "prompt": "Bitte lege die Ordner jetzt so wie im Plan beschrieben an"
+  },
+  {
+    "model": "claude-sonnet-4.6",
+    "prompt": "Please add to the copilot instructions that human readability is a top priority. This project is being done by university students who are trying to understand what the agents are implementing. Refrain from using overly obscure optimisations that make the code hard to read for beginners, especially in rust."
   }
 ]
