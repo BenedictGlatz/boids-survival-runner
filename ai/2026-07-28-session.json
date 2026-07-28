@@ -2,5 +2,9 @@
   {
     "model": "claude-opus-5",
     "prompt": "Ich möchte mit dir ein Feature planen:\r\n\r\nIn dem Einstellungsmenü vor dem Spielbeginn möchte ich dass du eine Option für einen Frametimegraphen implementierst. Dieser soll in einer freien Bildschirmecke klein visualisieren wie lange die Simulationsdauer für den letzten Tick war. Das benötige ich um ein Gefühl dafür zu bekommen wie gut das Spiel läuft. Implementiere sowohl die Visualiserung, als auch die Messung selbst."
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "/init Erstelle eine Claude.md, orientiere dich an den bestehenden Informationen aus den copilot-instructions"
   }
 ]
