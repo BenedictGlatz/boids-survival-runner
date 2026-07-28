@@ -1,10 +1,15 @@
 import { t } from './i18n.js';
 import { bindOptionGroup, renderOptionGroup } from './optionGroup.js';
-import { FRAME_GRAPH_MODE } from '../gameConfig.js';
+import {
+  FRAME_GRAPH_FIXED_SCALES_MS,
+  FRAME_GRAPH_MODE,
+  FRAME_GRAPH_SCALE_DYNAMIC,
+} from '../gameConfig.js';
 
 const FPS_GROUP_ID = 'fps-options';
 const FRAME_GRAPH_GROUP_ID = 'frame-graph-options';
 const FRAME_GRAPH_MODE_GROUP_ID = 'frame-graph-mode-options';
+const FRAME_GRAPH_SCALE_GROUP_ID = 'frame-graph-scale-options';
 
 /** Raw values of the frametime-graph toggle, as carried in the DOM. */
 const FRAME_GRAPH_ON = 'on';
@@ -29,15 +34,20 @@ export class Menu {
    * @param {{targetFps: {options: number[], selected: number, uncappedValue: number,
    *                      onSelect: (fps: number) => void},
    *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void},
-   *          frameGraphMode: {selected: string, onSelect: (mode: string) => void}}} settings
+   *          frameGraphMode: {selected: string, onSelect: (mode: string) => void},
+   *          frameGraphScale: {selected: number|string,
+   *                            onSelect: (scale: number|string) => void}}} settings
    */
   showStart(onStart, settings) {
     this._el.innerHTML = `
       <div class="menu-panel">
         <h1>${t('menu.title')}</h1>
         ${renderTargetFpsGroup(settings.targetFps)}
-        ${renderFrameGraphGroup(settings.frameGraph)}
-        ${renderFrameGraphModeGroup(settings.frameGraphMode)}
+        ${renderDeveloperSection([
+          renderFrameGraphGroup(settings.frameGraph),
+          renderFrameGraphModeGroup(settings.frameGraphMode),
+          renderFrameGraphScaleGroup(settings.frameGraphScale),
+        ])}
         <button id="btn-start" class="menu-button">${t('menu.play')}</button>
       </div>
     `;
@@ -52,6 +62,14 @@ export class Menu {
 
     bindOptionGroup(FRAME_GRAPH_MODE_GROUP_ID, (value) => {
       settings.frameGraphMode.onSelect(value);
+    });
+
+    bindOptionGroup(FRAME_GRAPH_SCALE_GROUP_ID, (value) => {
+      // The dynamic option is the only non-numeric one; the rest are axis tops
+      // in milliseconds and must reach the graph as numbers, not as strings.
+      settings.frameGraphScale.onSelect(
+        value === FRAME_GRAPH_SCALE_DYNAMIC ? FRAME_GRAPH_SCALE_DYNAMIC : Number(value),
+      );
     });
 
     document.getElementById('btn-start').addEventListener('click', onStart);
@@ -107,6 +125,27 @@ function renderFrameGraphGroup({ enabled }) {
   });
 }
 
+/**
+ * Wraps the diagnostic settings in a collapsed disclosure, so the start menu
+ * opens on the one setting that affects play instead of on a wall of options.
+ *
+ * A native `<details>` rather than a scripted toggle: it needs no state of its
+ * own and stays keyboard- and screen-reader-operable via Enter/Space, neither of
+ * which InputManager intercepts.
+ *
+ * @param {string[]} groups - Rendered option groups, in display order.
+ */
+function renderDeveloperSection(groups) {
+  return `
+    <details class="menu-section">
+      <summary class="menu-section-summary">${t('settings.developerSettings')}</summary>
+      <div class="menu-section-body">
+        ${groups.join('')}
+      </div>
+    </details>
+  `;
+}
+
 function renderFrameGraphModeGroup({ selected }) {
   return renderOptionGroup({
     id: FRAME_GRAPH_MODE_GROUP_ID,
@@ -123,6 +162,29 @@ function renderFrameGraphModeGroup({ selected }) {
         label: t('settings.frameGraphCombined'),
         selected: selected === FRAME_GRAPH_MODE.COMBINED,
       },
+    ],
+  });
+}
+
+function renderFrameGraphScaleGroup({ selected }) {
+  const unit = t('perf.milliseconds');
+  const fixedOptions = FRAME_GRAPH_FIXED_SCALES_MS.map((scaleMs) => ({
+    value: String(scaleMs),
+    label: `${scaleMs} ${unit}`,
+    selected: scaleMs === selected,
+  }));
+
+  return renderOptionGroup({
+    id: FRAME_GRAPH_SCALE_GROUP_ID,
+    label: t('settings.frameGraphScale'),
+    hint: t('settings.frameGraphScaleHint'),
+    options: [
+      {
+        value: FRAME_GRAPH_SCALE_DYNAMIC,
+        label: t('settings.frameGraphScaleDynamic'),
+        selected: selected === FRAME_GRAPH_SCALE_DYNAMIC,
+      },
+      ...fixedOptions,
     ],
   });
 }

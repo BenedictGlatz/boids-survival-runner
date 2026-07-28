@@ -200,6 +200,46 @@ body {
   text-align: center;
 }
 
+/* Collapsed group of diagnostic settings. Native <details>, so the open state
+   needs no JavaScript. */
+.menu-section {
+  width: 100%;
+  max-width: 24rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.menu-section-summary {
+  padding: 0.7rem 1rem;
+  color: rgba(244, 244, 245, 0.72);
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  /* The default marker is a bare triangle glued to the text; a list-item box
+     leaves room for the padding above to apply to both. */
+  list-style-position: inside;
+}
+
+.menu-section-summary:hover {
+  color: #f4f4f5;
+}
+
+.menu-section-summary:focus-visible {
+  border-radius: 10px;
+  outline: 3px solid rgba(248, 250, 252, 0.7);
+  outline-offset: -1px;
+}
+
+.menu-section-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.35rem 1rem 1.1rem;
+}
+
 @media (max-width: 640px) {
   .hud-panel {
     min-width: 6.25rem;

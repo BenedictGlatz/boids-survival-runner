@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { chooseScale } from './frameGraphScale.js';
+import { resolveScale } from './frameGraphScale.js';
 import {
   FRAME_BUDGET_MS,
   FRAME_GRAPH_AREA_ALPHA,
@@ -9,6 +9,7 @@ import {
   FRAME_GRAPH_OVER_SCALE_MARK_HEIGHT,
   FRAME_GRAPH_OVER_SCALE_MARK_WIDTH,
   FRAME_GRAPH_PADDING,
+  FRAME_GRAPH_SCALE_DYNAMIC,
   FRAME_GRAPH_SCALE_LADDER_MS,
   FRAME_GRAPH_TEXT_HEIGHT,
   FRAME_GRAPH_WIDTH,
@@ -89,9 +90,13 @@ export class FrameTimeGraph {
 
   /**
    * @param {import('../loop/frameMetrics.js').FrameMetrics} metrics
-   * @param {string} mode - One of `FRAME_GRAPH_MODE`.
+   * @param {{mode?: string, scaleSetting?: number|string}} [options] - `mode` is one
+   *   of `FRAME_GRAPH_MODE`; `scaleSetting` is a fixed axis top in milliseconds or
+   *   `FRAME_GRAPH_SCALE_DYNAMIC`.
    */
-  draw(metrics, mode = FRAME_GRAPH_MODE.SEPARATE) {
+  draw(metrics, options = {}) {
+    const mode = options.mode ?? FRAME_GRAPH_MODE.SEPARATE;
+    const scaleSetting = options.scaleSetting ?? FRAME_GRAPH_SCALE_DYNAMIC;
     const ctx = this._ctx;
     ctx.clearRect(0, 0, FRAME_GRAPH_WIDTH, FRAME_GRAPH_HEIGHT);
 
@@ -103,7 +108,7 @@ export class FrameTimeGraph {
     const peakMs = combined
       ? summary.maxTotalMs
       : Math.max(summary.maxSimulationMs, summary.maxRenderMs);
-    const scaleMs = chooseScale(peakMs, FRAME_GRAPH_SCALE_LADDER_MS);
+    const scaleMs = resolveScale(scaleSetting, peakMs, FRAME_GRAPH_SCALE_LADDER_MS);
 
     this._drawHeader(summary, scaleMs, peakMs, combined);
     this._drawCurves(metrics, scaleMs, combined);
@@ -292,9 +297,10 @@ export class FrameTimeGraph {
   }
 
   /**
-   * Ticks along the top edge wherever a sample was clamped. Only reachable once
-   * the axis is already on its highest rung; without the tick such a sample would
-   * look like one that merely touched the top. Its real value stays in `max`.
+   * Ticks along the top edge wherever a sample was clamped — the dynamic axis is
+   * already on its highest rung, or a fixed axis was chosen below the spike.
+   * Without the tick such a sample would look like one that merely touched the
+   * top. Its real value stays in the `max` readout either way.
    */
   _drawOverScaleMarkers(metrics, scaleMs, combined) {
     const ctx = this._ctx;

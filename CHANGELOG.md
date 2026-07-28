@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Optional frametime graph, switchable in the start menu and drawn in the top-left corner. Each bar is one rendered frame, stacking simulation time (including the WebAssembly boundary) below draw time, with the current frame total, the window's peak, and a dashed line marking the 16.67 ms budget of a single simulation step. The vertical axis snaps to a fixed ladder of millisecond values so light and overloaded frames are both readable, and frames past the top of the scale are capped in red. It measures script work only, not GPU time.
 
 - Start-menu option for the frametime graph's curves: "separate" keeps simulation and draw time as two curves, "combined" plots a single curve for the whole frame.
+- Start-menu option for the frametime graph's vertical axis: "dynamic" keeps snapping the axis to the visible peak, while a fixed 33 ms or 100 ms top holds it still so two moments of the same round can be compared directly. Samples above a fixed axis are clamped and marked, and their real cost stays in the peak readout.
+- A collapsed "Developer Settings" section in the start menu, holding the three frametime-graph options.
 
 ### Changed
 - The frametime graph now draws continuous curves instead of stacked bars, in the style of an external frametime monitor: a thin line over a tinted area, scrolling in from the left while the history fills up.

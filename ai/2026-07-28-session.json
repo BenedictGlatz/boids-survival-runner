@@ -14,5 +14,9 @@
   {
     "model": "claude-opus-5",
     "prompt": "Die Werte im Frametimegraphen sind immer auf volle werte gerundet, warum? Es sollte eine Nachkommastelle dargestllt werden, zudem ist der Graph nicht besonders schön. Ich hatte mir eher eine fortlaufene Linie vorgestellt, so wie beim rivatuner frametime graph im zweiten Bild. Bitte erstelle außerdem im Menü vor dem Spielbeginn eine Option ein nur einen der beiden Werte im Graphen anzuzeigen, also kombiniert, statt getrennt."
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Der Graph skaliert die ganze Zeit die Y-Achse, das macht ihn sehr schnell zu lesen. Bitte gib im Menü eine Option die Y-Achse entweder dynamisch zu machen oder auf 33 oder 100ms zu fixieren.\n\nBündle die frametime graphen Optionen bitte hinter einem \"developer settings\" menü"
   }
 ]

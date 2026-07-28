@@ -26,3 +26,22 @@ export function chooseScale(peakMs, ladderMs) {
 
   return ladderMs[ladderMs.length - 1];
 }
+
+/**
+ * Applies the axis setting chosen in the menu. A fixed top wins over the peak on
+ * purpose: pinning the axis is the whole point of the setting, so a spike must
+ * be clamped and marked rather than allowed to rescale the panel.
+ *
+ * @param {number|string} scaleSetting - A fixed axis top in milliseconds, or the
+ *   dynamic sentinel (`FRAME_GRAPH_SCALE_DYNAMIC`) — anything that is not a number.
+ * @param {number} peakMs - Largest value in the window, used only when dynamic.
+ * @param {readonly number[]} ladderMs - Candidate axis tops, ascending.
+ * @returns {number} The axis top in milliseconds.
+ */
+export function resolveScale(scaleSetting, peakMs, ladderMs) {
+  if (typeof scaleSetting === 'number') {
+    return scaleSetting;
+  }
+
+  return chooseScale(peakMs, ladderMs);
+}

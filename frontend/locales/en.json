@@ -20,6 +20,10 @@
     "frameTimeGraphModeHint": "Separate plots simulation and draw time as their own curve; combined plots one curve for the whole frame.",
     "frameGraphSeparate": "Separate",
     "frameGraphCombined": "Combined",
+    "frameGraphScale": "Graph Scale",
+    "frameGraphScaleHint": "Top of the vertical axis. Dynamic keeps the curves large but rescales as the load changes; a fixed value keeps every moment of a round directly comparable.",
+    "frameGraphScaleDynamic": "Dynamic",
+    "developerSettings": "Developer Settings",
     "on": "On",
     "off": "Off"
   },

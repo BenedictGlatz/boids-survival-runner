@@ -76,16 +76,6 @@ export const FRAME_GRAPH_TEXT_HEIGHT = 30;
  */
 export const FRAME_BUDGET_MS = SIMULATION_STEP_MS;
 
-/**
- * Candidate values for the top of the vertical axis, ascending. The graph picks
- * the lowest rung that still contains the visible peak.
- *
- * A single fixed scale does not work here: a light frame costs a fraction of a
- * millisecond while an overloaded one costs tens of them, so a 33 ms axis flattens
- * normal play into a sub-pixel line at the bottom. A free-floating axis is just as
- * bad — it would rescale on every spike. Snapping to a few coarse rungs keeps the
- * axis stable most of the time, and the panel always prints which rung is in use.
- */
 /** Stroke width of a plotted curve, in CSS pixels. */
 export const FRAME_GRAPH_LINE_WIDTH = 1.5;
 
@@ -97,6 +87,13 @@ export const FRAME_GRAPH_AREA_ALPHA = 0.16;
 export const FRAME_GRAPH_OVER_SCALE_MARK_WIDTH = 2;
 export const FRAME_GRAPH_OVER_SCALE_MARK_HEIGHT = 2;
 
+/**
+ * Candidate values for the top of the vertical axis, ascending. In dynamic mode
+ * the graph picks the lowest rung that still contains the visible peak.
+ *
+ * Snapping to a few coarse rungs rather than tracking the peak exactly keeps the
+ * axis still most of the time, and the panel always prints which rung is in use.
+ */
 export const FRAME_GRAPH_SCALE_LADDER_MS = Object.freeze([
   0.5,
   1,
@@ -106,3 +103,19 @@ export const FRAME_GRAPH_SCALE_LADDER_MS = Object.freeze([
   SIMULATION_STEP_MS,
   SIMULATION_STEP_MS * 2,
 ]);
+
+/**
+ * Selects the dynamic axis instead of one of the fixed tops below. Even snapped
+ * to rungs, a moving axis makes two moments in a round hard to compare: the same
+ * curve height means a different cost before and after a rescale.
+ */
+export const FRAME_GRAPH_SCALE_DYNAMIC = 'dynamic';
+
+/**
+ * Fixed tops offered next to the dynamic axis, in milliseconds. 33 ms is the
+ * frame budget at 30 fps and keeps normal play readable; 100 ms trades that
+ * resolution away for room to see how far a bad stall actually went.
+ */
+export const FRAME_GRAPH_FIXED_SCALES_MS = Object.freeze([33, 100]);
+
+export const DEFAULT_FRAME_GRAPH_SCALE = FRAME_GRAPH_SCALE_DYNAMIC;
