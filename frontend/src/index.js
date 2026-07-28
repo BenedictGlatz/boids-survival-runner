@@ -6,10 +6,18 @@ import { GameState, STATE } from './gameState.js';
 import { Hud } from './ui/hud.js';
 import { Menu } from './ui/menu.js';
 import { loadLocale } from './ui/i18n.js';
+import { FrameScheduler } from './loop/frameScheduler.js';
 import {
+  DEFAULT_TARGET_FPS,
   HIT_COOLDOWN_MS,
+  MAX_SIMULATION_STEPS_PER_FRAME,
   PLAYER_STARTING_LIVES,
+  RENDER_INTERVAL_TOLERANCE_MS,
+  SIMULATION_STEP_MS,
+  SIMULATION_STEP_SECONDS,
   START_COUNTDOWN_SECONDS,
+  TARGET_FPS_OPTIONS,
+  UNCAPPED_TARGET_FPS,
   WAVE_DURATION_SECONDS,
 } from './gameConfig.js';
 
@@ -21,6 +29,17 @@ let hud;
 let menu;
 let canvas;
 let gameData;
+
+// Both live at module scope rather than in gameData: the menu and game-over
+// branches have no gameData, and the frame clock has to keep running across
+// state changes or the first playing frame would see a multi-second delta.
+let targetFps = DEFAULT_TARGET_FPS;
+const scheduler = new FrameScheduler(
+  SIMULATION_STEP_MS,
+  MAX_SIMULATION_STEPS_PER_FRAME,
+  UNCAPPED_TARGET_FPS,
+  RENDER_INTERVAL_TOLERANCE_MS,
+);
 
 const emptyFrame = {
   entityCount: 0,
@@ -47,11 +66,25 @@ async function bootstrap() {
   handleResize();
 
   hud.hide();
-  menu.showStart(() => {
-    void startGame();
-  });
+  showStartMenu();
 
   requestAnimationFrame(loop);
+}
+
+function showStartMenu() {
+  menu.showStart(
+    () => {
+      void startGame();
+    },
+    {
+      options: TARGET_FPS_OPTIONS,
+      selected: targetFps,
+      uncappedValue: UNCAPPED_TARGET_FPS,
+      onSelect: (fps) => {
+        targetFps = fps;
+      },
+    },
+  );
 }
 
 async function startGame() {
@@ -79,10 +112,15 @@ function resetGameData(startedAt, initialFrame) {
     maxLives: PLAYER_STARTING_LIVES,
     timerSeconds: 0,
     wave: 1,
-    entityCount: 0,
-    startedAt,
-    lastFrameAt: startedAt,
-    lastHitAt: -HIT_COOLDOWN_MS,
+    // Seeded from the initial snapshot so the HUD shows the real boid count
+    // while the countdown runs and no simulation step has happened yet.
+    entityCount: initialFrame.entityCount,
+    // Authoritative game clock: advanced by the fixed simulation step, not by
+    // wall time, so backgrounding the tab cannot hand out free score.
+    simulationTimeMs: 0,
+    lastHitAtSimulationMs: -HIT_COOLDOWN_MS,
+    // The countdown runs before the simulation starts, so it stays on wall
+    // time — three seconds should be three real seconds.
     countdownEndsAt: startedAt + START_COUNTDOWN_SECONDS * 1000,
     roundActive: false,
     currentFrame: initialFrame,
@@ -90,80 +128,127 @@ function resetGameData(startedAt, initialFrame) {
 }
 
 function loop(timestamp) {
+  // The simulation is advanced first and is never gated: the Rust engine runs
+  // exactly one fixed step per tick(), so skipping ticks would slow the whole
+  // world down instead of just drawing less often.
   if (state.is(STATE.PLAYING)) {
-    updatePlayingFrame(timestamp);
-  } else {
-    renderer.drawFrame(emptyFrame, player.getPosition());
+    advanceSimulation(timestamp);
+  }
+
+  // Only drawing follows the chosen target framerate.
+  if (scheduler.shouldRenderNow(timestamp, targetFps)) {
+    scheduler.markRendered(timestamp);
+    renderCurrentState(timestamp);
   }
 
   requestAnimationFrame(loop);
 }
 
-function updatePlayingFrame(timestamp) {
+function advanceSimulation(timestamp) {
   if (!gameData.roundActive) {
-    updateCountdownFrame(timestamp);
+    // The world is frozen during the countdown, so no debt may pile up — three
+    // seconds of it would open the round with a burst of catch-up steps that
+    // teleports boids into the player.
+    scheduler.discardPendingTime();
+    advanceCountdown(timestamp);
     return;
   }
 
-  const playerPosition = updatePlayerPosition(timestamp);
-  gameData.timerSeconds = (timestamp - gameData.startedAt) / 1000;
+  const steps = scheduler.beginFrame(timestamp);
+
+  for (let step = 0; step < steps; step += 1) {
+    runSimulationStep();
+
+    if (gameData.lives <= 0) {
+      scheduler.discardPendingTime();
+      endRound();
+      return;
+    }
+  }
+}
+
+function runSimulationStep() {
+  gameData.simulationTimeMs += SIMULATION_STEP_MS;
+  gameData.timerSeconds = gameData.simulationTimeMs / 1000;
   gameData.score = Math.floor(gameData.timerSeconds);
 
+  // The player has to move inside the same fixed step as the flock: its
+  // position is an input to tick() and to the engine's collision test, so
+  // integrating it per rendered frame would desync the two.
+  const playerPosition = player.update(
+    input.getMovementDirection(),
+    SIMULATION_STEP_SECONDS,
+    {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    },
+  );
+
+  // Runs per step so newly spawned boids exist before this step's tick(), and
+  // so setWave sees the current player position for safe-spawn placement.
   updateWaveProgression(playerPosition);
 
   const frame = tick(playerPosition);
-  const playerInvulnerable = timestamp - gameData.lastHitAt < HIT_COOLDOWN_MS;
-  gameData.entityCount = frame.entityCount;
   gameData.currentFrame = frame;
+  gameData.entityCount = frame.entityCount;
 
-  if (frame.hitCount > 0 && !playerInvulnerable) {
+  // Every step's hit count is consumed here. Reading only the last frame of a
+  // multi-step frame would silently drop a hit from an earlier step.
+  if (frame.hitCount > 0 && !isPlayerInvulnerable()) {
     gameData.lives -= 1;
-    gameData.lastHitAt = timestamp;
-  }
-
-  renderer.drawFrame(frame, playerPosition, {
-    playerInvulnerable: timestamp - gameData.lastHitAt < HIT_COOLDOWN_MS,
-    lives: gameData.lives,
-    maxLives: gameData.maxLives,
-  });
-  hud.update(gameData);
-
-  if (gameData.lives <= 0) {
-    state.transition(STATE.GAME_OVER);
-    hud.hide();
-    menu.showGameOver(() => {
-      void restartGame();
-    }, gameData.score);
+    gameData.lastHitAtSimulationMs = gameData.simulationTimeMs;
   }
 }
 
-function updateCountdownFrame(timestamp) {
-  const playerPosition = player.getPosition();
-  const remainingMilliseconds = gameData.countdownEndsAt - timestamp;
+function isPlayerInvulnerable() {
+  return gameData.simulationTimeMs - gameData.lastHitAtSimulationMs < HIT_COOLDOWN_MS;
+}
 
-  if (remainingMilliseconds <= 0) {
-    beginRound(timestamp);
+function renderCurrentState(timestamp) {
+  if (!state.is(STATE.PLAYING)) {
+    renderer.drawFrame(emptyFrame, player.getPosition());
     return;
   }
 
-  gameData.timerSeconds = 0;
-  gameData.score = 0;
-  gameData.entityCount = gameData.currentFrame.entityCount;
+  const playerPosition = player.getPosition();
 
-  renderer.drawFrame(gameData.currentFrame, playerPosition, {
-    lives: gameData.lives,
-    maxLives: gameData.maxLives,
-    countdownSeconds: Math.ceil(remainingMilliseconds / 1000),
-    playerInvulnerable: true,
-  });
+  if (gameData.roundActive) {
+    renderer.drawFrame(gameData.currentFrame, playerPosition, {
+      playerInvulnerable: isPlayerInvulnerable(),
+      lives: gameData.lives,
+      maxLives: gameData.maxLives,
+    });
+  } else {
+    renderer.drawFrame(gameData.currentFrame, playerPosition, {
+      lives: gameData.lives,
+      maxLives: gameData.maxLives,
+      countdownSeconds: Math.ceil((gameData.countdownEndsAt - timestamp) / 1000),
+      playerInvulnerable: true,
+    });
+  }
+
   hud.update(gameData);
 }
 
-function beginRound(timestamp) {
+function advanceCountdown(timestamp) {
+  if (gameData.countdownEndsAt - timestamp <= 0) {
+    beginRound();
+  }
+}
+
+function beginRound() {
   gameData.roundActive = true;
-  gameData.startedAt = timestamp;
-  gameData.lastFrameAt = timestamp;
-  gameData.lastHitAt = timestamp;
+  gameData.simulationTimeMs = 0;
+  gameData.lastHitAtSimulationMs = -HIT_COOLDOWN_MS;
+  scheduler.discardPendingTime();
+}
+
+function endRound() {
+  state.transition(STATE.GAME_OVER);
+  hud.hide();
+  menu.showGameOver(() => {
+    void restartGame();
+  }, gameData.score);
 }
 
 function updateWaveProgression(playerPosition) {
@@ -175,16 +260,6 @@ function updateWaveProgression(playerPosition) {
 
   gameData.wave = nextWave;
   setWave(gameData.wave, playerPosition);
-}
-
-function updatePlayerPosition(timestamp) {
-  const elapsedSeconds = (timestamp - gameData.lastFrameAt) / 1000;
-  gameData.lastFrameAt = timestamp;
-
-  return player.update(input.getMovementDirection(), elapsedSeconds, {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
 }
 
 function handleResize() {

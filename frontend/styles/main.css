@@ -134,6 +134,61 @@ body {
   outline-offset: 3px;
 }
 
+.menu-option-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.menu-option-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(244, 244, 245, 0.72);
+  text-transform: uppercase;
+}
+
+.menu-option-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.menu-option {
+  min-width: 5.5rem;
+  min-height: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f4f4f5;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.menu-option:hover,
+.menu-option:focus-visible {
+  border-color: #7dd3fc;
+  outline: 3px solid rgba(248, 250, 252, 0.7);
+  outline-offset: 3px;
+}
+
+.menu-option.is-selected {
+  border-color: #38bdf8;
+  background: #38bdf8;
+  color: #031525;
+}
+
+/* Scoped to the panel on purpose: `.menu-panel p` above is more specific than a
+   bare `.menu-hint` and would win regardless of source order. */
+.menu-panel .menu-hint {
+  max-width: 22rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: rgba(244, 244, 245, 0.6);
+  text-align: center;
+}
+
 @media (max-width: 640px) {
   .hud-panel {
     min-width: 6.25rem;
@@ -170,5 +225,14 @@ body {
 
   .menu-panel h1 {
     font-size: 2.4rem;
+  }
+
+  .menu-option {
+    min-width: 4.25rem;
+    font-size: 0.9rem;
+  }
+
+  .menu-panel .menu-hint {
+    font-size: 0.78rem;
   }
 }

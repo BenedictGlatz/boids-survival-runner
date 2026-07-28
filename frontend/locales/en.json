@@ -9,6 +9,12 @@
     "restart": "Restart",
     "finalScore": "Final Score"
   },
+  "settings": {
+    "targetFps": "Target FPS",
+    "fpsUnit": "FPS",
+    "fpsUncapped": "Max",
+    "fpsHint": "Higher values are limited by your display's refresh rate."
+  },
   "hud": {
     "score": "Score",
     "lives": "Lives",

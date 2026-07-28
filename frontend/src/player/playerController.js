@@ -1,6 +1,7 @@
 import {
   PLAYER_ACCELERATION,
   PLAYER_DECELERATION,
+  PLAYER_MAX_DELTA_SECONDS,
   PLAYER_MAX_SPEED,
   PLAYER_VISUAL_RADIUS,
 } from '../gameConfig.js';
@@ -17,7 +18,7 @@ export class PlayerController {
   }
 
   update(direction, deltaSeconds, bounds) {
-    const safeDeltaSeconds = Math.min(Math.max(deltaSeconds, 0), 0.05);
+    const safeDeltaSeconds = Math.min(Math.max(deltaSeconds, 0), PLAYER_MAX_DELTA_SECONDS);
 
     if (direction.x !== 0 || direction.y !== 0) {
       this.velocity.x += direction.x * PLAYER_ACCELERATION * safeDeltaSeconds;
