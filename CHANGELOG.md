@@ -22,12 +22,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Three-second start countdown with initial boids spawned away from the player.
 - Boids are now drawn as small arrows that point along their flight direction, so the swarm's movement is readable at a glance.
 - Target framerate selector (30, 60, or 120 FPS) in the start menu; the highest option renders as fast as the display allows. The choice is kept for the rest of the session, including restarts.
+- Optional frametime graph, switchable in the start menu and drawn in the top-left corner. Each bar is one rendered frame, stacking simulation time (including the WebAssembly boundary) below draw time, with the current frame total, the window's peak, and a dashed line marking the 16.67 ms budget of a single simulation step. The vertical axis snaps to a fixed ladder of millisecond values so light and overloaded frames are both readable, and frames past the top of the scale are capped in red. It measures script work only, not GPU time.
 
 ### Changed
 - The engine now stores movement and perception tuning as per-boid properties with named defaults, so different boid variants can coexist in the same flock.
 - The Copilot instructions now explicitly require heterogeneous boid support instead of assuming one global parameter set for every boid.
 - Frontend Vite scripts now build the Rust/WASM package into an ignored frontend import folder before dev/build runs.
 - The game loop now runs on a fixed timestep: the simulation always advances 60 logical steps per second and only rendering follows the chosen framerate, so difficulty and player speed no longer depend on the display refresh rate.
+- Start-menu settings are now built from a shared option-group module, so every setting renders and behaves identically instead of repeating the markup and selection logic per option.
 
 ### Fixed
 - The score and in-game timer no longer advance while the browser tab is in the background, which previously handed out score for time in which no boid moved.

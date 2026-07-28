@@ -5,10 +5,14 @@ import { PlayerController } from './player/playerController.js';
 import { GameState, STATE } from './gameState.js';
 import { Hud } from './ui/hud.js';
 import { Menu } from './ui/menu.js';
+import { FrameTimeGraph } from './ui/frameTimeGraph.js';
 import { loadLocale } from './ui/i18n.js';
 import { FrameScheduler } from './loop/frameScheduler.js';
+import { FrameMetrics } from './loop/frameMetrics.js';
 import {
+  DEFAULT_FRAME_GRAPH_ENABLED,
   DEFAULT_TARGET_FPS,
+  FRAME_GRAPH_SAMPLE_COUNT,
   HIT_COOLDOWN_MS,
   MAX_SIMULATION_STEPS_PER_FRAME,
   PLAYER_STARTING_LIVES,
@@ -27,19 +31,24 @@ let player;
 let state;
 let hud;
 let menu;
+let frameTimeGraph;
 let canvas;
 let gameData;
 
-// Both live at module scope rather than in gameData: the menu and game-over
+// These live at module scope rather than in gameData: the menu and game-over
 // branches have no gameData, and the frame clock has to keep running across
 // state changes or the first playing frame would see a multi-second delta.
 let targetFps = DEFAULT_TARGET_FPS;
+let frameGraphEnabled = DEFAULT_FRAME_GRAPH_ENABLED;
 const scheduler = new FrameScheduler(
   SIMULATION_STEP_MS,
   MAX_SIMULATION_STEPS_PER_FRAME,
   UNCAPPED_TARGET_FPS,
   RENDER_INTERVAL_TOLERANCE_MS,
 );
+// Sampled unconditionally: the cost is two performance.now() calls per frame, and
+// keeping it always on means the graph shows real history the moment it is shown.
+const frameMetrics = new FrameMetrics(FRAME_GRAPH_SAMPLE_COUNT);
 
 const emptyFrame = {
   entityCount: 0,
@@ -60,12 +69,16 @@ async function bootstrap() {
   player.reset(window.innerWidth * 0.5, window.innerHeight * 0.5);
   state = new GameState();
   hud = new Hud();
+  // Created before the menu on purpose: stacking inside #ui-overlay follows DOM
+  // order, and the menu overlay has to stay on top of the graph.
+  frameTimeGraph = new FrameTimeGraph();
   menu = new Menu();
 
   window.addEventListener('resize', handleResize);
   handleResize();
 
   hud.hide();
+  frameTimeGraph.hide();
   showStartMenu();
 
   requestAnimationFrame(loop);
@@ -77,11 +90,19 @@ function showStartMenu() {
       void startGame();
     },
     {
-      options: TARGET_FPS_OPTIONS,
-      selected: targetFps,
-      uncappedValue: UNCAPPED_TARGET_FPS,
-      onSelect: (fps) => {
-        targetFps = fps;
+      targetFps: {
+        options: TARGET_FPS_OPTIONS,
+        selected: targetFps,
+        uncappedValue: UNCAPPED_TARGET_FPS,
+        onSelect: (fps) => {
+          targetFps = fps;
+        },
+      },
+      frameGraph: {
+        enabled: frameGraphEnabled,
+        onToggle: (enabled) => {
+          frameGraphEnabled = enabled;
+        },
       },
     },
   );
@@ -99,6 +120,14 @@ async function startGame() {
   state.transition(STATE.PLAYING);
   menu.hide();
   hud.show();
+
+  // Dropped so the graph opens on this round's frames instead of the idle menu
+  // ones and the engine-loading spike that precedes them.
+  frameMetrics.reset();
+
+  if (frameGraphEnabled) {
+    frameTimeGraph.show();
+  }
 }
 
 async function restartGame() {
@@ -128,6 +157,8 @@ function resetGameData(startedAt, initialFrame) {
 }
 
 function loop(timestamp) {
+  const simulationStartedAt = performance.now();
+
   // The simulation is advanced first and is never gated: the Rust engine runs
   // exactly one fixed step per tick(), so skipping ticks would slow the whole
   // world down instead of just drawing less often.
@@ -135,10 +166,23 @@ function loop(timestamp) {
     advanceSimulation(timestamp);
   }
 
+  // Recorded on every animation frame, not only on drawn ones: with rendering
+  // throttled there are more simulation frames than bars, and sampling only the
+  // drawn ones would hide part of the work the simulation actually did.
+  frameMetrics.addSimulationTime(performance.now() - simulationStartedAt);
+
   // Only drawing follows the chosen target framerate.
   if (scheduler.shouldRenderNow(timestamp, targetFps)) {
     scheduler.markRendered(timestamp);
+
+    const renderStartedAt = performance.now();
     renderCurrentState(timestamp);
+    frameMetrics.commitRenderedFrame(performance.now() - renderStartedAt);
+
+    // Drawn after the measurement closes, so the graph never reports its own cost.
+    if (frameGraphEnabled) {
+      frameTimeGraph.draw(frameMetrics);
+    }
   }
 
   requestAnimationFrame(loop);
@@ -246,6 +290,7 @@ function beginRound() {
 function endRound() {
   state.transition(STATE.GAME_OVER);
   hud.hide();
+  frameTimeGraph.hide();
   menu.showGameOver(() => {
     void restartGame();
   }, gameData.score);
@@ -265,6 +310,9 @@ function updateWaveProgression(playerPosition) {
 function handleResize() {
   renderer.resize(window.innerWidth, window.innerHeight);
   resizeEngine(window.innerWidth, window.innerHeight);
+  // Its size is fixed, but a window moved to another monitor can change the
+  // device pixel ratio, which would leave the graph blurry.
+  frameTimeGraph.resize();
 
   if (player) {
     player.clampToBounds({

@@ -2,6 +2,11 @@ import { t } from './i18n.js';
 import { bindOptionGroup, renderOptionGroup } from './optionGroup.js';
 
 const FPS_GROUP_ID = 'fps-options';
+const FRAME_GRAPH_GROUP_ID = 'frame-graph-options';
+
+/** Raw values of the frametime-graph toggle, as carried in the DOM. */
+const FRAME_GRAPH_ON = 'on';
+const FRAME_GRAPH_OFF = 'off';
 
 /**
  * Start-menu and game-over overlay UI.
@@ -15,21 +20,30 @@ export class Menu {
   }
 
   /**
+   * Settings arrive as one object rather than as positional arguments, so adding
+   * a further setting does not keep widening the signature.
+   *
    * @param {() => void} onStart
-   * @param {{options: number[], selected: number, uncappedValue: number,
-   *          onSelect: (fps: number) => void}} targetFpsSetting
+   * @param {{targetFps: {options: number[], selected: number, uncappedValue: number,
+   *                      onSelect: (fps: number) => void},
+   *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void}}} settings
    */
-  showStart(onStart, targetFpsSetting) {
+  showStart(onStart, settings) {
     this._el.innerHTML = `
       <div class="menu-panel">
         <h1>${t('menu.title')}</h1>
-        ${renderTargetFpsGroup(targetFpsSetting)}
+        ${renderTargetFpsGroup(settings.targetFps)}
+        ${renderFrameGraphGroup(settings.frameGraph)}
         <button id="btn-start" class="menu-button">${t('menu.play')}</button>
       </div>
     `;
 
     bindOptionGroup(FPS_GROUP_ID, (value) => {
-      targetFpsSetting.onSelect(Number(value));
+      settings.targetFps.onSelect(Number(value));
+    });
+
+    bindOptionGroup(FRAME_GRAPH_GROUP_ID, (value) => {
+      settings.frameGraph.onToggle(value === FRAME_GRAPH_ON);
     });
 
     document.getElementById('btn-start').addEventListener('click', onStart);
@@ -70,5 +84,17 @@ function renderTargetFpsGroup({ options, selected, uncappedValue }) {
         selected: fps === selected,
       };
     }),
+  });
+}
+
+function renderFrameGraphGroup({ enabled }) {
+  return renderOptionGroup({
+    id: FRAME_GRAPH_GROUP_ID,
+    label: t('settings.frameTimeGraph'),
+    hint: t('settings.frameTimeGraphHint'),
+    options: [
+      { value: FRAME_GRAPH_OFF, label: t('settings.off'), selected: !enabled },
+      { value: FRAME_GRAPH_ON, label: t('settings.on'), selected: enabled },
+    ],
   });
 }

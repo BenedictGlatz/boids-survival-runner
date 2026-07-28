@@ -39,3 +39,47 @@ export const UNCAPPED_TARGET_FPS = 120;
  * display frame, producing alternating 33/50 ms frames (visible judder).
  */
 export const RENDER_INTERVAL_TOLERANCE_MS = 2;
+
+// ---------------------------------------------------------------------------
+// Frametime graph (opt-in performance overlay)
+// ---------------------------------------------------------------------------
+
+/** Off by default: the graph is a diagnostic tool, not part of the game. */
+export const DEFAULT_FRAME_GRAPH_ENABLED = false;
+
+/** Bars kept in the history — roughly two seconds of frames at 60 fps. */
+export const FRAME_GRAPH_SAMPLE_COUNT = 120;
+
+/** Panel size in CSS pixels. */
+export const FRAME_GRAPH_WIDTH = 184;
+export const FRAME_GRAPH_HEIGHT = 96;
+export const FRAME_GRAPH_PADDING = 6;
+
+/** Vertical space above the plot reserved for the two text rows. */
+export const FRAME_GRAPH_TEXT_HEIGHT = 30;
+
+/**
+ * Reference line. One simulation step owns this much wall-clock time, so work
+ * above the line means the simulation can no longer keep up in real time.
+ */
+export const FRAME_BUDGET_MS = SIMULATION_STEP_MS;
+
+/**
+ * Candidate values for the top of the vertical axis, ascending. The graph picks
+ * the lowest rung that still contains the visible peak.
+ *
+ * A single fixed scale does not work here: a light frame costs a fraction of a
+ * millisecond while an overloaded one costs tens of them, so a 33 ms axis flattens
+ * normal play into a sub-pixel line at the bottom. A free-floating axis is just as
+ * bad — it would rescale on every spike. Snapping to a few coarse rungs keeps the
+ * axis stable most of the time, and the panel always prints which rung is in use.
+ */
+export const FRAME_GRAPH_SCALE_LADDER_MS = Object.freeze([
+  0.5,
+  1,
+  2,
+  4,
+  8,
+  SIMULATION_STEP_MS,
+  SIMULATION_STEP_MS * 2,
+]);

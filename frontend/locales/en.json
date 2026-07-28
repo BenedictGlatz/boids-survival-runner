@@ -13,7 +13,11 @@
     "targetFps": "Target FPS",
     "fpsUnit": "FPS",
     "fpsUncapped": "Max",
-    "fpsHint": "Higher values are limited by your display's refresh rate."
+    "fpsHint": "Higher values are limited by your display's refresh rate.",
+    "frameTimeGraph": "Frametime Graph",
+    "frameTimeGraphHint": "Shows simulation and draw time per frame in the top-left corner. Measures script work only, not GPU time.",
+    "on": "On",
+    "off": "Off"
   },
   "hud": {
     "score": "Score",
@@ -21,5 +25,12 @@
     "timer": "Time",
     "wave": "Wave",
     "boids": "Boids"
+  },
+  "perf": {
+    "simulation": "sim",
+    "render": "draw",
+    "max": "max",
+    "scale": "top",
+    "milliseconds": "ms"
   }
 }

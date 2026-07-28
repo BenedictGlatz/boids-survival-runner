@@ -59,6 +59,17 @@ body {
   left: 1rem;
 }
 
+/* Mirrors the .hud-panel look, but without its padding: on a <canvas> padding
+   grows the element box around the drawing surface and would break the 1:1
+   mapping the graph relies on. Its size comes from the canvas attributes. */
+.frame-time-graph {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(8, 10, 14, 0.58);
+  backdrop-filter: blur(6px);
+}
+
 .top-center {
   top: 1rem;
   left: 50%;
