@@ -54,6 +54,7 @@ function normalizeFrameResponse(response) {
     hitCount: response.hit_count,
     hit: response.hit,
     positions: response.positions(),
+    velocities: response.velocities(),
     tiers: response.tiers(),
   };
 }

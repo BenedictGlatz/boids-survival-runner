@@ -1,5 +1,4 @@
 pub mod response;
-pub mod types;
 
 use self::response::FrameResponse;
 use crate::constants::{
@@ -23,6 +22,7 @@ pub struct GameEngine {
     initial_boid_count: u32,
     current_wave: u32,
     positions_buffer: Vec<f32>,
+    velocities_buffer: Vec<f32>,
     tiers_buffer: Vec<u32>,
 }
 
@@ -59,6 +59,7 @@ impl GameEngine {
             initial_boid_count: spawn_count,
             current_wave: 1,
             positions_buffer: Vec::with_capacity(spawn_count as usize * 2),
+            velocities_buffer: Vec::with_capacity(spawn_count as usize * 2),
             tiers_buffer: Vec::with_capacity(spawn_count as usize),
         }
     }
@@ -117,11 +118,14 @@ impl GameEngine {
 
     fn build_frame_response(&mut self, hit_count: u32) -> FrameResponse {
         self.positions_buffer.clear();
+        self.velocities_buffer.clear();
         self.tiers_buffer.clear();
 
         for boid in &self.flock.boids {
             self.positions_buffer.push(boid.position.x);
             self.positions_buffer.push(boid.position.y);
+            self.velocities_buffer.push(boid.velocity.x);
+            self.velocities_buffer.push(boid.velocity.y);
             self.tiers_buffer.push(boid.difficulty_tier);
         }
 
@@ -129,6 +133,7 @@ impl GameEngine {
             self.flock.len() as u32,
             hit_count,
             self.positions_buffer.clone(),
+            self.velocities_buffer.clone(),
             self.tiers_buffer.clone(),
         )
     }

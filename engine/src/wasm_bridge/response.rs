@@ -7,6 +7,7 @@ pub struct FrameResponse {
     entity_count: u32,
     hit_count: u32,
     positions: Vec<f32>,
+    velocities: Vec<f32>,
     tiers: Vec<u32>,
 }
 
@@ -15,12 +16,14 @@ impl FrameResponse {
         entity_count: u32,
         hit_count: u32,
         positions: Vec<f32>,
+        velocities: Vec<f32>,
         tiers: Vec<u32>,
     ) -> Self {
         Self {
             entity_count,
             hit_count,
             positions,
+            velocities,
             tiers,
         }
     }
@@ -49,6 +52,12 @@ impl FrameResponse {
     /// Returns a flat positions buffer: [x0, y0, x1, y1, ...].
     pub fn positions(&self) -> Float32Array {
         Float32Array::from(self.positions.as_slice())
+    }
+
+    /// Returns a flat velocities buffer: [vx0, vy0, vx1, vy1, ...].
+    /// Lets the renderer orient each boid along its heading.
+    pub fn velocities(&self) -> Float32Array {
+        Float32Array::from(self.velocities.as_slice())
     }
 
     /// Returns one difficulty tier for each boid in the positions buffer.

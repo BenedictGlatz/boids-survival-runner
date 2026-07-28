@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - A local segmented life bar drawn directly beneath the player character.
 - Wave progression that spawns additional, harder boid variants with colour tiers.
 - Three-second start countdown with initial boids spawned away from the player.
+- Boids are now drawn as small arrows that point along their flight direction, so the swarm's movement is readable at a glance.
 
 ### Changed
 - The engine now stores movement and perception tuning as per-boid properties with named defaults, so different boid variants can coexist in the same flock.

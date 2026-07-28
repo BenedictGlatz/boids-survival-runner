@@ -1,9 +1,15 @@
-import { BOID_VISUAL_RADIUS, PLAYER_VISUAL_RADIUS } from '../gameConfig.js';
+import {
+  BOID_TAIL_INSET,
+  BOID_VISUAL_LENGTH,
+  BOID_VISUAL_WIDTH,
+  PLAYER_VISUAL_RADIUS,
+} from '../gameConfig.js';
 
 const BACKGROUND_COLOR = '#111318';
 const GRID_COLOR = 'rgba(255, 255, 255, 0.07)';
 const GRID_SIZE = 56;
-const BOID_RING_COLOR = 'rgba(255, 255, 255, 0.22)';
+const BOID_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.22)';
+const BOID_OUTLINE_WIDTH = 1.5;
 const PLAYER_COLOR = '#38bdf8';
 const PLAYER_HIT_COLOR = '#facc15';
 const BOID_COLORS = ['#f03a5f', '#fb7185', '#f97316', '#eab308', '#a855f7'];
@@ -11,6 +17,21 @@ const HEALTH_BAR_WIDTH = 52;
 const HEALTH_BAR_HEIGHT = 7;
 const HEALTH_BAR_GAP = 3;
 const HEALTH_BAR_OFFSET = 10;
+
+/**
+ * Arrow outline in boid-local coordinates as [forward, lateral] pairs, drawn in
+ * order. The tail notch between the wings gives the dart its concave back.
+ */
+const BOID_ARROW_SHAPE = [
+  [BOID_VISUAL_LENGTH * 0.5, 0],
+  [-BOID_VISUAL_LENGTH * 0.5, BOID_VISUAL_WIDTH * 0.5],
+  [-BOID_VISUAL_LENGTH * 0.5 + BOID_TAIL_INSET, 0],
+  [-BOID_VISUAL_LENGTH * 0.5, -BOID_VISUAL_WIDTH * 0.5],
+];
+
+/** Heading used when a boid is momentarily at rest, so the shape stays stable. */
+const DEFAULT_HEADING_X = 1;
+const DEFAULT_HEADING_Y = 0;
 
 /**
  * Canvas 2D renderer implementation.
@@ -44,7 +65,7 @@ export class CanvasRenderer {
 
     drawBackground(ctx, this._width, this._height);
     drawGrid(ctx, this._width, this._height);
-    drawBoids(ctx, frame.positions, frame.tiers);
+    drawBoids(ctx, frame.positions, frame.velocities, frame.tiers);
     drawPlayer(ctx, playerPosition, renderState.playerInvulnerable === true);
     drawPlayerHealth(ctx, playerPosition, renderState, this._width, this._height);
     drawCountdown(ctx, renderState.countdownSeconds, this._width, this._height);
@@ -74,8 +95,11 @@ function drawGrid(ctx, width, height) {
   ctx.stroke();
 }
 
-function drawBoids(ctx, positions, tiers) {
+function drawBoids(ctx, positions, velocities, tiers) {
   if (!positions) return;
+
+  ctx.strokeStyle = BOID_OUTLINE_COLOR;
+  ctx.lineWidth = BOID_OUTLINE_WIDTH;
 
   for (let index = 0; index < positions.length; index += 2) {
     const x = positions[index];
@@ -83,13 +107,32 @@ function drawBoids(ctx, positions, tiers) {
     const boidIndex = index / 2;
     const tier = tiers?.[boidIndex] ?? 0;
 
+    // The heading unit vector is itself the rotation matrix, so the arrow is
+    // built directly in world space. Rotating the context per boid would risk
+    // clobbering the device-pixel-ratio transform set up in resize().
+    const velocityX = velocities?.[index] ?? 0;
+    const velocityY = velocities?.[index + 1] ?? 0;
+    const speed = Math.hypot(velocityX, velocityY);
+    const headingX = speed === 0 ? DEFAULT_HEADING_X : velocityX / speed;
+    const headingY = speed === 0 ? DEFAULT_HEADING_Y : velocityY / speed;
+
     ctx.fillStyle = BOID_COLORS[Math.min(tier, BOID_COLORS.length - 1)];
     ctx.beginPath();
-    ctx.arc(x, y, BOID_VISUAL_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
 
-    ctx.strokeStyle = BOID_RING_COLOR;
-    ctx.lineWidth = 2;
+    for (let corner = 0; corner < BOID_ARROW_SHAPE.length; corner += 1) {
+      const [forward, lateral] = BOID_ARROW_SHAPE[corner];
+      const pointX = x + forward * headingX - lateral * headingY;
+      const pointY = y + forward * headingY + lateral * headingX;
+
+      if (corner === 0) {
+        ctx.moveTo(pointX, pointY);
+      } else {
+        ctx.lineTo(pointX, pointY);
+      }
+    }
+
+    ctx.closePath();
+    ctx.fill();
     ctx.stroke();
   }
 }

@@ -27,6 +27,7 @@ const emptyFrame = {
   hitCount: 0,
   hit: false,
   positions: new Float32Array(),
+  velocities: new Float32Array(),
   tiers: new Uint32Array(),
 };
 
