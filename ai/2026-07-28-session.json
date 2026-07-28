@@ -10,5 +10,9 @@
   {
     "model": "claude-opus-5",
     "prompt": "Ich habe eben mit dir den Frametime-Graphen als Feature umgesetzt, du hattest am Ende diesen Vorschlag:\n\n\"Tests stehen aus. Es gibt kein JS-Testframework im Repo, also habe ich keins eingeführt. Meine FrameMetrics-Assertions liefen als Wegwerf-Skript im Scratchpad, sie sind nicht committet. Wenn du Vitest willst, richte ich es als eigenen Schritt ein — abzudecken wären Akkumulator-Flush, Wraparound, summary() auf leerem Puffer und reset().\"\n\nIch möchte dass du dieses Testframework einführst, wie von dir vorgeschlagen. Bitte dokumentiere es auch."
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Die Werte im Frametimegraphen sind immer auf volle werte gerundet, warum? Es sollte eine Nachkommastelle dargestllt werden, zudem ist der Graph nicht besonders schön. Ich hatte mir eher eine fortlaufene Linie vorgestellt, so wie beim rivatuner frametime graph im zweiten Bild. Bitte erstelle außerdem im Menü vor dem Spielbeginn eine Option ein nur einen der beiden Werte im Graphen anzuzeigen, also kombiniert, statt getrennt."
   }
 ]

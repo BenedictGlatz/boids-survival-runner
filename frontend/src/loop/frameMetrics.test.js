@@ -130,6 +130,11 @@ describe('FrameMetrics summary', () => {
       lastSimulationMs: 0,
       lastRenderMs: 0,
       lastTotalMs: 0,
+      averageSimulationMs: 0,
+      averageRenderMs: 0,
+      averageTotalMs: 0,
+      maxSimulationMs: 0,
+      maxRenderMs: 0,
       maxTotalMs: 0,
     });
   });
@@ -160,6 +165,84 @@ describe('FrameMetrics summary', () => {
 
     expect(summary.lastTotalMs).toBeCloseTo(1);
     expect(summary.maxTotalMs).toBeCloseTo(9);
+  });
+});
+
+describe('FrameMetrics averages', () => {
+  it('averages over the samples present, not over the whole capacity', () => {
+    // A half-filled buffer must not be diluted by the slots nobody wrote to,
+    // otherwise the panel would read far too low right after a round starts.
+    const metrics = new FrameMetrics(TEST_CAPACITY);
+
+    metrics.addSimulationTime(2);
+    metrics.commitRenderedFrame(0);
+    metrics.addSimulationTime(4);
+    metrics.commitRenderedFrame(0);
+
+    expect(metrics.summary().averageSimulationMs).toBeCloseTo(3);
+  });
+
+  it('recovers a fractional average from measurements the browser rounded', () => {
+    // This is the whole point of the averages: browsers coarsen
+    // performance.now() (Firefox to 1 ms), so every sample arrives as an
+    // integer. Three of four frames costing 1 ms really means 0.75 ms.
+    const metrics = new FrameMetrics(TEST_CAPACITY);
+
+    for (const measuredMs of [1, 1, 1, 0]) {
+      metrics.addSimulationTime(measuredMs);
+      metrics.commitRenderedFrame(0);
+    }
+
+    expect(metrics.summary().averageSimulationMs).toBeCloseTo(0.75);
+  });
+
+  it('adds the two averages into the frame average', () => {
+    const metrics = new FrameMetrics(TEST_CAPACITY);
+
+    metrics.addSimulationTime(1);
+    metrics.commitRenderedFrame(3);
+    metrics.addSimulationTime(3);
+    metrics.commitRenderedFrame(1);
+
+    const summary = metrics.summary();
+
+    expect(summary.averageSimulationMs).toBeCloseTo(2);
+    expect(summary.averageRenderMs).toBeCloseTo(2);
+    expect(summary.averageTotalMs).toBeCloseTo(4);
+  });
+
+  it('drops samples out of the average once they leave the window', () => {
+    const metrics = new FrameMetrics(TEST_CAPACITY);
+
+    metrics.addSimulationTime(100);
+    metrics.commitRenderedFrame(0);
+
+    for (let frame = 0; frame < TEST_CAPACITY; frame += 1) {
+      metrics.addSimulationTime(2);
+      metrics.commitRenderedFrame(0);
+    }
+
+    expect(metrics.summary().averageSimulationMs).toBeCloseTo(2);
+  });
+});
+
+describe('FrameMetrics per-series peaks', () => {
+  it('tracks the simulation and draw peaks independently of the frame peak', () => {
+    // The graph scales two separate curves against the larger of the two peaks,
+    // so a peak that only ever existed as a sum would waste the panel's height.
+    const metrics = new FrameMetrics(TEST_CAPACITY);
+
+    metrics.addSimulationTime(5);
+    metrics.commitRenderedFrame(1);
+    metrics.addSimulationTime(1);
+    metrics.commitRenderedFrame(3);
+
+    const summary = metrics.summary();
+
+    expect(summary.maxSimulationMs).toBeCloseTo(5);
+    expect(summary.maxRenderMs).toBeCloseTo(3);
+    // No single frame ever cost 8 ms — the two peaks are in different frames.
+    expect(summary.maxTotalMs).toBeCloseTo(6);
   });
 });
 

@@ -1,8 +1,10 @@
 import { t } from './i18n.js';
 import { bindOptionGroup, renderOptionGroup } from './optionGroup.js';
+import { FRAME_GRAPH_MODE } from '../gameConfig.js';
 
 const FPS_GROUP_ID = 'fps-options';
 const FRAME_GRAPH_GROUP_ID = 'frame-graph-options';
+const FRAME_GRAPH_MODE_GROUP_ID = 'frame-graph-mode-options';
 
 /** Raw values of the frametime-graph toggle, as carried in the DOM. */
 const FRAME_GRAPH_ON = 'on';
@@ -26,7 +28,8 @@ export class Menu {
    * @param {() => void} onStart
    * @param {{targetFps: {options: number[], selected: number, uncappedValue: number,
    *                      onSelect: (fps: number) => void},
-   *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void}}} settings
+   *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void},
+   *          frameGraphMode: {selected: string, onSelect: (mode: string) => void}}} settings
    */
   showStart(onStart, settings) {
     this._el.innerHTML = `
@@ -34,6 +37,7 @@ export class Menu {
         <h1>${t('menu.title')}</h1>
         ${renderTargetFpsGroup(settings.targetFps)}
         ${renderFrameGraphGroup(settings.frameGraph)}
+        ${renderFrameGraphModeGroup(settings.frameGraphMode)}
         <button id="btn-start" class="menu-button">${t('menu.play')}</button>
       </div>
     `;
@@ -44,6 +48,10 @@ export class Menu {
 
     bindOptionGroup(FRAME_GRAPH_GROUP_ID, (value) => {
       settings.frameGraph.onToggle(value === FRAME_GRAPH_ON);
+    });
+
+    bindOptionGroup(FRAME_GRAPH_MODE_GROUP_ID, (value) => {
+      settings.frameGraphMode.onSelect(value);
     });
 
     document.getElementById('btn-start').addEventListener('click', onStart);
@@ -95,6 +103,26 @@ function renderFrameGraphGroup({ enabled }) {
     options: [
       { value: FRAME_GRAPH_OFF, label: t('settings.off'), selected: !enabled },
       { value: FRAME_GRAPH_ON, label: t('settings.on'), selected: enabled },
+    ],
+  });
+}
+
+function renderFrameGraphModeGroup({ selected }) {
+  return renderOptionGroup({
+    id: FRAME_GRAPH_MODE_GROUP_ID,
+    label: t('settings.frameTimeGraphMode'),
+    hint: t('settings.frameTimeGraphModeHint'),
+    options: [
+      {
+        value: FRAME_GRAPH_MODE.SEPARATE,
+        label: t('settings.frameGraphSeparate'),
+        selected: selected === FRAME_GRAPH_MODE.SEPARATE,
+      },
+      {
+        value: FRAME_GRAPH_MODE.COMBINED,
+        label: t('settings.frameGraphCombined'),
+        selected: selected === FRAME_GRAPH_MODE.COMBINED,
+      },
     ],
   });
 }

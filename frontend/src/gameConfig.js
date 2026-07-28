@@ -47,6 +47,18 @@ export const RENDER_INTERVAL_TOLERANCE_MS = 2;
 /** Off by default: the graph is a diagnostic tool, not part of the game. */
 export const DEFAULT_FRAME_GRAPH_ENABLED = false;
 
+/**
+ * How many curves the graph plots. `SEPARATE` keeps simulation and draw time
+ * apart, `COMBINED` plots their sum as a single line — easier to read when all
+ * you want to know is whether the frame as a whole fits its budget.
+ */
+export const FRAME_GRAPH_MODE = Object.freeze({
+  SEPARATE: 'separate',
+  COMBINED: 'combined',
+});
+
+export const DEFAULT_FRAME_GRAPH_MODE = FRAME_GRAPH_MODE.SEPARATE;
+
 /** Bars kept in the history — roughly two seconds of frames at 60 fps. */
 export const FRAME_GRAPH_SAMPLE_COUNT = 120;
 
@@ -74,6 +86,17 @@ export const FRAME_BUDGET_MS = SIMULATION_STEP_MS;
  * bad — it would rescale on every spike. Snapping to a few coarse rungs keeps the
  * axis stable most of the time, and the panel always prints which rung is in use.
  */
+/** Stroke width of a plotted curve, in CSS pixels. */
+export const FRAME_GRAPH_LINE_WIDTH = 1.5;
+
+/** Opacity of the tinted area below a curve. Low enough to keep both readable
+ *  where two curves overlap. */
+export const FRAME_GRAPH_AREA_ALPHA = 0.16;
+
+/** Width of the marker drawn where a sample ran past the top of the scale. */
+export const FRAME_GRAPH_OVER_SCALE_MARK_WIDTH = 2;
+export const FRAME_GRAPH_OVER_SCALE_MARK_HEIGHT = 2;
+
 export const FRAME_GRAPH_SCALE_LADDER_MS = Object.freeze([
   0.5,
   1,

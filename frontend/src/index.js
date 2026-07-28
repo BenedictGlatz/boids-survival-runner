@@ -11,6 +11,7 @@ import { FrameScheduler } from './loop/frameScheduler.js';
 import { FrameMetrics } from './loop/frameMetrics.js';
 import {
   DEFAULT_FRAME_GRAPH_ENABLED,
+  DEFAULT_FRAME_GRAPH_MODE,
   DEFAULT_TARGET_FPS,
   FRAME_GRAPH_SAMPLE_COUNT,
   HIT_COOLDOWN_MS,
@@ -40,6 +41,7 @@ let gameData;
 // state changes or the first playing frame would see a multi-second delta.
 let targetFps = DEFAULT_TARGET_FPS;
 let frameGraphEnabled = DEFAULT_FRAME_GRAPH_ENABLED;
+let frameGraphMode = DEFAULT_FRAME_GRAPH_MODE;
 const scheduler = new FrameScheduler(
   SIMULATION_STEP_MS,
   MAX_SIMULATION_STEPS_PER_FRAME,
@@ -102,6 +104,12 @@ function showStartMenu() {
         enabled: frameGraphEnabled,
         onToggle: (enabled) => {
           frameGraphEnabled = enabled;
+        },
+      },
+      frameGraphMode: {
+        selected: frameGraphMode,
+        onSelect: (mode) => {
+          frameGraphMode = mode;
         },
       },
     },
@@ -181,7 +189,7 @@ function loop(timestamp) {
 
     // Drawn after the measurement closes, so the graph never reports its own cost.
     if (frameGraphEnabled) {
-      frameTimeGraph.draw(frameMetrics);
+      frameTimeGraph.draw(frameMetrics, frameGraphMode);
     }
   }
 

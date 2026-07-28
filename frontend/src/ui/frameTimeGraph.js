@@ -1,22 +1,37 @@
 import { t } from './i18n.js';
+import { chooseScale } from './frameGraphScale.js';
 import {
   FRAME_BUDGET_MS,
+  FRAME_GRAPH_AREA_ALPHA,
   FRAME_GRAPH_HEIGHT,
+  FRAME_GRAPH_LINE_WIDTH,
+  FRAME_GRAPH_MODE,
+  FRAME_GRAPH_OVER_SCALE_MARK_HEIGHT,
+  FRAME_GRAPH_OVER_SCALE_MARK_WIDTH,
   FRAME_GRAPH_PADDING,
   FRAME_GRAPH_SCALE_LADDER_MS,
   FRAME_GRAPH_TEXT_HEIGHT,
   FRAME_GRAPH_WIDTH,
 } from '../gameConfig.js';
 
+/** Which value a curve plots. */
+const SERIES = Object.freeze({
+  SIMULATION: 'simulation',
+  RENDER: 'render',
+  TOTAL: 'total',
+});
+
 /** Matches the swarm palette: the player's cyan for simulation work. */
 const SIMULATION_COLOR = '#38bdf8';
 /** The health bar's green for drawing work. */
 const RENDER_COLOR = '#22c55e';
-/** The boid red, used only for bars that ran past the top of the scale. */
+/** Neither of the two, because the combined curve is neither of the two. */
+const TOTAL_COLOR = '#fbbf24';
+/** The boid red, used only where a sample ran past the top of the scale. */
 const OVER_SCALE_COLOR = '#f03a5f';
 const TEXT_COLOR = '#f4f4f5';
 const MUTED_TEXT_COLOR = 'rgba(244, 244, 245, 0.62)';
-/** Bright enough to read on top of the bars it crosses, not just on the panel. */
+/** Bright enough to read on top of the curves it crosses, not just on the panel. */
 const BUDGET_LINE_COLOR = 'rgba(255, 255, 255, 0.72)';
 const BUDGET_LINE_DASH = [3, 3];
 
@@ -28,12 +43,11 @@ const LEGEND_SWATCH_SIZE = 7;
 const LEGEND_SWATCH_GAP = 4;
 const LEGEND_ENTRY_GAP = 10;
 
-/** Height of the red marker drawn on top of a clamped bar. */
-const OVER_SCALE_CAP_HEIGHT = 2;
-
 /**
- * Small opt-in performance overlay: one stacked bar per drawn frame, simulation
- * time at the bottom and draw time above it, against a fixed millisecond scale.
+ * Small opt-in performance overlay: a scrolling curve per drawn frame against a
+ * fixed millisecond scale, in the style of an external frametime monitor. Either
+ * one curve per cost (simulation and drawing) or a single combined one, chosen
+ * in the start menu.
  *
  * Deliberately its own `<canvas>` in the UI overlay rather than a helper inside
  * `CanvasRenderer`, for two reasons. Drawing it through the renderer would put
@@ -73,17 +87,27 @@ export class FrameTimeGraph {
     this._ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   }
 
-  /** @param {import('../loop/frameMetrics.js').FrameMetrics} metrics */
-  draw(metrics) {
+  /**
+   * @param {import('../loop/frameMetrics.js').FrameMetrics} metrics
+   * @param {string} mode - One of `FRAME_GRAPH_MODE`.
+   */
+  draw(metrics, mode = FRAME_GRAPH_MODE.SEPARATE) {
     const ctx = this._ctx;
     ctx.clearRect(0, 0, FRAME_GRAPH_WIDTH, FRAME_GRAPH_HEIGHT);
 
     const summary = metrics.summary();
-    const scaleMs = chooseScale(summary.maxTotalMs);
+    const combined = mode === FRAME_GRAPH_MODE.COMBINED;
+    // The axis has to fit what is actually drawn. Two separate curves each only
+    // reach their own peak, so scaling those to the summed peak would waste half
+    // the panel's height on empty space.
+    const peakMs = combined
+      ? summary.maxTotalMs
+      : Math.max(summary.maxSimulationMs, summary.maxRenderMs);
+    const scaleMs = chooseScale(peakMs, FRAME_GRAPH_SCALE_LADDER_MS);
 
-    this._drawHeader(summary, scaleMs);
-    this._drawBars(metrics, scaleMs);
-    // Last, so it stays readable where the bars cross it — which is precisely
+    this._drawHeader(summary, scaleMs, peakMs, combined);
+    this._drawCurves(metrics, scaleMs, combined);
+    // Last, so it stays readable where the curves cross it — which is precisely
     // where the line is worth looking at.
     this._drawBudgetLine(scaleMs);
   }
@@ -96,26 +120,36 @@ export class FrameTimeGraph {
     this._canvas.style.display = 'block';
   }
 
-  /** Current frame total, the window's peak, the legend and the axis top. */
-  _drawHeader(summary, scaleMs) {
+  /** Window average, the window's peak, the legend and the axis top. */
+  _drawHeader(summary, scaleMs, peakMs, combined) {
     const ctx = this._ctx;
     const unit = t('perf.milliseconds');
 
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
 
+    // The average, not the newest frame: browsers round every single timing
+    // measurement (Firefox to a whole millisecond), so a per-frame readout can
+    // only ever show integers. Averaging the window restores the decimal.
     ctx.font = TITLE_FONT;
     ctx.fillStyle = TEXT_COLOR;
-    ctx.fillText(`${formatMilliseconds(summary.lastTotalMs)} ${unit}`, FRAME_GRAPH_PADDING, TITLE_BASELINE_Y);
+    ctx.fillText(
+      `${formatMilliseconds(summary.averageTotalMs)} ${unit} ${t('perf.average')}`,
+      FRAME_GRAPH_PADDING,
+      TITLE_BASELINE_Y,
+    );
 
-    const maxLabel = `${t('perf.max')} ${formatMilliseconds(summary.maxTotalMs)}`;
     ctx.fillStyle = MUTED_TEXT_COLOR;
     ctx.textAlign = 'right';
-    ctx.fillText(maxLabel, FRAME_GRAPH_WIDTH - FRAME_GRAPH_PADDING, TITLE_BASELINE_Y);
+    ctx.fillText(
+      `${t('perf.max')} ${formatMilliseconds(peakMs)}`,
+      FRAME_GRAPH_WIDTH - FRAME_GRAPH_PADDING,
+      TITLE_BASELINE_Y,
+    );
 
     ctx.font = LEGEND_FONT;
 
-    // Without this the bar heights would be meaningless, since the axis moves.
+    // Without this the curve heights would be meaningless, since the axis moves.
     ctx.fillText(
       `${t('perf.scale')} ${formatMilliseconds(scaleMs)}`,
       FRAME_GRAPH_WIDTH - FRAME_GRAPH_PADDING,
@@ -124,16 +158,25 @@ export class FrameTimeGraph {
 
     ctx.textAlign = 'left';
 
+    if (combined) {
+      this._drawLegendEntry(
+        FRAME_GRAPH_PADDING,
+        TOTAL_COLOR,
+        `${t('perf.frame')} ${formatMilliseconds(summary.averageTotalMs)}`,
+      );
+      return;
+    }
+
     let legendX = FRAME_GRAPH_PADDING;
     legendX = this._drawLegendEntry(
       legendX,
       SIMULATION_COLOR,
-      `${t('perf.simulation')} ${formatMilliseconds(summary.lastSimulationMs)}`,
+      `${t('perf.simulation')} ${formatMilliseconds(summary.averageSimulationMs)}`,
     );
     this._drawLegendEntry(
       legendX,
       RENDER_COLOR,
-      `${t('perf.render')} ${formatMilliseconds(summary.lastRenderMs)}`,
+      `${t('perf.render')} ${formatMilliseconds(summary.averageRenderMs)}`,
     );
   }
 
@@ -178,65 +221,140 @@ export class FrameTimeGraph {
     ctx.restore();
   }
 
-  _drawBars(metrics, scaleMs) {
+  _drawCurves(metrics, scaleMs, combined) {
+    // A single sample has no line to draw, and the spacing below would divide by
+    // zero on a one-slot history.
+    if (metrics.sampleCount < 2) {
+      return;
+    }
+
+    if (combined) {
+      this._drawCurve(metrics, scaleMs, SERIES.TOTAL, TOTAL_COLOR);
+    } else {
+      // Draw time first, simulation on top: simulation is the cost worth
+      // watching, so it must stay visible where the two curves overlap.
+      this._drawCurve(metrics, scaleMs, SERIES.RENDER, RENDER_COLOR);
+      this._drawCurve(metrics, scaleMs, SERIES.SIMULATION, SIMULATION_COLOR);
+    }
+
+    this._drawOverScaleMarkers(metrics, scaleMs, combined);
+  }
+
+  /**
+   * One series as a tinted area with a crisp line on top. The area alone would be
+   * too vague to read a value off, the line alone too thin to see against the
+   * panel — together they read the way an external frametime monitor does.
+   */
+  _drawCurve(metrics, scaleMs, series, color) {
     const ctx = this._ctx;
-    const barWidth = this._plotWidth / metrics.capacity;
     const plotBottom = this._plotY + this._plotHeight;
+    const lastX = this._plotX + (metrics.sampleCount - 1) * this._sampleSpacing(metrics.capacity);
+
+    // Closing the polyline down to the baseline turns it into the fillable area.
+    ctx.beginPath();
+    this._tracePolyline(metrics, scaleMs, series);
+    ctx.lineTo(lastX, plotBottom);
+    ctx.lineTo(this._plotX, plotBottom);
+    ctx.closePath();
+
+    ctx.globalAlpha = FRAME_GRAPH_AREA_ALPHA;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Re-walked rather than reused: the path above is closed, and stroking it
+    // would draw the two baseline edges as well.
+    ctx.beginPath();
+    this._tracePolyline(metrics, scaleMs, series);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = FRAME_GRAPH_LINE_WIDTH;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+  }
+
+  /** Issues the moveTo/lineTo pairs for one series, oldest sample first. */
+  _tracePolyline(metrics, scaleMs, series) {
+    const ctx = this._ctx;
+    const spacing = this._sampleSpacing(metrics.capacity);
     const oldest = metrics.oldestIndex();
 
     for (let offset = 0; offset < metrics.sampleCount; offset += 1) {
       const slot = (oldest + offset) % metrics.capacity;
-      const barX = this._plotX + offset * barWidth;
+      const x = this._plotX + offset * spacing;
+      const y = this._sampleY(sampleValue(metrics, slot, series), scaleMs);
 
-      // Simulation sits on the baseline, drawing stacks on top of it. Both are
-      // clamped so a spike cannot spill out of the panel; the remaining height
-      // is what the second segment still has available.
-      const simulationHeight = Math.min(
-        this._toPixels(metrics.simulationSamples[slot], scaleMs),
-        this._plotHeight,
-      );
-      const renderHeight = Math.min(
-        this._toPixels(metrics.renderSamples[slot], scaleMs),
-        this._plotHeight - simulationHeight,
-      );
-
-      ctx.fillStyle = SIMULATION_COLOR;
-      ctx.fillRect(barX, plotBottom - simulationHeight, barWidth, simulationHeight);
-
-      ctx.fillStyle = RENDER_COLOR;
-      ctx.fillRect(barX, plotBottom - simulationHeight - renderHeight, barWidth, renderHeight);
-
-      // Only reachable once the axis is already on its highest rung: a clamped bar
-      // would otherwise look like one that merely touched the top. The real value
-      // stays visible as `max`.
-      const totalMs = metrics.simulationSamples[slot] + metrics.renderSamples[slot];
-
-      if (totalMs > scaleMs) {
-        ctx.fillStyle = OVER_SCALE_COLOR;
-        ctx.fillRect(barX, this._plotY, barWidth, OVER_SCALE_CAP_HEIGHT);
+      if (offset === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
       }
     }
   }
 
-  /** Converts a duration into bar height for the axis currently in use. */
+  /**
+   * Ticks along the top edge wherever a sample was clamped. Only reachable once
+   * the axis is already on its highest rung; without the tick such a sample would
+   * look like one that merely touched the top. Its real value stays in `max`.
+   */
+  _drawOverScaleMarkers(metrics, scaleMs, combined) {
+    const ctx = this._ctx;
+    const spacing = this._sampleSpacing(metrics.capacity);
+    const oldest = metrics.oldestIndex();
+
+    ctx.fillStyle = OVER_SCALE_COLOR;
+
+    for (let offset = 0; offset < metrics.sampleCount; offset += 1) {
+      const slot = (oldest + offset) % metrics.capacity;
+      const simulationMs = metrics.simulationSamples[slot];
+      const renderMs = metrics.renderSamples[slot];
+      const plottedMs = combined ? simulationMs + renderMs : Math.max(simulationMs, renderMs);
+
+      if (plottedMs > scaleMs) {
+        ctx.fillRect(
+          this._plotX + offset * spacing - FRAME_GRAPH_OVER_SCALE_MARK_WIDTH * 0.5,
+          this._plotY,
+          FRAME_GRAPH_OVER_SCALE_MARK_WIDTH,
+          FRAME_GRAPH_OVER_SCALE_MARK_HEIGHT,
+        );
+      }
+    }
+  }
+
+  /**
+   * Horizontal distance between two samples. Derived from the capacity, not from
+   * the current sample count, so the curve scrolls in from the left while the
+   * history fills up instead of stretching to fit.
+   */
+  _sampleSpacing(capacity) {
+    return this._plotWidth / (capacity - 1);
+  }
+
+  /** Vertical position of one sample, clamped to the top of the plot. */
+  _sampleY(milliseconds, scaleMs) {
+    const height = Math.min(this._toPixels(milliseconds, scaleMs), this._plotHeight);
+    return this._plotY + this._plotHeight - height;
+  }
+
+  /** Converts a duration into plot height for the axis currently in use. */
   _toPixels(milliseconds, scaleMs) {
     return (milliseconds / scaleMs) * this._plotHeight;
   }
 }
 
-/**
- * Picks the lowest ladder rung that still contains `peakMs`, so the bars use as
- * much of the panel's height as they can. Falls back to the highest rung when
- * even that is too small — those frames are then clamped and capped in red.
- */
-function chooseScale(peakMs) {
-  for (const rung of FRAME_GRAPH_SCALE_LADDER_MS) {
-    if (peakMs <= rung) {
-      return rung;
-    }
+/** Reads one ring-buffer slot in the unit the given series plots. */
+function sampleValue(metrics, slot, series) {
+  const simulationMs = metrics.simulationSamples[slot];
+  const renderMs = metrics.renderSamples[slot];
+
+  if (series === SERIES.SIMULATION) {
+    return simulationMs;
   }
 
-  return FRAME_GRAPH_SCALE_LADDER_MS[FRAME_GRAPH_SCALE_LADDER_MS.length - 1];
+  if (series === SERIES.RENDER) {
+    return renderMs;
+  }
+
+  return simulationMs + renderMs;
 }
 
 function formatMilliseconds(value) {

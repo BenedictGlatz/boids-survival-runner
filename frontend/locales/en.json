@@ -16,6 +16,10 @@
     "fpsHint": "Higher values are limited by your display's refresh rate.",
     "frameTimeGraph": "Frametime Graph",
     "frameTimeGraphHint": "Shows simulation and draw time per frame in the top-left corner. Measures script work only, not GPU time.",
+    "frameTimeGraphMode": "Graph Curves",
+    "frameTimeGraphModeHint": "Separate plots simulation and draw time as their own curve; combined plots one curve for the whole frame.",
+    "frameGraphSeparate": "Separate",
+    "frameGraphCombined": "Combined",
     "on": "On",
     "off": "Off"
   },
@@ -29,6 +33,8 @@
   "perf": {
     "simulation": "sim",
     "render": "draw",
+    "frame": "frame",
+    "average": "avg",
     "max": "max",
     "scale": "top",
     "milliseconds": "ms"
