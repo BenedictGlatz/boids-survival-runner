@@ -27,13 +27,28 @@ cd engine && wasm-pack test --headless --firefox
 
 # Rust lint / format
 cd engine && cargo clippy && cargo fmt
+
+# Frontend unit tests (Vitest, all frontend/src/**/*.test.js)
+cd frontend && npm test
+
+# Frontend tests in watch mode
+cd frontend && npm run test:watch
+
+# A single frontend test file
+cd frontend && npx vitest run src/loop/frameMetrics.test.js
 ```
 
 `npm run build:wasm` is the authoritative engine build — it emits `--target web` into
 `frontend/src/wasm/engine/` (gitignored). The `--target bundler` invocation in the README is
 stale; do not build into `engine/pkg/`, the frontend imports from `frontend/src/wasm/engine/`.
 
-There is no JS test runner and no JS linter configured.
+There is no JS linter configured.
+
+Vitest is configured in `frontend/vitest.config.js` and runs in the `node` environment, so the suite
+needs neither a browser nor a built WASM package. Only import-free logic modules are testable this
+way — a test that pulls in `engine-bridge.js`, the canvas renderer or any DOM module will not run.
+Test files sit beside the module they cover as `<module>.test.js`, mirroring the Rust `#[cfg(test)]`
+convention, and count against the same 400-line limit.
 
 ## Architecture
 

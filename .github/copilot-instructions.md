@@ -201,3 +201,16 @@ is the top priority — always favour clear, teachable code over clever or obscu
   - **Unit tests** for pure functions, math utilities, and isolated modules (preferred in Rust).
   - **End-to-end tests** for user-facing flows that span multiple layers (e.g., input → render).
 - Test files follow the same 400-line limit and modularity rules as production code.
+
+#### Test runners
+
+| Layer            | Runner                        | Command                    | Location of tests                        |
+|------------------|-------------------------------|----------------------------|------------------------------------------|
+| Engine (Rust)    | `cargo test`                  | `cd engine && cargo test`  | `#[cfg(test)]` module in the same file    |
+| Engine boundary  | `wasm-pack test`              | `cd engine && wasm-pack test --headless --firefox` | `engine/tests/`         |
+| Frontend (JS)    | [Vitest](https://vitest.dev/) | `cd frontend && npm test`  | `<module>.test.js` beside the module      |
+
+- The frontend suite runs in Node, not in a browser, and must not require a built WASM package.
+  Keep the logic worth testing in modules that import nothing — the way `loop/frameScheduler.js` and
+  `loop/frameMetrics.js` do — and keep DOM and canvas access in the thin modules around them.
+- Simulation and math behaviour is tested in Rust. Do not mirror it in JavaScript.

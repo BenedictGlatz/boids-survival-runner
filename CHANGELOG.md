@@ -22,6 +22,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Three-second start countdown with initial boids spawned away from the player.
 - Boids are now drawn as small arrows that point along their flight direction, so the swarm's movement is readable at a glance.
 - Target framerate selector (30, 60, or 120 FPS) in the start menu; the highest option renders as fast as the display allows. The choice is kept for the rest of the session, including restarts.
+- Vitest as the frontend test runner (`npm test`, `npm run test:watch` in `frontend/`), configured to
+  run in Node so the suite needs neither a browser nor a built WebAssembly package. First covered
+  module is the frametime graph's `FrameMetrics`: simulation-time accumulation across undrawn frames,
+  ring-buffer wraparound, the peak leaving the window, `summary()` on an empty buffer, and `reset()`.
 - Optional frametime graph, switchable in the start menu and drawn in the top-left corner. Each bar is one rendered frame, stacking simulation time (including the WebAssembly boundary) below draw time, with the current frame total, the window's peak, and a dashed line marking the 16.67 ms budget of a single simulation step. The vertical axis snaps to a fixed ladder of millisecond values so light and overloaded frames are both readable, and frames past the top of the scale are capped in red. It measures script work only, not GPU time.
 
 ### Changed
