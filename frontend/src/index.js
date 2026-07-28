@@ -12,7 +12,6 @@ import { FrameMetrics } from './loop/frameMetrics.js';
 import {
   DEFAULT_FRAME_GRAPH_ENABLED,
   DEFAULT_FRAME_GRAPH_MODE,
-  DEFAULT_FRAME_GRAPH_SCALE,
   DEFAULT_TARGET_FPS,
   FRAME_GRAPH_SAMPLE_COUNT,
   HIT_COOLDOWN_MS,
@@ -43,7 +42,6 @@ let gameData;
 let targetFps = DEFAULT_TARGET_FPS;
 let frameGraphEnabled = DEFAULT_FRAME_GRAPH_ENABLED;
 let frameGraphMode = DEFAULT_FRAME_GRAPH_MODE;
-let frameGraphScale = DEFAULT_FRAME_GRAPH_SCALE;
 const scheduler = new FrameScheduler(
   SIMULATION_STEP_MS,
   MAX_SIMULATION_STEPS_PER_FRAME,
@@ -112,12 +110,6 @@ function showStartMenu() {
         selected: frameGraphMode,
         onSelect: (mode) => {
           frameGraphMode = mode;
-        },
-      },
-      frameGraphScale: {
-        selected: frameGraphScale,
-        onSelect: (scale) => {
-          frameGraphScale = scale;
         },
       },
     },
@@ -199,7 +191,7 @@ function loop(timestamp) {
     if (frameGraphEnabled) {
       frameTimeGraph.draw(frameMetrics, {
         mode: frameGraphMode,
-        scaleSetting: frameGraphScale,
+        targetFps,
       });
     }
   }

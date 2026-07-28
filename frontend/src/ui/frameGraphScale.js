@@ -5,43 +5,26 @@
  * unit tested without a browser or a built WASM package.
  */
 
-/**
- * Picks the top of the vertical axis: the lowest ladder rung that still contains
- * `peakMs`, so the curves use as much of the panel's height as they can.
- *
- * Falls back to the highest rung when even that is too small — the caller then
- * clamps those samples and marks them, rather than letting a single spike
- * flatten the whole history into a line at the bottom.
- *
- * @param {number} peakMs - Largest value that has to fit on the axis.
- * @param {readonly number[]} ladderMs - Candidate axis tops, ascending.
- * @returns {number} The chosen axis top in milliseconds.
- */
-export function chooseScale(peakMs, ladderMs) {
-  for (const rung of ladderMs) {
-    if (peakMs <= rung) {
-      return rung;
-    }
-  }
-
-  return ladderMs[ladderMs.length - 1];
-}
+const MILLISECONDS_PER_SECOND = 1000;
 
 /**
- * Applies the axis setting chosen in the menu. A fixed top wins over the peak on
- * purpose: pinning the axis is the whole point of the setting, so a spike must
- * be clamped and marked rather than allowed to rescale the panel.
+ * Derives the vertical axis from the target framerate chosen in the start menu.
  *
- * @param {number|string} scaleSetting - A fixed axis top in milliseconds, or the
- *   dynamic sentinel (`FRAME_GRAPH_SCALE_DYNAMIC`) — anything that is not a number.
- * @param {number} peakMs - Largest value in the window, used only when dynamic.
- * @param {readonly number[]} ladderMs - Candidate axis tops, ascending.
- * @returns {number} The axis top in milliseconds.
+ * The axis is tied to that setting rather than to the measured peak so the plot
+ * answers the only question worth asking of it — "is this frame fast enough for
+ * the framerate I asked for?" — with a fixed height instead of a moving one. A
+ * curve at the same height means the same cost for the whole round.
+ *
+ * @param {number} targetFps - Frames per second the renderer is aiming for.
+ * @param {number} headroomFactor - How much taller the axis is than the budget.
+ * @returns {{budgetMs: number, topMs: number}} The frame budget of one target
+ *   frame (where the dashed line goes) and the top of the axis above it.
  */
-export function resolveScale(scaleSetting, peakMs, ladderMs) {
-  if (typeof scaleSetting === 'number') {
-    return scaleSetting;
-  }
+export function resolveAxis(targetFps, headroomFactor) {
+  const budgetMs = MILLISECONDS_PER_SECOND / targetFps;
 
-  return chooseScale(peakMs, ladderMs);
+  return {
+    budgetMs,
+    topMs: budgetMs * headroomFactor,
+  };
 }

@@ -1,16 +1,15 @@
 import { t } from './i18n.js';
-import { resolveScale } from './frameGraphScale.js';
+import { resolveAxis } from './frameGraphScale.js';
 import {
-  FRAME_BUDGET_MS,
+  DEFAULT_TARGET_FPS,
   FRAME_GRAPH_AREA_ALPHA,
+  FRAME_GRAPH_HEADROOM_FACTOR,
   FRAME_GRAPH_HEIGHT,
   FRAME_GRAPH_LINE_WIDTH,
   FRAME_GRAPH_MODE,
   FRAME_GRAPH_OVER_SCALE_MARK_HEIGHT,
   FRAME_GRAPH_OVER_SCALE_MARK_WIDTH,
   FRAME_GRAPH_PADDING,
-  FRAME_GRAPH_SCALE_DYNAMIC,
-  FRAME_GRAPH_SCALE_LADDER_MS,
   FRAME_GRAPH_TEXT_HEIGHT,
   FRAME_GRAPH_WIDTH,
 } from '../gameConfig.js';
@@ -90,31 +89,30 @@ export class FrameTimeGraph {
 
   /**
    * @param {import('../loop/frameMetrics.js').FrameMetrics} metrics
-   * @param {{mode?: string, scaleSetting?: number|string}} [options] - `mode` is one
-   *   of `FRAME_GRAPH_MODE`; `scaleSetting` is a fixed axis top in milliseconds or
-   *   `FRAME_GRAPH_SCALE_DYNAMIC`.
+   * @param {{mode?: string, targetFps?: number}} [options] - `mode` is one of
+   *   `FRAME_GRAPH_MODE`; `targetFps` is the framerate the renderer aims for and
+   *   sets both the budget line and the top of the axis.
    */
   draw(metrics, options = {}) {
     const mode = options.mode ?? FRAME_GRAPH_MODE.SEPARATE;
-    const scaleSetting = options.scaleSetting ?? FRAME_GRAPH_SCALE_DYNAMIC;
+    const targetFps = options.targetFps ?? DEFAULT_TARGET_FPS;
     const ctx = this._ctx;
     ctx.clearRect(0, 0, FRAME_GRAPH_WIDTH, FRAME_GRAPH_HEIGHT);
 
     const summary = metrics.summary();
     const combined = mode === FRAME_GRAPH_MODE.COMBINED;
-    // The axis has to fit what is actually drawn. Two separate curves each only
-    // reach their own peak, so scaling those to the summed peak would waste half
-    // the panel's height on empty space.
+    // Reported next to the average, but no longer used for the axis: the scale
+    // follows the selected framerate so it holds still across the whole round.
     const peakMs = combined
       ? summary.maxTotalMs
       : Math.max(summary.maxSimulationMs, summary.maxRenderMs);
-    const scaleMs = resolveScale(scaleSetting, peakMs, FRAME_GRAPH_SCALE_LADDER_MS);
+    const axis = resolveAxis(targetFps, FRAME_GRAPH_HEADROOM_FACTOR);
 
-    this._drawHeader(summary, scaleMs, peakMs, combined);
-    this._drawCurves(metrics, scaleMs, combined);
+    this._drawHeader(summary, axis.topMs, peakMs, combined);
+    this._drawCurves(metrics, axis.topMs, combined);
     // Last, so it stays readable where the curves cross it — which is precisely
     // where the line is worth looking at.
-    this._drawBudgetLine(scaleMs);
+    this._drawBudgetLine(axis.budgetMs, axis.topMs);
   }
 
   hide() {
@@ -154,7 +152,8 @@ export class FrameTimeGraph {
 
     ctx.font = LEGEND_FONT;
 
-    // Without this the curve heights would be meaningless, since the axis moves.
+    // The axis only changes with the framerate setting, but printing it is what
+    // lets a curve height be read as a duration at all.
     ctx.fillText(
       `${t('perf.scale')} ${formatMilliseconds(scaleMs)}`,
       FRAME_GRAPH_WIDTH - FRAME_GRAPH_PADDING,
@@ -203,16 +202,14 @@ export class FrameTimeGraph {
     return textX + ctx.measureText(label).width + LEGEND_ENTRY_GAP;
   }
 
-  /** The one hard reference: the wall-clock budget of a single simulation step. */
-  _drawBudgetLine(scaleMs) {
-    // On the lower rungs the budget sits far above the axis, so there is nothing
-    // meaningful to draw — the whole plot is already well inside budget.
-    if (FRAME_BUDGET_MS > scaleMs) {
-      return;
-    }
-
+  /**
+   * The one hard reference: the wall-clock time one frame may take at the
+   * selected target framerate. Everything above the line is a frame that missed
+   * it. Always inside the plot, since the axis is a multiple of this value.
+   */
+  _drawBudgetLine(budgetMs, scaleMs) {
     const ctx = this._ctx;
-    const lineY = this._plotY + this._plotHeight - this._toPixels(FRAME_BUDGET_MS, scaleMs);
+    const lineY = this._plotY + this._plotHeight - this._toPixels(budgetMs, scaleMs);
 
     ctx.save();
     ctx.setLineDash(BUDGET_LINE_DASH);
@@ -297,10 +294,10 @@ export class FrameTimeGraph {
   }
 
   /**
-   * Ticks along the top edge wherever a sample was clamped — the dynamic axis is
-   * already on its highest rung, or a fixed axis was chosen below the spike.
-   * Without the tick such a sample would look like one that merely touched the
-   * top. Its real value stays in the `max` readout either way.
+   * Ticks along the top edge wherever a sample was clamped, meaning a frame took
+   * longer than the headroom above the budget line allows for. Without the tick
+   * such a sample would look like one that merely touched the top; its real
+   * value stays in the `max` readout either way.
    */
   _drawOverScaleMarkers(metrics, scaleMs, combined) {
     const ctx = this._ctx;

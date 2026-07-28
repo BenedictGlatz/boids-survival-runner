@@ -1,55 +1,44 @@
 import { describe, expect, it } from 'vitest';
 
-import { chooseScale, resolveScale } from './frameGraphScale.js';
+import { resolveAxis } from './frameGraphScale.js';
 
-/** Mirrors the sentinel the menu sends for the dynamic axis. */
-const DYNAMIC = 'dynamic';
+/** Mirrors FRAME_GRAPH_HEADROOM_FACTOR without importing the config. */
+const HEADROOM = 2;
 
-// Stand-in for the real ladder: short enough to reason about every case.
-const LADDER_MS = Object.freeze([0.5, 1, 2, 4, 8]);
-
-describe('chooseScale', () => {
-  it('picks the lowest rung that still contains the peak', () => {
-    expect(chooseScale(1.4, LADDER_MS)).toBe(2);
+describe('resolveAxis', () => {
+  it('puts the budget line at the frame time of the target framerate', () => {
+    expect(resolveAxis(60, HEADROOM).budgetMs).toBeCloseTo(16.667, 3);
   });
 
-  it('keeps a peak that sits exactly on a rung on that rung', () => {
-    // Otherwise the busiest sample would be drawn one pixel above the plot and
-    // marked as clamped, which is exactly the case it must not report.
-    expect(chooseScale(2, LADDER_MS)).toBe(2);
+  it('leaves headroom above the budget for spikes', () => {
+    // Without it a frame that misses its budget would be clipped right at the
+    // line, and every overshoot would look equally bad.
+    expect(resolveAxis(60, HEADROOM).topMs).toBeCloseTo(33.333, 3);
   });
 
-  it('uses the lowest rung for an empty history', () => {
-    expect(chooseScale(0, LADDER_MS)).toBe(0.5);
+  it('moves the whole axis when a lower framerate is selected', () => {
+    const axis = resolveAxis(30, HEADROOM);
+
+    expect(axis.budgetMs).toBeCloseTo(33.333, 3);
+    expect(axis.topMs).toBeCloseTo(66.667, 3);
   });
 
-  it('falls back to the highest rung when the peak exceeds the ladder', () => {
-    // The caller clamps and marks those samples rather than rescaling the whole
-    // window around one spike.
-    expect(chooseScale(120, LADDER_MS)).toBe(8);
-  });
-});
+  it('shrinks the axis for a higher framerate', () => {
+    // 120 fps buys a third of the budget of 30 fps, so the same measured frame
+    // has to look three times as tall.
+    const axis = resolveAxis(120, HEADROOM);
 
-describe('resolveScale', () => {
-  it('follows the peak up the ladder when the axis is dynamic', () => {
-    expect(resolveScale(DYNAMIC, 1.4, LADDER_MS)).toBe(2);
+    expect(axis.budgetMs).toBeCloseTo(8.333, 3);
+    expect(axis.topMs).toBeCloseTo(16.667, 3);
   });
 
-  it('uses the fixed top instead of the ladder', () => {
-    // 33 is not a rung at all: a fixed axis is a value in its own right, not the
-    // nearest ladder entry to it.
-    expect(resolveScale(33, 1.4, LADDER_MS)).toBe(33);
-  });
+  it('keeps the budget line at a fixed share of the axis', () => {
+    // What makes the line readable at a glance: it sits at the same height no
+    // matter which framerate is selected.
+    for (const fps of [30, 60, 120]) {
+      const axis = resolveAxis(fps, HEADROOM);
 
-  it('keeps a fixed top even when the peak runs past it', () => {
-    // This is the point of pinning the axis: the spike gets clamped and marked,
-    // and the rest of the history keeps the height it had before.
-    expect(resolveScale(33, 120, LADDER_MS)).toBe(33);
-  });
-
-  it('keeps a fixed top even when every sample is far below it', () => {
-    // The curves collapsing towards the baseline is the cost the developer
-    // accepted by pinning the axis, not something to quietly correct.
-    expect(resolveScale(100, 0.4, LADDER_MS)).toBe(100);
+      expect(axis.budgetMs / axis.topMs).toBeCloseTo(1 / HEADROOM, 6);
+    }
   });
 });
