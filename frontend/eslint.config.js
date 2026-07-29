@@ -25,7 +25,16 @@ const JSDOC_REQUIRED_CONTEXTS = [
 // already declares "type": "module"). See documentation/report/07-tooling.md
 // §7.3 for the reasoning behind every non-obvious choice below.
 export default [
-  { ignores: ['src/wasm/**', 'dist/**', 'node_modules/**', 'coverage/**'] },
+  {
+    ignores: [
+      'src/wasm/**',
+      'dist/**',
+      'node_modules/**',
+      'coverage/**',
+      'playwright-report/**',
+      'test-results/**',
+    ],
+  },
 
   js.configs.recommended,
   jsdoc.configs['flat/recommended'],
@@ -73,6 +82,32 @@ export default [
   {
     files: ['src/**/*.test.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module' },
+    rules: {
+      'jsdoc/require-jsdoc': 'off',
+      'jsdoc/require-param': 'off',
+      'jsdoc/require-param-description': 'off',
+      'jsdoc/require-param-type': 'off',
+      'jsdoc/require-returns': 'off',
+      'jsdoc/require-returns-description': 'off',
+      'jsdoc/require-returns-type': 'off',
+    },
+  },
+
+  // End-to-end tests. Same JSDoc exemption as the unit tests, but they also run in
+  // Node rather than the browser: the spec drives Playwright from the outside, and
+  // only code inside page.evaluate() reaches the page's own globals.
+  //
+  // The glob covers `e2e/**/*.js`, not only `*.spec.js`, so the shared helpers in
+  // e2e/support/ are exempt too. Restricting it to spec files repeats the T-01
+  // mistake exactly: the content rules would then reach helpers that already carry
+  // one-line prose JSDoc and demand empty @param tags on them.
+  {
+    files: ['e2e/**/*.js', 'playwright.config.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
     rules: {
       'jsdoc/require-jsdoc': 'off',
       'jsdoc/require-param': 'off',

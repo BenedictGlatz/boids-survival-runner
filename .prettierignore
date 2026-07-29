@@ -5,6 +5,8 @@
 /frontend/dist/
 /frontend/src/wasm/
 /frontend/coverage/
+/frontend/playwright-report/
+/frontend/test-results/
 
 # Reference PDFs are not text files Prettier can format.
 documentation/**/*.pdf

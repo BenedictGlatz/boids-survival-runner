@@ -21,7 +21,9 @@ Fließtext referenziert.
 > - Dash-Tuning je Schwierigkeits-Tier (aus docs/spec-s05-dash.md §3)
 > - Wertetabelle der `dash_phases`-Kodierung (aus docs/spec-s05-dash.md §4)
 > - Testübersicht je Verzeichnis
-> - Coverage je Verzeichnis (nach T-03)
+> - Coverage je Modul, getrennt nach Sprache (Zahlen aus Kap. 9.2b) — sortiert nach
+>   Wert, damit die zweigipfelige Verteilung aus Kap. 8.1 sichtbar wird
+> - E2E-Flow-Tabelle in Langfassung, falls Kap. 8.2 gekürzt werden muss
 > - Vollständige npm-Script-Tabelle, falls Kap. 7.1 gekürzt werden muss
 
 ## 11.2 Abbildungen
@@ -36,6 +38,11 @@ Fließtext referenziert.
 >   dicht wird
 >
 > Erzeugen mit `npm run docs:diagrams`. **Als SVG in Word einfügen, nicht als PNG.**
+>
+> Dazu zwei Screenshots der erzeugten Test-Reports, weil der Katalog für Coverage und
+> E2E je „report erzeugen" verlangt und die HTML-Ausgaben selbst gitignoriert sind:
+> `frontend/coverage/index.html` (`npm run test:coverage`) und
+> `frontend/playwright-report/` (`npm run test:e2e:report`).
 
 ## 11.3 Quellcode-Ausschnitte
 

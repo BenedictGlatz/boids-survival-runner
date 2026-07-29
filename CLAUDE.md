@@ -43,6 +43,11 @@ cd frontend && npm run test:watch
 # Frontend coverage report (text + HTML in frontend/coverage/ + json-summary)
 cd frontend && npm run test:coverage
 
+# End-to-end tests (Playwright). Builds WASM + Vite and serves `vite preview` itself.
+cd frontend && npm run test:e2e
+cd frontend && npx playwright test e2e/boot.spec.js   # a single flow
+cd frontend && npm run test:e2e:report
+
 # A single frontend test file
 cd frontend && npx vitest run src/loop/frameMetrics.test.js
 
@@ -80,6 +85,20 @@ needs neither a browser nor a built WASM package. Only import-free logic modules
 way — a test that pulls in `engine-bridge.js`, the canvas renderer or any DOM module will not run.
 Test files sit beside the module they cover as `<module>.test.js`, mirroring the Rust `#[cfg(test)]`
 convention, and count against the same 400-line limit.
+
+Playwright (`frontend/playwright.config.js`) covers everything Vitest structurally cannot: the WASM
+module loading, the menu, the HUD, the round lifecycle, and keyboard ownership. It runs against the
+**production build** — `npm run test:e2e` builds and serves `vite preview` itself — because the dev
+server serves the whole project directory and therefore hides anything the build forgets to copy;
+that is exactly how the missing `dist/locales/` went unnoticed. Specs live in `frontend/e2e/` as
+`*.spec.js`, deliberately disjoint from Vitest's `src/**/*.test.js` so neither runner collects the
+other's files. Expected user-facing strings are read from `public/locales/en.json` rather than
+written into a spec, which keeps the no-hard-coded-strings rule intact and makes a missing key fail.
+Three limits are deliberate and documented in `08-qualitaet.md` §8.2: Chromium only, one worker (a
+second flock simulation on the same CPU makes timing assertions flaky for unrelated reasons), and no
+canvas pixel comparison — the flock moves every frame, so an inequality assertion would always pass
+and a golden image would always break. Drawing arithmetic is unit-tested instead, which is why
+`dashPulse.js` and `frameGraphScale.js` are separate modules in the first place.
 
 Coverage is measured on **both** sides of the language boundary and reported separately, because a
 single blended number would hide which half is actually tested: `npm run test:coverage`

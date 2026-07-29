@@ -45,6 +45,7 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-07-29 | 3,5 | T-01          | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben |
 | 2026-07-29 | 1,5 | T-03          | Coverage für beide Sprachen eingerichtet (`@vitest/coverage-v8`, `cargo llvm-cov`), Ausgangsmessung genommen; T-07 als neue Maßnahme aufgenommen und Kapazitätsplan fortgeschrieben                      |
 | 2026-07-29 | 3,0 | T-07          | Unit-Tests für `frameScheduler`, `gameState`, `controls` und `playerController` geschrieben; `engine/tests/wasm_tests.rs` vom Stub zum Buffer-Vertragstest ausgebaut                                     |
+| 2026-07-29 | 4,0 | T-04          | Playwright gegen den Preview-Build eingerichtet, fünf Flows geschrieben, dabei den fehlenden Locale-Umzug gefunden und behoben; Kap. 8.1/8.2 ausgeschrieben, 7.1 und 9.2b nachgezogen                    |
 
 ## Entscheidungen
 
@@ -213,6 +214,49 @@ widersprechen sich nur scheinbar; Kap. 8.1 muss das ausschreiben, sonst liest es
 wie ein Fehler im Bericht.
 
 → Kap. 8, 9
+
+### 2026-07-29 — E2E gegen den Produktionsbuild statt gegen den Dev-Server
+
+**Gewählt:** Playwright startet `npm run build && vite preview` selbst und testet
+gegen das ausgelieferte Artefakt. Fester Viewport 1280×720, ein Worker, nur Chromium.
+
+**Verworfen:**
+
+| Alternative               | Grund der Ablehnung                                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gegen `vite dev` testen   | Schneller und ohne Vorarbeit, prüft aber nie den Build. Der Dev-Server liefert das ganze Projektverzeichnis aus und verdeckt damit jede vergessene Kopie — genau der Fehler, der dabei gefunden wurde.  |
+| Mehrere Browser           | Die Engine ist WASM hinter einem Canvas; ein zweiter Browser prüft überwiegend dessen eigene WASM- und Canvas-Implementierung, nicht diesen Code. Doppelte Laufzeit für sehr wenig zusätzliche Aussage. |
+| Parallele Worker          | Mehrere Instanzen rechnen gleichzeitig eine O(n²)-Schleife mit 60 Schritten/s und nehmen sich die CPU weg. Zeitbezogene Zusicherungen würden aus fremden Gründen fehlschlagen.                          |
+| Pixelvergleich des Canvas | Der Schwarm bewegt sich in jedem Frame: Eine Ungleichheits-Zusicherung ist immer erfüllt, ein Golden Image immer instabil. Die Zeichen-Arithmetik ist stattdessen als Unit-Test isoliert.               |
+| Variabler Viewport        | Die Weltgröße ist `window.innerWidth/Height`. Ein wechselnder Viewport verändert Spawn-Abstände und damit die Simulation — Reproduzierbarkeit wäre verloren.                                            |
+
+**Konsequenz:** Ein E2E-Lauf kostet einen vollen WASM- und Vite-Build, das
+`webServer`-Timeout liegt entsprechend bei fünf Minuten. Dafür prüft die Stufe das,
+was unter _Working Code_ bewertet wird. Was E2E hier als Einziges prüfen kann, ist das
+Eigentum an der Tastatur (Leertaste in der Runde beim Dash, außerhalb beim Menü) —
+alles Übrige an der Eingabe ist Arithmetik und liegt in Unit-Tests. Der Determinismus
+der Engine zahlt sich hier nochmals aus: „stehenbleiben bis der Schwarm drei Leben
+genommen hat" ist ein reproduzierbarer Testfall, kein meistens funktionierender.
+
+→ Kap. 8, 10
+
+### 2026-07-29 — Stabile HUD-IDs statt Positionsselektoren
+
+**Gewählt:** Die vier HUD-Panels bekommen IDs, die benennen _was_ sie zeigen
+(`hud-timer`, `hud-score` …), neben den Klassen, die sagen _wo_ sie sitzen.
+
+**Verworfen:** Im Test auf `.hud-panel.bottom-left` selektieren. Das hätte ohne
+Quelländerung funktioniert, aber die Tests an das Layout gekoppelt: Ein Umsortieren
+der Panels — eine rein visuelle Änderung — hätte die Testsuite gebrochen und den
+Eindruck erzeugt, die Funktion sei kaputt.
+
+**Konsequenz:** Eine Zeile Produktionscode für die Testbarkeit. Vertretbar, weil eine
+ID am Anzeigeelement auch ohne Tests keine Fremdkörper ist. Die Grenze, die dabei
+bewusst nicht überschritten wurde: Kein Test-Hook, der internen Spielzustand nach
+`window` exportiert. Damit wäre die Prüfung der Spielerposition leicht geworden — um
+den Preis von Produktionscode, der nur für Tests existiert.
+
+→ Kap. 3, 8
 
 ## Herausforderungen & Lessons Learned
 

@@ -1,39 +1,48 @@
 # 7 Tooling
 
-`Seitenbudget: ~3 S. | Status: Gerüst | Quellen: frontend/package.json, engine/Cargo.toml, CLAUDE.md §Commands`
+`Seitenbudget: ~3 S. | Status: 7.1/7.3/7.4/7.5 geschrieben, 7.2/7.6+ offen | Quellen: frontend/package.json, frontend/playwright.config.js, engine/Cargo.toml, CLAUDE.md §Commands`
 
 **Dieses Kapitel wächst pro Commit.** Jeder Werkzeug-Absatz wird in **demselben
 Commit** geschrieben, der die Konfiguration einführt. Es gibt kein „dokumentiere ich
 später" — später ist der 02.09.
 
 Maßnahmen-IDs siehe [docs/specs-overview.md §3.2](../../docs/specs-overview.md).
-Reihenfolge nach Dokumentationswert: T-01 → T-02 → T-03 → T-05 → T-06 → T-04.
+Reihenfolge nach Dokumentationswert, geplant als T-01 → T-02 → T-03 → T-05 → T-06 →
+T-04. Tatsächlich gelandet ist T-01 → T-03 → T-07 → T-04; T-02, T-05 und T-06 stehen
+noch aus. Die Abweichung ist begründet und nicht bloß Gelegenheit: Die
+Qualitätsmaßnahmen bedienen zwei Bewertungskriterien gleichzeitig — _Qualität_ als
+eigenes Kapitel und „hohe Testabdeckung" im Deliverable _Working Code_ — während
+TypeScript und Deployment je nur eines bedienen. T-07 (Unit-Test-Lücken) war
+ursprünglich überhaupt nicht geplant und kam hinzu, weil das Coverage-Werkzeug aus
+T-03 ohne die Tests, die es messen soll, nur die Hälfte der Anforderung erfüllt.
 
 ## 7.1 Scripts in package.json
 
 Alle Frontend-Werkzeuge laufen über npm-Scripts in `frontend/package.json`. Der
-Stand nach T-01:
+Stand nach T-01, T-03, T-07 und T-04:
 
-| Script                | Nutzen                                                       |
-| --------------------- | ------------------------------------------------------------ |
-| `dev`                 | Baut das WASM-Paket und startet Vite auf Port 5173           |
-| `build`               | Produktionsbuild inkl. WASM-Rebuild                          |
-| `build:wasm`          | Baut nur das WASM-Paket (`--target web`)                     |
-| `preview`             | Liefert den Produktionsbuild lokal aus                       |
-| `test`                | Vitest-Suite einmalig                                        |
-| `test:watch`          | Vitest im Watch-Modus                                        |
-| `lint`                | ESLint über `frontend/` — muss fehler- und warnungsfrei sein |
-| `lint:fix`            | ESLint mit Autofix                                           |
-| `format`              | Prettier schreibend über das gesamte Repository              |
-| `format:check`        | Prettier prüfend — der Modus für die CI                      |
-| `docs:ki-verzeichnis` | Erzeugt das KI-Verzeichnis (Kap. 12) aus `ai/*.json`         |
-| `docs:check`          | Prüft die Doku-Disziplin (Prompt-Log, Journal, Changelog)    |
+| Script                | Nutzen                                                          |
+| --------------------- | --------------------------------------------------------------- |
+| `dev`                 | Baut das WASM-Paket und startet Vite auf Port 5173              |
+| `build`               | Produktionsbuild inkl. WASM-Rebuild                             |
+| `build:wasm`          | Baut nur das WASM-Paket (`--target web`)                        |
+| `preview`             | Liefert den Produktionsbuild lokal aus                          |
+| `test`                | Vitest-Suite einmalig                                           |
+| `test:watch`          | Vitest im Watch-Modus                                           |
+| `test:coverage`       | Vitest mit Coverage-Report (Text, HTML, JSON-Summary)           |
+| `test:e2e`            | Playwright gegen den Produktionsbuild; baut und serviert selbst |
+| `test:e2e:report`     | Öffnet den erzeugten HTML-Report der letzten E2E-Läufe          |
+| `lint`                | ESLint über `frontend/` — muss fehler- und warnungsfrei sein    |
+| `lint:fix`            | ESLint mit Autofix                                              |
+| `format`              | Prettier schreibend über das gesamte Repository                 |
+| `format:check`        | Prettier prüfend — der Modus für die CI                         |
+| `docs:ki-verzeichnis` | Erzeugt das KI-Verzeichnis (Kap. 12) aus `ai/*.json`            |
+| `docs:check`          | Prüft die Doku-Disziplin (Prompt-Log, Journal, Changelog)       |
 
-> TODO: bei den jeweiligen Maßnahmen ergänzen: `typecheck` (T-02) ·
-> `test:coverage` (T-03) · `test:e2e`, `test:e2e:report` (T-04) · `deploy` (T-06) ·
+> TODO: bei den jeweiligen Maßnahmen ergänzen: `typecheck` (T-02) · `deploy` (T-06) ·
 > `docs:diagrams`.
 
-Zwei Details, die die Tabelle nicht zeigt:
+Drei Details, die die Tabelle nicht zeigt:
 
 **Die Rust-Seite läuft bewusst nicht über npm.** `cargo test`, `cargo clippy` und
 `cargo fmt` werden direkt aufgerufen, nicht in npm-Scripts eingewickelt. Ein
@@ -49,6 +58,12 @@ Prettier sucht seine Ignore-Datei relativ zum _Arbeitsverzeichnis_, nicht relati
 zum Zielpfad — ohne den expliziten Pfad würde es `engine/target/` und `dist/`
 mitformatieren. Der Fallstrick ist nicht offensichtlich und hat beim Einrichten
 genau einmal zugeschlagen.
+
+**`test:coverage` hat kein Rust-Gegenstück in der Tabelle.** Die Engine-Coverage läuft
+mit `cargo llvm-cov --lib` und bleibt damit derselben Linie treu wie `cargo test`. Das
+`--lib` ist dabei nicht kosmetisch: Es beschränkt den Lauf auf die
+`#[cfg(test)]`-Module und lässt `engine/tests/` aus, das nur unter `wasm-pack`
+lauffähig ist. Ohne die Einschränkung würde der Coverage-Lauf abbrechen.
 
 ## 7.2 Package Management
 

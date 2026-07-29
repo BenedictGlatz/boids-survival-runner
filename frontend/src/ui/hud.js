@@ -10,11 +10,14 @@ export class Hud {
     this._el.id = 'hud';
     root.appendChild(this._el);
 
+    // The id names what a panel shows, the class names where it sits. The
+    // end-to-end tests read the ids, so moving a panel around the screen does not
+    // break them the way a `.hud-panel.bottom-left` selector would.
     this._panels = {
-      timer: createPanel('top-center'),
-      wave: createPanel('top-right'),
-      score: createPanel('bottom-left'),
-      boids: createPanel('bottom-right'),
+      timer: createPanel('hud-timer', 'top-center'),
+      wave: createPanel('hud-wave', 'top-right'),
+      score: createPanel('hud-score', 'bottom-left'),
+      boids: createPanel('hud-boids', 'bottom-right'),
     };
 
     for (const panel of Object.values(this._panels)) {
@@ -44,8 +47,9 @@ export class Hud {
   }
 }
 
-function createPanel(positionClass) {
+function createPanel(id, positionClass) {
   const panel = document.createElement('div');
+  panel.id = id;
   panel.className = `hud-panel ${positionClass}`;
   return panel;
 }

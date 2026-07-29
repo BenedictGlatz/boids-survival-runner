@@ -1,45 +1,167 @@
 # 8 Qualität
 
-`Seitenbudget: ~2 S. | Status: Gerüst | Quellen: frontend/vitest.config.js, engine/src/** (#[cfg(test)]), CLAUDE.md §Commands`
+`Seitenbudget: ~2 S. | Status: 8.1/8.2/8.4 geschrieben, 8.3/8.5 offen | Quellen: frontend/vitest.config.js, frontend/playwright.config.js, engine/tests/, CLAUDE.md §Commands`
 
 **Dieses Kapitel wächst pro Commit** — wie Kap. 7, ein Absatz je Maßnahme am Tag
 ihres Landens.
 
-> TODO Einleitung: Die Teststrategie in einem Absatz — Unit-Tests auf beiden Seiten
-> der Sprachgrenze, E2E für die Pfade, die nur im Browser existieren, CI als
-> erzwingende Instanz, statische Analyse für Stil und Typen.
+Die Teststrategie folgt einer einzigen Leitfrage: Welche Stufe kann eine Eigenschaft
+überhaupt prüfen? Unit-Tests auf beiden Seiten der Sprachgrenze für Mathematik und
+Logik; eine eigene Stufe im Browser für den Buffer-Vertrag, weil dessen Typen
+außerhalb einer JavaScript-Laufzeit nicht existieren; E2E gegen den gebauten Stand für
+alles, was erst im ausgelieferten Artefakt entsteht; statische Analyse für Stil und
+Typen; und CI als die Instanz, die all das erzwingt statt es zu empfehlen. Die
+Aufteilung ist damit nicht nach Aufwand gewählt, sondern nach Erreichbarkeit — und wo
+eine Stufe strukturell nichts sehen kann, steht das hier ausdrücklich, statt von einer
+grünen Ausgabe verdeckt zu werden.
 
 ## 8.1 Unit Tests und Coverage
 
-> TODO: Die **zweigeteilte** Testlandschaft ist hier die eigentliche Aussage:
->
-> - **Rust:** `#[cfg(test)]`-Module direkt neben dem Code, den sie abdecken;
->   Unit-Tests sind für alle Mathematik- und Simulationsfunktionen verpflichtend
->   (CLAUDE.md §Hard rules). Ausführung mit `cargo test`.
-> - **Frontend:** Vitest im `node`-Environment, konfiguriert in
->   `frontend/vitest.config.js`. Die Suite braucht **weder Browser noch gebautes
->   WASM-Paket** — und genau daraus folgt ihre Grenze: Nur importfreie Logikmodule
->   sind so testbar. Ein Test, der `engine-bridge.js`, den Canvas-Renderer oder ein
->   DOM-Modul hereinzieht, läuft nicht. Testdateien liegen als `<modul>.test.js`
->   neben dem Modul und spiegeln damit die Rust-Konvention.
-> - **`engine/tests/wasm_tests.rs`** ist derzeit ein Stub und prüft nichts. Entweder
->   füllen oder die Absenz begründen — nicht stillschweigend stehenlassen.
->
-> Nach T-03: Coverage-Tabelle `Verzeichnis | Statements | Branches | Functions |
-Lines` und die **bewusste Priorisierung** erklären — Simulationsmathematik hoch,
-> DOM-/Renderer-Module niedrig, weil letztere durch E2E abgedeckt werden. Die
-> Musterdokumentation macht genau das und begründet ihre niedrige Gesamtzahl
-> überzeugend; ein ehrlicher, begründeter Wert ist mehr wert als ein hoher.
-> Zahlen aus Kap. 9 referenzieren, nicht hier duplizieren.
+Die Teststufen sind nicht nach Geschmack aufgeteilt, sondern nach der Frage, welche
+Stufe eine Eigenschaft überhaupt prüfen _kann_. Daraus ergeben sich drei Ebenen mit
+je eigenem Werkzeug und eigener Ausführungsumgebung:
+
+| Ebene             | Werkzeug                             | Läuft in           | Deckt ab                                   |
+| ----------------- | ------------------------------------ | ------------------ | ------------------------------------------ |
+| Engine-Unit       | `cargo test`, `#[cfg(test)]` in-file | Host (native)      | Mathematik und Simulation                  |
+| Sprachgrenze      | `wasm-pack test`, `engine/tests/`    | Browser (`wasm32`) | Der Vier-Buffer-Vertrag der Bridge         |
+| Frontend-Unit     | Vitest                               | Node               | Importfreie Logikmodule                    |
+| _(E2E, Kap. 8.2)_ | Playwright                           | Browser            | Alles, was nur im gebauten Spiel existiert |
+
+**Rust.** Unit-Tests liegen als `#[cfg(test)]`-Modul direkt neben dem Code, den sie
+abdecken, und sind für alle Mathematik- und Simulationsfunktionen verpflichtend
+(`CLAUDE.md` § Hard rules). Die Simulation ist damit praktisch vollständig abgedeckt;
+die Werte stehen in Kap. 9.
+
+**Die Sprachgrenze braucht eine eigene Stufe.** `engine/tests/wasm_tests.rs` war bis
+zu dieser Maßnahme ein leerer Stub. Von den beiden Möglichkeiten, die dieses Kapitel
+sich selbst gestellt hatte — füllen oder die Absenz begründen — wurde gefüllt, weil
+das Argument dafür ungewöhnlich stark ist: Die Getter von `FrameResponse` liefern
+`js_sys::Float32Array` und `js_sys::Uint32Array`. Diese Typen existieren nur in einer
+JavaScript-Laufzeit. `cargo test` kann den Buffer-Vertrag also nicht prüfen, in
+keinem Umfang und mit keinem Aufwand. Eine begründete Absenz hätte damit genau die
+Stelle ungeprüft gelassen, für die es keine Ersatzstufe gibt — und das ist gleichzeitig
+die zweite tragende Invariante des Systems (Kap. 5) und das gewählte Fokus-Thema.
+Geprüft werden dort die Index-Ausrichtung aller vier Buffer, dass `snapshot()` die Welt
+nicht bewegt, die Idempotenz von `set_wave()`, der Sicherheitsabstand neu gespawnter
+Boids, der Wrap nach `resize()` und der Vorzeichen-Vertrag der Dash-Phase.
+
+**Zwei Beobachtungen aus dieser Stufe, die man kennen muss, um die Zahlen in Kap. 9
+nicht als Widerspruch zu lesen.** Erstens: Auf dem Host-Target expandiert
+`#[wasm_bindgen_test]` zu nichts. `cargo test` meldet für die Datei **null Tests** und
+bleibt grün. Genau deshalb ist der leere Stub monatelang niemandem aufgefallen — es gab
+kein Signal, das hätte fehlschlagen können. Ein grünes `cargo test` sagt über die
+Sprachgrenze nichts aus. Zweitens, dieselbe Ursache: `cargo llvm-cov` instrumentiert
+ebenfalls das Host-Target. Die neuen Tests heben die Rust-Coverage daher **nicht**;
+`wasm_bridge/response.rs` steht weiter bei 0 %, obwohl es jetzt vollständig geprüft
+ist. Beide Zahlen sind korrekt, die Coverage-Zahl untertreibt an dieser Stelle
+lediglich, und Coverage misst hier sichtbar nicht Qualität, sondern nur, was ein
+bestimmtes Werkzeug auf einem bestimmten Target sehen kann.
+
+**Frontend.** Vitest im `node`-Environment (`frontend/vitest.config.js`). Die Suite
+braucht weder Browser noch gebautes WASM-Paket — und genau daraus folgt ihre Grenze:
+Nur importfreie Logikmodule sind so testbar. Ein Test, der `engine-bridge.js`, den
+Canvas-Renderer oder ein DOM-Modul hereinzieht, läuft nicht. Testdateien liegen als
+`<modul>.test.js` neben dem Modul und spiegeln damit die Rust-Konvention.
+
+**Coverage wird je Sprache getrennt erhoben und getrennt berichtet**
+(`@vitest/coverage-v8`, `cargo llvm-cov --lib`). Eine gemeinsame Kennzahl wäre die
+schlechtere Aussage: Sie würde die beiden Hälften verrechnen und damit genau die
+Information zerstören, um die es geht — welche Sprachseite geprüft ist und welche
+nicht.
+
+Die Frontend-Konfiguration enthält zwei Entscheidungen gegen eine schönere Zahl.
+`all: true` lässt Module ohne Test mitzählen, statt sie unsichtbar zu machen; und
+`index.js` sowie `ui/frameTimeGraph.js` — die beiden größten Dateien und die, die den
+Wert am stärksten drücken — sind **nicht** ausgeschlossen. Ausgeschlossen sind nur
+generiertes WASM-Glue, die Testdateien selbst und `gameConfig.js`, weil dort nichts
+Ausführbares steht. Der Frontend-Gesamtwert liegt damit im unteren Fünftel.
+
+Die Priorisierung dahinter ist ausdrücklich gewollt und lässt sich an der _Form_ der
+Verteilung ablesen, nicht am Mittelwert: Sie ist **zweigipfelig**. Jedes Modul liegt
+entweder bei 100 % oder bei 0 %, kein einziges dazwischen. Die Trennlinie ist keine
+Bequemlichkeit, sondern exakt die Architekturgrenze aus Kap. 3 — Module ohne DOM-,
+Canvas- oder WASM-Bezug sind vollständig abgedeckt, Module mit einem solchen Bezug
+gar nicht, weil die node-Suite sie nicht laden kann. Der Gesamtwert ist niedrig, weil
+die zweite Gruppe die größeren Dateien enthält, nicht weil dort nachlässig getestet
+worden wäre. Abgedeckt ist sie durch die E2E-Stufe (Kap. 8.2), und der Beweis dafür,
+dass diese Aufteilung trägt, ist der Befund in Kap. 8.2: Der Fehler, den die Suite als
+erstes fand, lag genau in dieser zweiten Gruppe.
+
+Schwellwerte (`thresholds`) sind bewusst noch **nicht** gesetzt. Eine Untergrenze
+oberhalb des Ist-Stands hätte die Pipeline aus Kap. 8.3 dauerhaft rot gemacht, ohne
+eine Information zu liefern; sie wird auf dem erreichten Niveau abzüglich einer
+Reserve nachgezogen, sobald die Pipeline steht. Zahlen: Kap. 9.
 
 ## 8.2 E2E Tests
 
-> TODO: nach T-04 schreiben. Playwright, weil das Spiel eine Canvas-Anwendung ohne
-> DOM-Struktur ist — die zu prüfenden Pfade sind Menü → Runde → Tod → Neustart,
-> Tastatureingabe, und dass das WASM-Modul überhaupt lädt.
-> Tabelle `Flow | Zweck | Dauer`. Report-Erzeugung und Ablageort nennen.
-> Realistisch begrenzen: wenige Flows, die den kritischen Pfad abdecken. Wenn die
-> Kapazität nicht reicht, die Absenz begründen statt eine leere Sektion zu lassen.
+Playwright, weil alles, was in diesem Spiel bewertbar ist, entweder auf einem Canvas
+liegt oder erst nach dem Laden eines WebAssembly-Moduls existiert. Beides ist von
+außen nur in einem echten Browser sichtbar.
+
+**Die wichtigste Konfigurationsentscheidung ist das Ziel, nicht das Werkzeug.** Die
+Suite läuft gegen den **Production-Build** (`npm run build` + `vite preview`), nicht
+gegen den Dev-Server. Der Dev-Server liefert das gesamte Projektverzeichnis aus und
+verdeckt damit alles, was der Build zu kopieren vergisst. Das ist nicht theoretisch:
+Beim Einrichten fiel auf, dass `frontend/dist/` kein `locales/`-Verzeichnis enthielt.
+`ui/i18n.js` holt die Locale per `fetch` zur Laufzeit, die Datei erscheint deshalb nie
+im Modulgraph, und Vite kopiert nur, was es importiert sieht oder unter `public/`
+findet. Im gebauten Spiel schlug der `fetch` also fehl und **jedes** Label stand als
+Rohschlüssel auf dem Bildschirm — `menu.play` statt „Play". Über Monate hinweg war das
+unsichtbar, weil niemand den Build startet, um zu spielen.
+
+Bemerkenswert ist daran nicht der Fehler, sondern wer ihn finden konnte: Die
+Engine-Unit-Tests, die Grenz-Tests und die Frontend-Unit-Tests waren zu diesem
+Zeitpunkt alle grün und hätten ihn strukturell nie finden können, weil keiner von
+ihnen ein Build-Artefakt anfasst. Die Entscheidung für den Preview-Build hat sich
+damit bezahlt, bevor der erste E2E-Test geschrieben war — und sie ist damit auch die
+Antwort auf die Frage, was diese Stufe zusätzlich leistet, statt sie behaupten zu
+müssen. Als Regressionswächter prüft `boot.spec.js` seitdem beides: dass kein Request
+fehlschlägt und dass die Menütexte echte Wörter statt Schlüsseln sind.
+
+| Flow               | Zweck                                                                                                             | Dauer |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------- | ----: |
+| `boot.spec.js`     | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt | < 1 s |
+| `round.spec.js`    | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                    | ~ 5 s |
+| `input.spec.js`    | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                      | ~ 5 s |
+| `settings.spec.js` | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                              | ~ 4 s |
+| `gameover.spec.js` | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                            | ~ 8 s |
+
+Drei bewusste Begrenzungen, jeweils mit ihrem Grund:
+
+- **Nur Chromium.** Die Engine ist WebAssembly hinter einem Canvas; ein zweiter
+  Browser würde überwiegend dessen eigene WASM- und Canvas-Implementierung
+  nachprüfen, nicht den Code dieses Projekts. Der Nutzen wäre gering, die doppelte
+  Laufzeit real.
+- **Ein Worker, keine Parallelität.** Mehrere Browser, die gleichzeitig eine
+  O(n²)-Schleife über hunderte Entitäten mit 60 Schritten pro Sekunde rechnen, nehmen
+  sich gegenseitig die CPU weg. Zeitbezogene Zusicherungen würden dann aus Gründen
+  fehlschlagen, die nichts mit dem geprüften Code zu tun haben.
+- **Kein Pixelvergleich.** Naheliegend wäre, Spieler, Boids und Cooldown-Balken über
+  Screenshots zu prüfen. Es wäre aber wertlos: Der Schwarm bewegt sich in jedem Frame,
+  jedes Bild unterscheidet sich also von jedem anderen, und eine
+  Ungleichheits-Zusicherung wäre unabhängig von der Eingabe immer erfüllt. Ein
+  Golden Image umgekehrt wäre bei einer laufenden Simulation dauerhaft instabil. Die
+  Zeichen-Arithmetik ist stattdessen als Unit-Test isoliert (`renderer/dashPulse.js`,
+  `player/dashCooldown.js`, `ui/frameGraphScale.js`) — das ist der Grund, aus dem
+  diese Module überhaupt aus ihren Renderern herausgezogen wurden.
+
+Was E2E dagegen als Einziges prüfen kann und hier auch prüft, ist das **Eigentum an
+der Tastatur** — die eine Eingabe-Eigenschaft, die eine Entwurfsentscheidung und keine
+Arithmetik ist: Die Leertaste wird nur während einer laufenden Runde für den Dash
+beansprucht, damit sie überall sonst die Menüschaltflächen und das native
+`<details>` weiter bedient (Kap. 3.2.2). Beide Hälften dieser Aussage sind je ein
+Testfall.
+
+Ein fachlicher Nebeneffekt der Determinismus-Entscheidung aus Kap. 4: Weil die Engine
+keine Zufallsquelle besitzt, ist „stehenbleiben, bis der Schwarm drei Leben genommen
+hat" ein reproduzierbarer Testfall und nicht bloß meistens einer.
+
+**Report.** `npm run test:e2e` erzeugt einen HTML-Report unter
+`frontend/playwright-report/`, ansehbar mit `npm run test:e2e:report`; bei einem
+Fehlschlag liegen Trace, Video und Screenshot daneben. Der Report ist ein generiertes
+Artefakt und daher gitignoriert — im Repository liegt die Suite, im Anhang (Kap. 11)
+die Zusammenfassung.
 
 ## 8.3 CI/CD: GitHub Actions Pipeline
 

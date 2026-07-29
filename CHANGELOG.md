@@ -86,6 +86,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   getters return `js_sys` typed arrays and need a JavaScript runtime: index alignment across all four
   buffers, `snapshot` not advancing the world, the wave spawner's safe distance from the player, the
   window-resize wrap, and the sign convention of the dash phase. Run with `wasm-pack test`.
+- End-to-end tests (`npm run test:e2e`, Playwright) covering the paths that only exist in a real
+  browser: that the WASM module loads, the menu and its option groups, the HUD, the round lifecycle
+  from start through death to restart, and that the space bar belongs to the dash during a round and
+  to the menu outside one. They run against the **production build** rather than the dev server,
+  which is what surfaced the missing locale file. `npm run test:e2e:report` opens the HTML report.
+- The four HUD panels now carry stable ids (`hud-timer`, `hud-wave`, `hud-score`, `hud-boids`)
+  alongside their position classes, so the end-to-end tests assert on what a panel shows rather than
+  on where it currently sits.
 
 ### Changed
 
