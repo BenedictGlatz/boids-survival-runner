@@ -28,6 +28,9 @@ const DASH_GLOW_LEVEL = 1;
  *
  * The pulse gets both stronger and faster as the launch approaches, so a boid
  * that is about to lunge is the most eye-catching thing on screen.
+ * @param {number} dashPhase - `0` when idle, `0 < p < 1` while charging up,
+ *   `-1 <= p < 0` while dashing.
+ * @returns {number} Multiplier applied to the boid's normal size.
  */
 export function dashPulseScale(dashPhase) {
   if (dashPhase < 0) {
@@ -44,6 +47,9 @@ export function dashPulseScale(dashPhase) {
 /**
  * How far the boid's colour is pushed toward white, from `0` (normal colour) to
  * `1` (brightest).
+ * @param {number} dashPhase - `0` when idle, `0 < p < 1` while charging up,
+ *   `-1 <= p < 0` while dashing.
+ * @returns {number} Blend factor between `0` and `1`.
  */
 export function dashGlowLevel(dashPhase) {
   if (dashPhase < 0) {

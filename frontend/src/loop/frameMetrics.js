@@ -10,7 +10,7 @@
  * chosen target framerate, so the two are measured at different rates. To keep
  * one sample meaning one drawn frame, simulation time is accumulated and only
  * committed once the next frame is actually drawn. A sample therefore represents
- * *all* the work done since the previous sample.
+ * all* the work done since the previous sample.
  *
  * Browsers deliberately coarsen `performance.now()` as a timing-attack defence —
  * Firefox rounds it down to whole milliseconds by default, Chrome to 100 us. A
@@ -34,7 +34,7 @@ export class FrameMetrics {
 
   /**
    * Adds this animation frame's simulation cost to the sample being built.
-   * @param {number} milliseconds
+   * @param {number} milliseconds - Time this animation frame spent simulating.
    */
   addSimulationTime(milliseconds) {
     this._pendingSimulationMs += milliseconds;
@@ -43,7 +43,7 @@ export class FrameMetrics {
   /**
    * Closes the current sample: the simulation time collected since the previous
    * drawn frame plus the time that frame took to draw.
-   * @param {number} renderMilliseconds
+   * @param {number} renderMilliseconds - Time this frame spent drawing.
    */
   commitRenderedFrame(renderMilliseconds) {
     this._simulationSamples[this._writeIndex] = this._pendingSimulationMs;
@@ -64,11 +64,12 @@ export class FrameMetrics {
     this._pendingSimulationMs = 0;
   }
 
+  /** @returns {number} Fixed ring-buffer size, in samples. */
   get capacity() {
     return this._capacity;
   }
 
-  /** Number of valid samples; stops growing once the buffer has wrapped. */
+  /** @returns {number} Number of valid samples; stops growing once the buffer has wrapped. */
   get sampleCount() {
     return this._sampleCount;
   }
@@ -77,17 +78,18 @@ export class FrameMetrics {
    * Buffer slot holding the oldest sample, i.e. where a left-to-right read
    * starts. While the buffer is still filling up that is simply slot 0; once it
    * has wrapped, the next slot to be overwritten is the oldest one.
+   * @returns {number} Index of the oldest sample.
    */
   oldestIndex() {
     return this._sampleCount < this._capacity ? 0 : this._writeIndex;
   }
 
-  /** Raw ring buffer. Index it via `oldestIndex()` and `capacity`. */
+  /** @returns {Float32Array} Raw ring buffer. Index it via `oldestIndex()` and `capacity`. */
   get simulationSamples() {
     return this._simulationSamples;
   }
 
-  /** Raw ring buffer. Index it via `oldestIndex()` and `capacity`. */
+  /** @returns {Float32Array} Raw ring buffer. Index it via `oldestIndex()` and `capacity`. */
   get renderSamples() {
     return this._renderSamples;
   }
@@ -102,11 +104,10 @@ export class FrameMetrics {
    * ones with meaningful decimals once the browser has rounded every individual
    * measurement (see the class comment). The peaks stay raw — an average would
    * hide exactly the spike they exist to report.
-   *
    * @returns {{lastSimulationMs: number, lastRenderMs: number, lastTotalMs: number,
    *            averageSimulationMs: number, averageRenderMs: number,
    *            averageTotalMs: number, maxSimulationMs: number,
-   *            maxRenderMs: number, maxTotalMs: number}}
+   *            maxRenderMs: number, maxTotalMs: number}} The window's last, average, and peak costs.
    */
   summary() {
     if (this._sampleCount === 0) {

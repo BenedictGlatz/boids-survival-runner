@@ -15,10 +15,9 @@
  * leave a radiogroup broken for keyboard and screen-reader users. Toggle buttons
  * carry no arrow-key expectation and work with Tab plus Enter/Space, none of
  * which the input manager intercepts.
- *
  * @param {{id: string, label: string, hint?: string,
  *          options: Array<{value: string, label: string, ariaLabel?: string,
- *                          selected: boolean}>}} group
+ *                          selected: boolean}>}} group - Layout and options to render.
  * @returns {string} HTML for the group.
  */
 export function renderOptionGroup({ id, label, hint, options }) {
@@ -40,7 +39,6 @@ export function renderOptionGroup({ id, label, hint, options }) {
 /**
  * Wires selection for a group rendered by `renderOptionGroup`. One delegated
  * listener per group, so the buttons can be re-rendered without rebinding.
- *
  * @param {string} id - The group id passed to `renderOptionGroup`.
  * @param {(value: string) => void} onSelect - Receives the chosen raw value.
  */

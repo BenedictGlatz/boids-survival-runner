@@ -36,13 +36,35 @@ cd frontend && npm run test:watch
 
 # A single frontend test file
 cd frontend && npx vitest run src/loop/frameMetrics.test.js
+
+# Frontend lint (ESLint flat config in frontend/eslint.config.js)
+cd frontend && npm run lint
+cd frontend && npm run lint:fix
+
+# Format check / apply (Prettier, repo-wide — JS, JSON, CSS, Markdown)
+cd frontend && npm run format:check
+cd frontend && npm run format
 ```
 
 `npm run build:wasm` is the authoritative engine build — it emits `--target web` into
 `frontend/src/wasm/engine/` (gitignored). The `--target bundler` invocation in the README is
 stale; do not build into `engine/pkg/`, the frontend imports from `frontend/src/wasm/engine/`.
 
-There is no JS linter configured.
+ESLint (flat config, `frontend/eslint.config.js`) lints the frontend and must stay at **zero errors
+and zero warnings**. `eslint-plugin-jsdoc` enforces JSDoc — presence *and* typed
+`@param`/`@returns` with descriptions — on exported functions/classes and on public methods of an
+exported class. Deliberately out of scope: plain exported constants (`gameConfig.js`),
+underscore-prefixed private members (`_startDash`), and `*.test.js`. Both the presence rule and the
+content rules share one `JSDOC_REQUIRED_CONTEXTS` list, so they never disagree about what counts as
+public API. `cargo clippy` is the Rust counterpart.
+
+Prettier owns formatting for JS, JSON, CSS and Markdown; its config lives at the repo root
+(`.prettierrc.json` + `.prettierignore`) because its scope is the whole repository, while the
+dependency sits in `frontend/package.json` since that is the only Node package root. The scripts
+therefore need `--ignore-path ../.prettierignore` — Prettier resolves the ignore file relative to the
+working directory, not to the target path. `eslint-config-prettier` is last in the ESLint config, so
+formatting belongs to Prettier and semantics to ESLint with no overlapping rules. `cargo fmt` is the
+Rust counterpart. Do not hand-format code that Prettier owns; run `npm run format`.
 
 Vitest is configured in `frontend/vitest.config.js` and runs in the `node` environment, so the suite
 needs neither a browser nor a built WASM package. Only import-free logic modules are testable this

@@ -56,14 +56,46 @@ ihres Landens.
 
 ## 8.4 Kommentare — Visuelle Strukturierung des Quellcodes
 
-> TODO: Die Kommentar-Konvention ist im Projekt eine ausdrückliche Regel und gehört
-> als solche beschrieben: „Jeder nicht-triviale Block erhält einen Kommentar in
-> Alltagssprache, der *was* und *warum* erklärt, nicht *wie*." Dazu die Begründung —
-> die Codebasis wird von Studierenden gelesen, die Rust neu lernen.
-> Weitere erzwungene Punkte: Doc-Kommentar für jeden `#[wasm_bindgen]`-Export,
-> Begründungskommentar für jeden `unsafe`-Block (es gibt derzeit keinen — das ist
-> erwähnenswert), Begründungspflicht für jede Mikrooptimierung.
-> JSDoc als maschinengeprüfte Variante davon → Verweis auf Kap. 7.5.
+Die Kommentar-Konvention ist in diesem Projekt keine Stilempfehlung, sondern eine
+ausdrückliche Regel in `CLAUDE.md` bzw. `.github/copilot-instructions.md`:
+
+> Jeder nicht-triviale Block erhält einen Kommentar in Alltagssprache, der *was*
+> und *warum* erklärt, nicht *wie*.
+
+Die Begründung ist die oberste Projektregel: Die Codebasis wird von Studierenden
+gelesen, die Rust und WebAssembly neu lernen. Ein Kommentar, der das *Wie*
+wiederholt, ist für diese Leser wertlos — der Code sagt es bereits. Wertvoll ist
+das *Warum*, und zwar besonders dort, wo eine naheliegende Lösung absichtlich
+**nicht** gewählt wurde. Beispiele aus dem Bestand: warum der Dash eine
+Geschwindigkeitsobergrenze als Parameter übergibt statt `max_speed` zu erhöhen
+(sonst skaliert auch die Lenkstärke mit), warum die Glow-Farben vorberechnet in
+einer Tabelle liegen (keine String-Allokation pro Boid pro Frame), warum das
+Entwickler-Menü ein natives `<details>` ist (Tastatur- und Screenreader-Bedienung
+ohne eigenen Zustand).
+
+Drei weitere Punkte sind als harte Regel formuliert:
+
+- **Doc-Kommentar für jeden `#[wasm_bindgen]`-Export.** Die Bridge ist die
+  schmalste und am leichtesten missverstandene Stelle des Systems (Kap. 5); dort
+  ist Dokumentation am billigsten und am wirksamsten.
+- **Begründungskommentar für jeden `unsafe`-Block.** Erwähnenswert ist hier vor
+  allem der Ist-Stand: Es gibt derzeit **keinen einzigen** `unsafe`-Block in der
+  Engine. Die gesamte Simulation kommt mit sicherem Rust aus — für ein Projekt,
+  dessen Kern eine O(n²)-Schleife über mehrere hundert Entitäten pro Frame ist, ist
+  das eine erwähnenswerte und keine selbstverständliche Eigenschaft.
+- **Begründungspflicht für jede Mikrooptimierung.** Manuelle SIMD, Bit-Tricks oder
+  Zeigerarithmetik sind nur erlaubt, wenn ein Profiler den Engpass belegt hat — und
+  dann mit ausführlicher Erklärung der Technik.
+
+**JSDoc ist die maschinengeprüfte Hälfte dieser Konvention.** Was für Rust die
+Doc-Kommentar-Pflicht ist, leistet im Frontend `eslint-plugin-jsdoc`: Auf der
+öffentlichen API erzwingt der Linter Vorhandensein, Typen und Beschreibungen —
+Details in Kap. 7.5. Die Arbeitsteilung ist damit sauber: Die *Warum*-Kommentare im
+Blockinneren bleiben eine menschliche Urteilsfrage und lassen sich nicht prüfen; die
+*Schnittstellen*-Dokumentation ist strukturell und wird geprüft. Der Befund aus
+T-01 stützt genau diese Trennung: Die Prosa-Kommentare waren durchgehend gepflegt,
+die Schnittstellen-Dokumentation aber lückenhaft — inklusive der WASM-Bridge selbst.
+Die Regel ohne Werkzeug hielt also gerade dort nicht, wo sie am wichtigsten war.
 
 ## 8.5 Lighthouse
 

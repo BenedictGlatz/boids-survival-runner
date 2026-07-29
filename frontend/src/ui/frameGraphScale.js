@@ -14,7 +14,6 @@ const MILLISECONDS_PER_SECOND = 1000;
  * answers the only question worth asking of it — "is this frame fast enough for
  * the framerate I asked for?" — with a fixed height instead of a moving one. A
  * curve at the same height means the same cost for the whole round.
- *
  * @param {number} targetFps - Frames per second the renderer is aiming for.
  * @param {number} headroomFactor - How much taller the axis is than the budget.
  * @returns {{budgetMs: number, topMs: number}} The frame budget of one target

@@ -88,7 +88,7 @@ export class FrameTimeGraph {
   }
 
   /**
-   * @param {import('../loop/frameMetrics.js').FrameMetrics} metrics
+   * @param {import('../loop/frameMetrics.js').FrameMetrics} metrics - The window to plot.
    * @param {{mode?: string, targetFps?: number}} [options] - `mode` is one of
    *   `FRAME_GRAPH_MODE`; `targetFps` is the framerate the renderer aims for and
    *   sets both the budget line and the top of the axis.
@@ -115,10 +115,12 @@ export class FrameTimeGraph {
     this._drawBudgetLine(axis.budgetMs, axis.topMs);
   }
 
+  /** Hides the overlay canvas. */
   hide() {
     this._canvas.style.display = 'none';
   }
 
+  /** Shows the overlay canvas. */
   show() {
     this._canvas.style.display = 'block';
   }

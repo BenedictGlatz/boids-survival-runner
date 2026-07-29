@@ -22,6 +22,10 @@ export class Hud {
     }
   }
 
+  /**
+   * @param {{timerSeconds: number, wave: number, score: number, entityCount: number}} data -
+   *   Current round state to display.
+   */
   update(data) {
     this._panels.timer.textContent = `${t('hud.timer')}: ${formatTime(data.timerSeconds)}`;
     this._panels.wave.textContent = `${t('hud.wave')}: ${data.wave}`;
@@ -29,10 +33,12 @@ export class Hud {
     this._panels.boids.textContent = `${t('hud.boids')}: ${data.entityCount}`;
   }
 
+  /** Hides the whole HUD. */
   hide() {
     this._el.style.display = 'none';
   }
 
+  /** Shows the whole HUD. */
   show() {
     this._el.style.display = 'flex';
   }

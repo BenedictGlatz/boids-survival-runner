@@ -20,7 +20,7 @@ export async function loadLocale(lang = 'en') {
  * Returns the translated string for the given dot-separated key.
  * Returns the key itself when no translation is found.
  * @param {string} key - Namespaced key, e.g. 'menu.start'.
- * @returns {string}
+ * @returns {string} The translated string, or the key itself if untranslated.
  */
 export function t(key) {
   return key.split('.').reduce((obj, k) => obj?.[k], _strings) ?? key;

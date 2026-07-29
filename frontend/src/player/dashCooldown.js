@@ -9,7 +9,13 @@
  * free cooldown progress.
  */
 
-/** Whether enough simulation time has passed since the last dash. */
+/**
+ * Whether enough simulation time has passed since the last dash.
+ * @param {number} simulationTimeMs - Current simulation clock.
+ * @param {number} lastDashAtMs - Simulation time the last dash started at.
+ * @param {number} cooldownMs - Required time between dashes.
+ * @returns {boolean} Whether a new dash may start.
+ */
 export function isDashReady(simulationTimeMs, lastDashAtMs, cooldownMs) {
   return simulationTimeMs - lastDashAtMs >= cooldownMs;
 }
@@ -17,6 +23,10 @@ export function isDashReady(simulationTimeMs, lastDashAtMs, cooldownMs) {
 /**
  * How far the cooldown has recovered, from `0` right after a dash to `1` once
  * the dash is available again. Used to fill the bar at the bottom of the screen.
+ * @param {number} simulationTimeMs - Current simulation clock.
+ * @param {number} lastDashAtMs - Simulation time the last dash started at.
+ * @param {number} cooldownMs - Required time between dashes.
+ * @returns {number} Progress between `0` and `1`.
  */
 export function dashCooldownProgress(simulationTimeMs, lastDashAtMs, cooldownMs) {
   if (cooldownMs <= 0) {

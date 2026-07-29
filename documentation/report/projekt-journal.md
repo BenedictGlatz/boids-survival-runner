@@ -42,6 +42,7 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | Datum | h | Spec/Maßnahme | Was |
 |------------|----:|------|-----|
 | 2026-07-29 | 2,0 | D-01 | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt |
+| 2026-07-29 | 3,5 | T-01 | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben |
 
 ## Entscheidungen
 
@@ -85,6 +86,55 @@ Prosa.
 
 → Kap. 7, 8, 10
 
+### 2026-07-29 — JSDoc-Pflicht über esquery-Kontexte statt `publicOnly`
+
+**Gewählt:** `jsdoc/require-jsdoc` und alle Inhaltsregeln (`require-param`,
+`require-param-type`, `require-returns` …) teilen **eine** Liste von
+esquery-Selektoren (`JSDOC_REQUIRED_CONTEXTS` in `frontend/eslint.config.js`):
+exportierte Funktionen und Klassen sowie öffentliche Methoden exportierter Klassen.
+Ausgenommen bleiben einfache exportierte Konstanten, Unterstrich-Präfixe und
+`*.test.js`.
+
+**Verworfen:**
+
+| Alternative | Grund der Ablehnung |
+|---|---|
+| `publicOnly: true` | Unterscheidet nur exportiert/nicht exportiert und kennt die `_methode`-Konvention des Projekts nicht. Hätte `_startDash`, `_drawCurves` usw. wie öffentliche API behandelt und damit genau die Grenze verwischt, die der Unterstrich zieht. |
+| Nur die Vorhandensein-Regel einschränken, Inhaltsregeln auf Standard lassen | Die Inhaltsregeln greifen dann auf *jede* Funktion zu, die zufällig schon einen einzeiligen Prosa-Kommentar trägt — auch private und modulprivate. `--fix` schrieb dort leere `@param`-Zeilen hinein (siehe Herausforderungen). |
+| Legacy `.eslintrc` statt Flat Config | Bei ESLint 9 nur noch über eine Kompatibilitätsschicht. Für eine neu angelegte Konfiguration gibt es keinen Grund, diese Schicht einzuziehen; `"type": "module"` ist ohnehin gesetzt. |
+| Strengere Sammel-Plugins (`unicorn`, `sonarjs`) | Optimieren auf idiomatisch-dichtes JavaScript und arbeiten damit direkt gegen die oberste Projektregel („`for`-Schleifen statt Iterator-Ketten", „ausgeschriebene Namen"). Ein Linter, der die Lesbarkeitsentscheidung anmeckert, wird abgeschaltet statt befolgt. |
+
+**Konsequenz:** Die Regel prüft genau die Schnittstellen und lässt die
+*Warum*-Kommentare im Blockinneren unangetastet — die bleiben eine menschliche
+Urteilsfrage. Endstand fehler- **und** warnungsfrei, was `lint` erst als
+CI-Gate (T-05) brauchbar macht. Nebennutzen: Weil `require-param-type` mit
+aktiviert ist, liefern dieselben Blöcke später die Typinformation für `checkJs`
+(T-02).
+
+→ Kap. 7, 8
+
+### 2026-07-29 — Prettier-Konfiguration an der Repository-Wurzel
+
+**Gewählt:** `.prettierrc.json` und `.prettierignore` liegen im Wurzelverzeichnis,
+die devDependency in `frontend/package.json`. `proseWrap: preserve`.
+
+**Verworfen:**
+
+| Alternative | Grund der Ablehnung |
+|---|---|
+| Konfiguration in `frontend/` | Prettiers Zuständigkeit ist das ganze Repository — die Berichtskapitel, `README.md` und `CHANGELOG.md` liegen außerhalb von `frontend/`. Prettier löst die Konfiguration von der zu formatierenden Datei nach oben auf, eine Wurzeldatei deckt beide Seiten ohne Duplikat ab. |
+| Eigenes `package.json` an der Wurzel | Zweites Lockfile und zweiter `npm install` nur für eine devDependency — teurer als die kleine Asymmetrie zwischen Konfigurationsort und Abhängigkeitsort. |
+| `proseWrap` auf Standard (`preserve` ist nicht Prettiers Default für alle Fälle) lassen bzw. `always` | Würde die deutsche Prosa in `documentation/report/**` bei jedem Lauf auf `printWidth` neu umbrechen. Ein geänderter Halbsatz hätte dann Diffs über zwanzig Zeilen. |
+| Markdown ganz aus Prettiers Zuständigkeit nehmen | Kap. 7.4 fordert Formatierung für JS/JSON/Markdown; mit `proseWrap: preserve` ist die Prosa geschützt, und die Normalisierung von Tabellen bleibt ein einmaliger Aufwand. |
+
+**Konsequenz:** Ein Formatierungslauf deckt Code und Dokumentation ab. Preis: Die
+Scripts brauchen `--ignore-path ../.prettierignore`, weil Prettier die Ignore-Datei
+relativ zum Arbeitsverzeichnis sucht, nicht relativ zum Zielpfad. Die einmalige
+Normalisierung des Bestands (Tabellen-Pipes, `*kursiv*` → `_kursiv_`) liegt in einem
+eigenen `style:`-Commit, damit der Tooling-Commit lesbar bleibt.
+
+→ Kap. 7
+
 ### 2026-07-29 — Diagramme als Mermaid inline
 
 **Gewählt:** Mermaid-Blöcke inline in den Kapiteldateien, gerendert per
@@ -119,3 +169,20 @@ exportieren → in Word einfügen, bei vier Diagrammen akzeptabel.
   werden um 2 Uhr nachts mit `--no-verify` umgangen. Rückwirkend werden **keine**
   Prompts erfunden; die Lücke wird in Kapitel 12 offengelegt.
   → Kap. 6, 10, 12
+
+- **2026-07-29 — `eslint --fix` verschlechterte die Kommentare, bevor es sie
+  verbesserte.** Die Nachrüstung war mit ~1,5–2 h geplant und lag bei ~2,5 h. Ursache
+  war nicht der Umfang, sondern eine falsche Regel-Reichweite: Nur
+  `jsdoc/require-jsdoc` war auf die exportierte API eingeschränkt, die Inhaltsregeln
+  des `flat/recommended`-Sets liefen auf Standard. Die prüfen aber **jede** Funktion,
+  die schon irgendeinen JSDoc-Block trägt — und im Projekt tragen auch private
+  Helfer einzeilige `/** … */`-Prosa-Kommentare. `--fix` hängte dort leere
+  `@param color`-/`@param amount`-Zeilen an, also genau die inhaltsleere
+  Tag-Wiederholung, die die Kommentar-Konvention verbietet. Rund 90 solcher
+  Warnungen und ein Dutzend bereits geschriebene Zeilen mussten zurückgenommen
+  werden. Lehre, die über diesen Fall hinausgeht: Bei `eslint-plugin-jsdoc` ist die
+  Reichweite **pro Regel** einzustellen, nicht einmal fürs Plugin — die
+  gemeinsame Kontext-Liste ist deshalb keine Eleganz, sondern die Korrektur eines
+  echten Fehlers. Zweite Lehre: `--fix` auf einer frisch eingeführten Regel erst auf
+  wenigen Dateien gegenprüfen, bevor man es über die Codebasis laufen lässt.
+  → Kap. 7, 8, 10

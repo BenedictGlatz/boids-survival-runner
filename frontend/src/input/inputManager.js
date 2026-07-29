@@ -51,7 +51,7 @@ export class InputManager {
     });
   }
 
-  /** Switches the dash key on for a running round and off again afterwards. */
+  /** @param {boolean} active - Whether a round is currently running. */
   setGameplayActive(active) {
     this._gameplayActive = active;
 
@@ -67,6 +67,7 @@ export class InputManager {
    * The request is latched rather than read as a held key, because a single
    * animation frame can run several simulation steps: asking "is space down"
    * once per step would trigger up to five dashes from one key press.
+   * @returns {boolean} Whether a dash was requested.
    */
   consumeDashRequest() {
     const requested = this._dashRequested;
@@ -87,7 +88,7 @@ export class InputManager {
     }
   }
 
-  /** Returns a unit-length direction vector from WASD or arrow-key input. */
+  /** @returns {{x: number, y: number}} A unit-length direction vector, or zero if idle. */
   getMovementDirection() {
     const horizontal = movementAxis(
       this._pressedKeys.has('KeyA') || this._pressedKeys.has('ArrowLeft'),

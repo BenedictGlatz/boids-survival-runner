@@ -1,0 +1,13 @@
+# Mirrors .gitignore — build artifacts and generated code should not be formatted.
+/engine/target/
+/engine/pkg/
+/frontend/node_modules/
+/frontend/dist/
+/frontend/src/wasm/
+
+# Reference PDFs are not text files Prettier can format.
+documentation/**/*.pdf
+
+# npm owns this file and rewrites it on every install; formatting it only
+# creates churn that the next `npm install` undoes.
+/frontend/package-lock.json

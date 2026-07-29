@@ -75,6 +75,10 @@ export class CanvasRenderer {
     this.resize(window.innerWidth, window.innerHeight);
   }
 
+  /**
+   * @param {number} width - CSS pixels.
+   * @param {number} height - CSS pixels.
+   */
   resize(width, height) {
     const pixelRatio = window.devicePixelRatio || 1;
     this._width = width;
@@ -86,7 +90,11 @@ export class CanvasRenderer {
     this._ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   }
 
-  /** @param {object} frame */
+  /**
+   * @param {object} frame - The engine's flat-buffer frame, as normalized by `engine-bridge.js`.
+   * @param {{x: number, y: number}} playerPosition - Current player position.
+   * @param {object} [renderState] - HUD-adjacent state (lives, dash cooldown, countdown, ...).
+   */
   drawFrame(frame, playerPosition, renderState = {}) {
     const ctx = this._ctx;
     ctx.clearRect(0, 0, this._width, this._height);

@@ -9,10 +9,20 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write --ignore-path ../.prettierignore ..",
+    "format:check": "prettier --check --ignore-path ../.prettierignore ..",
     "docs:ki-verzeichnis": "node ../scripts/ki-verzeichnis.mjs",
     "docs:check": "node ../scripts/docs-check.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jsdoc": "^50.2.0",
+    "globals": "^15.9.0",
+    "prettier": "^3.3.0",
     "vite": "^5.0.0",
     "vitest": "^4.1.10"
   }

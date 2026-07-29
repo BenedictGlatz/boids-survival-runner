@@ -24,12 +24,12 @@ export class Menu {
   /**
    * Settings arrive as one object rather than as positional arguments, so adding
    * a further setting does not keep widening the signature.
-   *
-   * @param {() => void} onStart
+   * @param {() => void} onStart - Called when the play button is pressed.
    * @param {{targetFps: {options: number[], selected: number, uncappedValue: number,
    *                      onSelect: (fps: number) => void},
    *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void},
-   *          frameGraphMode: {selected: string, onSelect: (mode: string) => void}}} settings
+   *          frameGraphMode: {selected: string, onSelect: (mode: string) => void}}} settings -
+   *   Current option values and their change handlers.
    */
   showStart(onStart, settings) {
     this._el.innerHTML = `
@@ -60,6 +60,10 @@ export class Menu {
     this._el.style.display = 'flex';
   }
 
+  /**
+   * @param {() => void} onRestart - Called when the restart button is pressed.
+   * @param {number} finalScore - Score reached in the round that just ended.
+   */
   showGameOver(onRestart, finalScore) {
     this._el.innerHTML = `
       <div class="menu-panel">
@@ -72,6 +76,7 @@ export class Menu {
     this._el.style.display = 'flex';
   }
 
+  /** Hides whichever overlay (start or game-over) is currently shown. */
   hide() {
     this._el.style.display = 'none';
   }
@@ -116,7 +121,6 @@ function renderFrameGraphGroup({ enabled }) {
  * A native `<details>` rather than a scripted toggle: it needs no state of its
  * own and stays keyboard- and screen-reader-operable via Enter/Space, neither of
  * which InputManager intercepts.
- *
  * @param {string[]} groups - Rendered option groups, in display order.
  */
 function renderDeveloperSection(groups) {

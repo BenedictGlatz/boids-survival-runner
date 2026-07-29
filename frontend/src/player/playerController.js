@@ -8,6 +8,7 @@ import {
   PLAYER_VISUAL_RADIUS,
 } from '../gameConfig.js';
 
+/** Integrates the player's position and velocity, including the dash. */
 export class PlayerController {
   constructor() {
     this.position = { x: 0, y: 0 };
@@ -17,6 +18,10 @@ export class PlayerController {
     this._speedLimit = PLAYER_MAX_SPEED;
   }
 
+  /**
+   * @param {number} x - Starting position.
+   * @param {number} y - Starting position.
+   */
   reset(x, y) {
     this.position = { x, y };
     this.velocity = { x: 0, y: 0 };
@@ -29,6 +34,10 @@ export class PlayerController {
    * `controls` carries the movement direction and whether a dash starts on this
    * step. A dash only happens with a direction held: dashing on the spot has no
    * meaningful direction, so the caller keeps its cooldown in that case.
+   * @param {{direction: {x: number, y: number}, dash: boolean}} controls - This step's input.
+   * @param {number} deltaSeconds - Wall-clock time since the previous step.
+   * @param {{width: number, height: number}} bounds - Current world size.
+   * @returns {{x: number, y: number}} The player's position after integration.
    */
   update(controls, deltaSeconds, bounds) {
     const safeDeltaSeconds = Math.min(Math.max(deltaSeconds, 0), PLAYER_MAX_DELTA_SECONDS);
@@ -73,6 +82,7 @@ export class PlayerController {
     this._speedLimit = PLAYER_DASH_SPEED;
   }
 
+  /** @param {{width: number, height: number}} bounds - Current world size. */
   clampToBounds(bounds) {
     const minX = PLAYER_VISUAL_RADIUS;
     const minY = PLAYER_VISUAL_RADIUS;
@@ -101,6 +111,7 @@ export class PlayerController {
     }
   }
 
+  /** @returns {{x: number, y: number}} A copy of the current position. */
   getPosition() {
     return {
       x: this.position.x,

@@ -99,8 +99,10 @@ export const FRAME_GRAPH_HEADROOM_FACTOR = 2;
 /** Stroke width of a plotted curve, in CSS pixels. */
 export const FRAME_GRAPH_LINE_WIDTH = 1.5;
 
-/** Opacity of the tinted area below a curve. Low enough to keep both readable
- *  where two curves overlap. */
+/**
+ * Opacity of the tinted area below a curve. Low enough to keep both readable
+ *  where two curves overlap.
+ */
 export const FRAME_GRAPH_AREA_ALPHA = 0.16;
 
 /** Width of the marker drawn where a sample ran past the top of the scale. */

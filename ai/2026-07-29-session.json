@@ -22,5 +22,11 @@
     "prompt": "Es handelt sich hier um ein Projekt für die Uni. Neben dem Code muss auch eine Dokumentation angefertigt werden. Ich möchte dass du während die Software entwickelt wirst, gleichzeitig bereits damit beginnst stichpunktartig die Dokumentation zu schreiben.\n\nIch habe für dich im Ordner Documentation zwei PDFs als Referenz abgelegt, einmal den Anforderungskatalog des Professors und einmal eine Musterdokumentation eines vorherigen Projekt bei diesem Professor. Ich möchte dass wir anhanddessen planen wie du während der Umsetzung nebenbei dokumentierst.",
     "topic": "prozess-doku",
     "use": "impl"
+  },
+  {
+    "model": "claude-sonnet-5",
+    "prompt": "In unserer letzten Session hast du mich auf folgende Diskrepanz zwischen dem geforderten Projektumfang und dem aktuellen Stand hingewiesen:\n\n\"Drei Dinge, die du wissen solltest\nDie Tooling-Lücke ist größer als gedacht. Der Katalog verlangt Linter, Formatter, JSDoc-Enforcement, TypeScript, Coverage, E2E, CI/CD und Deployment — vorhanden ist nichts davon. Ich habe das als T-01…T-06 mit ≈24 h in docs/specs-overview.md geplant. Damit liegt das Gesamtbudget bei ≈131 h und über deiner Kapazität; gegenfinanziert durch das bewusste Streichen von Schild und Slow-Time. Das ist im Kapazitätsplan ehrlich dokumentiert — eine Planung, die eine erkannte Überbuchung ausweist, liest sich besser als eine, die im Nachhinein aufgeht.\"\n\nIch möchte dass du jetzt die Implementation eines Linters und Formatters planst, sowie die Dokumentation dafür.",
+    "topic": "tooling-tests",
+    "use": "impl"
   }
 ]
