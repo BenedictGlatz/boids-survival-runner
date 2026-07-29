@@ -8,6 +8,7 @@ use crate::constants::{
 };
 use crate::math::vector::Vec2;
 use crate::simulation::boid::{Boid, BoidProperties};
+use crate::simulation::dash::{dash_properties_for_difficulty_tier, dash_render_phase};
 use crate::simulation::flock::Flock;
 use wasm_bindgen::prelude::*;
 
@@ -24,6 +25,7 @@ pub struct GameEngine {
     positions_buffer: Vec<f32>,
     velocities_buffer: Vec<f32>,
     tiers_buffer: Vec<u32>,
+    dash_phases_buffer: Vec<f32>,
 }
 
 #[wasm_bindgen]
@@ -61,6 +63,7 @@ impl GameEngine {
             positions_buffer: Vec::with_capacity(spawn_count as usize * 2),
             velocities_buffer: Vec::with_capacity(spawn_count as usize * 2),
             tiers_buffer: Vec::with_capacity(spawn_count as usize),
+            dash_phases_buffer: Vec::with_capacity(spawn_count as usize),
         }
     }
 
@@ -120,6 +123,7 @@ impl GameEngine {
         self.positions_buffer.clear();
         self.velocities_buffer.clear();
         self.tiers_buffer.clear();
+        self.dash_phases_buffer.clear();
 
         for boid in &self.flock.boids {
             self.positions_buffer.push(boid.position.x);
@@ -127,6 +131,7 @@ impl GameEngine {
             self.velocities_buffer.push(boid.velocity.x);
             self.velocities_buffer.push(boid.velocity.y);
             self.tiers_buffer.push(boid.difficulty_tier);
+            self.dash_phases_buffer.push(dash_render_phase(boid));
         }
 
         FrameResponse::new(
@@ -135,6 +140,7 @@ impl GameEngine {
             self.positions_buffer.clone(),
             self.velocities_buffer.clone(),
             self.tiers_buffer.clone(),
+            self.dash_phases_buffer.clone(),
         )
     }
 }
@@ -174,6 +180,7 @@ fn properties_for_difficulty_tier(difficulty_tier: u32) -> BoidProperties {
         alignment_weight: DEFAULT_ALIGNMENT_WEIGHT,
         cohesion_weight: DEFAULT_COHESION_WEIGHT,
         target_seek_weight: DEFAULT_TARGET_SEEK_WEIGHT + tier * 0.045,
+        dash: dash_properties_for_difficulty_tier(difficulty_tier),
     }
 }
 
@@ -256,5 +263,23 @@ mod tests {
             later_wave_boid.properties.max_acceleration
                 > first_wave_boid.properties.max_acceleration
         );
+    }
+
+    #[test]
+    fn boids_from_the_first_two_waves_cannot_dash() {
+        let player_position = Vec2::new(500.0, 400.0);
+
+        for wave in 1..=2 {
+            let boid = create_boid_for_wave(0, wave, 1000.0, 800.0, player_position);
+            assert!(!boid.properties.dash.can_dash);
+        }
+    }
+
+    #[test]
+    fn boids_from_the_third_wave_onward_can_dash() {
+        let player_position = Vec2::new(500.0, 400.0);
+        let boid = create_boid_for_wave(0, 3, 1000.0, 800.0, player_position);
+
+        assert!(boid.properties.dash.can_dash);
     }
 }

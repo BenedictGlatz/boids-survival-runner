@@ -9,6 +9,7 @@ pub struct FrameResponse {
     positions: Vec<f32>,
     velocities: Vec<f32>,
     tiers: Vec<u32>,
+    dash_phases: Vec<f32>,
 }
 
 impl FrameResponse {
@@ -18,6 +19,7 @@ impl FrameResponse {
         positions: Vec<f32>,
         velocities: Vec<f32>,
         tiers: Vec<u32>,
+        dash_phases: Vec<f32>,
     ) -> Self {
         Self {
             entity_count,
@@ -25,6 +27,7 @@ impl FrameResponse {
             positions,
             velocities,
             tiers,
+            dash_phases,
         }
     }
 }
@@ -63,5 +66,15 @@ impl FrameResponse {
     /// Returns one difficulty tier for each boid in the positions buffer.
     pub fn tiers(&self) -> Uint32Array {
         Uint32Array::from(self.tiers.as_slice())
+    }
+
+    /// Returns one dash phase for each boid in the positions buffer, so the
+    /// renderer can warn the player about a boid that is about to lunge.
+    ///
+    /// `0.0` means there is nothing to draw. A value between `0` and `1` means the
+    /// boid is charging up and how far through that charge it is. A value between
+    /// `-1` and `0` means the boid is dashing and how much of the dash is left.
+    pub fn dash_phases(&self) -> Float32Array {
+        Float32Array::from(self.dash_phases.as_slice())
     }
 }

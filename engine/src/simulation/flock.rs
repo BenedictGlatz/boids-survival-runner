@@ -1,19 +1,26 @@
 use super::boid::Boid;
+use super::dash::{advance_dash_state, begin_dash_charge, is_dashing, step_speed_limit};
+use super::dash_selection::select_dash_candidate;
+use super::overlap::{resolve_boid_overlaps, wrap_position};
 use super::physics::{aabb_overlap, clamp_force, integrate};
 use super::rules::{alignment, cohesion, seek_target, separation};
-use crate::constants::{
-    BOID_COLLISION_RADIUS, BOID_OVERLAP_RELAXATION_STEPS, PLAYER_COLLISION_RADIUS,
-};
+use crate::constants::PLAYER_COLLISION_RADIUS;
 use crate::math::vector::Vec2;
 
 /// Manages the collection of all active boids.
 pub struct Flock {
     pub boids: Vec<Boid>,
+    /// Simulation steps run so far. The dash selection uses it as the seed for its
+    /// deterministic stand-in for randomness, so the flock has to remember it.
+    pub step_counter: u32,
 }
 
 impl Flock {
     pub fn new() -> Self {
-        Self { boids: Vec::new() }
+        Self {
+            boids: Vec::new(),
+            step_counter: 0,
+        }
     }
 
     pub fn add(&mut self, boid: Boid) {
@@ -24,27 +31,36 @@ impl Flock {
         self.boids.len()
     }
 
+    // updates the position of all boids based on a snapshot of the previous frame
     pub fn update(&mut self, player_position: Vec2, world_width: f32, world_height: f32) -> u32 {
+        // wrapping_add so a very long session cannot overflow the counter.
+        self.step_counter = self.step_counter.wrapping_add(1);
+
+        // Hand out at most one new dash before anything moves, so the chosen boid
+        // already pulses in this very step.
+        if let Some(index) = select_dash_candidate(&self.boids, self.step_counter, player_position)
+        {
+            begin_dash_charge(&mut self.boids[index]);
+        }
+
         let snapshot = self.boids.clone();
 
         for boid in &mut self.boids {
-            // Read all steering rules from the same snapshot so every boid reacts to
-            // the previous frame, not to neighbours that were already updated.
-            let separation_force =
-                separation(boid, &snapshot).scale(boid.properties.separation_weight);
-            let alignment_force =
-                alignment(boid, &snapshot).scale(boid.properties.alignment_weight);
-            let cohesion_force = cohesion(boid, &snapshot).scale(boid.properties.cohesion_weight);
-            let target_force =
-                seek_target(boid, player_position).scale(boid.properties.target_seek_weight);
+            // Move the dash state machine on first: it decides whether this boid
+            // flocks normally this step or flies along its dash line. The launch
+            // step also writes the dash velocity here, once.
+            advance_dash_state(boid, player_position);
 
-            let steering = separation_force
-                .add(alignment_force)
-                .add(cohesion_force)
-                .add(target_force);
+            let steering = if is_dashing(boid) {
+                dash_steering(boid, &snapshot)
+            } else {
+                flocking_steering(boid, &snapshot, player_position)
+            };
 
             boid.acceleration = clamp_force(boid, steering);
-            integrate(boid);
+            // Only a dashing boid gets a raised cap. On the first step after a dash
+            // the cap drops back and the leftover dash speed is clamped away at once.
+            integrate(boid, step_speed_limit(boid));
             wrap_position(&mut boid.position, world_width, world_height);
         }
 
@@ -52,6 +68,28 @@ impl Flock {
 
         count_player_hits(&self.boids, player_position)
     }
+}
+
+/// The normal four-rule steering, used whenever a boid is not dashing.
+fn flocking_steering(boid: &Boid, snapshot: &[Boid], player_position: Vec2) -> Vec2 {
+    // Read all steering rules from the same snapshot so every boid reacts to
+    // the previous frame, not to neighbours that were already updated.
+    let separation_force = separation(boid, snapshot).scale(boid.properties.separation_weight);
+    let alignment_force = alignment(boid, snapshot).scale(boid.properties.alignment_weight);
+    let cohesion_force = cohesion(boid, snapshot).scale(boid.properties.cohesion_weight);
+    let target_force = seek_target(boid, player_position).scale(boid.properties.target_seek_weight);
+
+    separation_force
+        .add(alignment_force)
+        .add(cohesion_force)
+        .add(target_force)
+}
+
+/// Steering for a dashing boid: cohesion, alignment and seeking the player are all
+/// switched off, leaving only separation. That is what makes a dasher visibly break
+/// out of the swarm — and why cohesion pulls it back once the dash is over.
+fn dash_steering(boid: &Boid, snapshot: &[Boid]) -> Vec2 {
+    separation(boid, snapshot).scale(boid.properties.separation_weight)
 }
 
 fn count_player_hits(boids: &[Boid], player_position: Vec2) -> u32 {
@@ -66,70 +104,35 @@ fn count_player_hits(boids: &[Boid], player_position: Vec2) -> u32 {
     hit_count
 }
 
-fn resolve_boid_overlaps(boids: &mut [Boid], world_width: f32, world_height: f32) {
-    let minimum_distance = BOID_COLLISION_RADIUS * 2.0;
-
-    for _ in 0..BOID_OVERLAP_RELAXATION_STEPS {
-        for first_index in 0..boids.len() {
-            for second_index in (first_index + 1)..boids.len() {
-                let (left_side, right_side) = boids.split_at_mut(second_index);
-                let first_boid = &mut left_side[first_index];
-                let second_boid = &mut right_side[0];
-
-                let difference = first_boid.position.sub(second_boid.position);
-                let distance = difference.length();
-
-                if distance >= minimum_distance {
-                    continue;
-                }
-
-                let direction = if distance == 0.0 {
-                    fallback_overlap_direction(first_index, second_index)
-                } else {
-                    difference.scale(1.0 / distance)
-                };
-                let correction = direction.scale((minimum_distance - distance) * 0.5);
-
-                first_boid.position = first_boid.position.add(correction);
-                second_boid.position = second_boid.position.sub(correction);
-                wrap_position(&mut first_boid.position, world_width, world_height);
-                wrap_position(&mut second_boid.position, world_width, world_height);
-            }
-        }
-    }
-}
-
-fn fallback_overlap_direction(first_index: usize, second_index: usize) -> Vec2 {
-    match (first_index + second_index) % 4 {
-        0 => Vec2::new(1.0, 0.0),
-        1 => Vec2::new(0.0, 1.0),
-        2 => Vec2::new(-1.0, 0.0),
-        _ => Vec2::new(0.0, -1.0),
-    }
-}
-
-fn wrap_position(position: &mut Vec2, world_width: f32, world_height: f32) {
-    if world_width <= 0.0 || world_height <= 0.0 {
-        return;
-    }
-
-    if position.x < 0.0 {
-        position.x += world_width;
-    } else if position.x > world_width {
-        position.x -= world_width;
-    }
-
-    if position.y < 0.0 {
-        position.y += world_height;
-    } else if position.y > world_height {
-        position.y -= world_height;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::constants::{
+        BOID_COLLISION_RADIUS, DASH_UNLOCK_DIFFICULTY_TIER, MAX_BOID_DIFFICULTY_TIER,
+    };
     use crate::simulation::boid::BoidProperties;
+    use crate::simulation::dash::{dash_properties_for_difficulty_tier, DashState};
+    use crate::simulation::dash_selection::{allowed_concurrent_dashers, count_busy_dashers};
+
+    /// Builds a boid of the given tier that is allowed to dash.
+    fn dash_capable_boid(position: Vec2, tier: u32) -> Boid {
+        let properties = BoidProperties {
+            dash: dash_properties_for_difficulty_tier(tier),
+            ..BoidProperties::default()
+        };
+
+        Boid::with_variant(position, Vec2::zero(), properties, tier)
+    }
+
+    /// Puts a boid straight into the middle of a dash along the given direction,
+    /// skipping the charge-up so a test can look at the dash itself.
+    fn launch_dash_along(boid: &mut Boid, direction: Vec2) {
+        boid.dash_state = DashState::Dashing;
+        boid.dash_state_steps_remaining = boid.properties.dash.dash_steps;
+        boid.velocity = direction
+            .normalize()
+            .scale(boid.properties.max_speed * boid.properties.dash.speed_multiplier);
+    }
 
     #[test]
     fn update_reports_player_collisions() {
@@ -182,6 +185,7 @@ mod tests {
                 alignment_weight: 0.0,
                 cohesion_weight: 0.0,
                 target_seek_weight: 1.0,
+                ..BoidProperties::default()
             },
         ));
 
@@ -202,6 +206,7 @@ mod tests {
             alignment_weight: 0.0,
             cohesion_weight: 0.0,
             target_seek_weight: 0.0,
+            ..BoidProperties::default()
         };
 
         flock.add(Boid::with_properties(
@@ -219,5 +224,113 @@ mod tests {
 
         let distance = flock.boids[0].position.distance_to(flock.boids[1].position);
         assert!(distance >= BOID_COLLISION_RADIUS * 2.0);
+    }
+
+    #[test]
+    fn a_dashing_boid_ignores_cohesion_and_alignment() {
+        let mut flock = Flock::new();
+
+        let mut dasher = dash_capable_boid(Vec2::new(100.0, 100.0), DASH_UNLOCK_DIFFICULTY_TIER);
+        launch_dash_along(&mut dasher, Vec2::new(1.0, 0.0));
+        flock.add(dasher);
+
+        // The neighbour sits inside the perception radius (85) but outside the close
+        // neighbour radius (42.5), so separation contributes nothing and only
+        // cohesion and alignment could pull the dasher downwards.
+        flock.add(dash_capable_boid(
+            Vec2::new(100.0, 160.0),
+            DASH_UNLOCK_DIFFICULTY_TIER,
+        ));
+
+        // The player sits far below as well, so seeking would also pull downwards.
+        flock.update(Vec2::new(100.0, 900.0), 1000.0, 1000.0);
+
+        assert_eq!(flock.boids[0].velocity.y, 0.0);
+        assert!(flock.boids[0].velocity.x > flock.boids[0].properties.max_speed);
+    }
+
+    #[test]
+    fn a_dash_step_still_lands_inside_the_world() {
+        let mut flock = Flock::new();
+        let mut dasher = dash_capable_boid(Vec2::new(295.0, 150.0), MAX_BOID_DIFFICULTY_TIER);
+        launch_dash_along(&mut dasher, Vec2::new(1.0, 0.0));
+        flock.add(dasher);
+
+        flock.update(Vec2::new(150.0, 150.0), 300.0, 300.0);
+
+        let position = flock.boids[0].position;
+        assert!(position.x >= 0.0 && position.x <= 300.0);
+        assert!(position.y >= 0.0 && position.y <= 300.0);
+    }
+
+    #[test]
+    fn overlap_relaxation_does_not_push_a_dashing_boid_off_its_line() {
+        let mut flock = Flock::new();
+
+        let mut dasher = dash_capable_boid(Vec2::new(500.0, 500.0), DASH_UNLOCK_DIFFICULTY_TIER);
+        // Separation is switched off for this boid on purpose: it stays active
+        // during a real dash, and its steering would move the boid sideways as
+        // well. Without it, the only thing left that can move the dasher off its
+        // line is the overlap relaxation, which is what this test is about.
+        dasher.properties.separation_weight = 0.0;
+        launch_dash_along(&mut dasher, Vec2::new(1.0, 0.0));
+        flock.add(dasher);
+
+        // A second boid sitting a little above the dasher: it overlaps, so the
+        // relaxation has to resolve the pair, and the dasher must not be the one
+        // that gives way.
+        let mut bystander = dash_capable_boid(Vec2::new(500.0, 505.0), 0);
+        bystander.properties.max_speed = 0.0;
+        bystander.properties.max_acceleration = 0.0;
+        flock.add(bystander);
+
+        flock.update(Vec2::new(500.0, 900.0), 1000.0, 1000.0);
+
+        // The dash runs along x, so any y movement of the dasher came from the
+        // relaxation pass.
+        assert_eq!(flock.boids[0].position.y, 500.0);
+        assert!(flock.boids[1].position.y > 505.0);
+    }
+
+    #[test]
+    fn the_flock_never_has_more_boids_dashing_than_it_allows() {
+        let mut flock = Flock::new();
+        for index in 0..24 {
+            flock.add(dash_capable_boid(
+                Vec2::new(200.0 + index as f32 * 12.0, 200.0),
+                MAX_BOID_DIFFICULTY_TIER,
+            ));
+        }
+
+        let limit = allowed_concurrent_dashers(flock.len());
+        for _ in 0..1200 {
+            flock.update(Vec2::new(500.0, 500.0), 1000.0, 1000.0);
+            assert!(count_busy_dashers(&flock.boids) <= limit);
+        }
+    }
+
+    #[test]
+    fn some_boid_eventually_dashes_in_a_high_tier_flock() {
+        let mut flock = Flock::new();
+        for index in 0..24 {
+            flock.add(dash_capable_boid(
+                Vec2::new(200.0 + index as f32 * 12.0, 200.0),
+                MAX_BOID_DIFFICULTY_TIER,
+            ));
+        }
+
+        // Guards against the whole feature silently never firing.
+        let mut saw_a_dash = false;
+        for _ in 0..1200 {
+            flock.update(Vec2::new(500.0, 500.0), 1000.0, 1000.0);
+
+            for boid in &flock.boids {
+                if boid.dash_state == DashState::Dashing {
+                    saw_a_dash = true;
+                }
+            }
+        }
+
+        assert!(saw_a_dash);
     }
 }

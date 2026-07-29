@@ -30,6 +30,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Start-menu option for the frametime graph's curves: "separate" keeps simulation and draw time as two curves, "combined" plots a single curve for the whole frame.
 - A collapsed "Developer Settings" section in the start menu, holding the frametime-graph options.
+- Boids from wave three onward can dash at the player. A dash runs in four phases: the boid first
+  charges up for about three quarters of a second, then lunges at the position the player stood in
+  at the moment of the launch, then flocks normally again, and finally waits out a cooldown before it
+  may dash again. Cohesion and alignment are switched off for the duration of the lunge, so a dashing
+  boid visibly breaks out of the swarm and is pulled back in by cohesion afterwards; separation stays
+  on, so it curves around anything in its path instead of ploughing through it. Only a handful of
+  boids may charge or dash at the same time, and the flock hands out a new dash slot only every 40
+  simulation steps, so the swarm never turns into a wall of lunges. Later waves warn for a shorter
+  time, dash faster and further, and recover quicker.
 
 ### Changed
 - The frametime graph's vertical axis now follows the selected target framerate instead of the measured load. The dashed line always marks the frame budget of that framerate (16.67 ms at 60 FPS) and sits halfway up the plot, so the free half above it shows by how much a frame missed its budget. The axis therefore holds still for a whole round: the same curve height always means the same cost.

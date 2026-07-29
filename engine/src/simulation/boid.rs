@@ -1,3 +1,4 @@
+use super::dash::{DashProperties, DashState};
 use crate::constants::{
     DEFAULT_ALIGNMENT_WEIGHT, DEFAULT_COHESION_WEIGHT, DEFAULT_MAX_ACCELERATION, DEFAULT_MAX_SPEED,
     DEFAULT_PERCEPTION_RADIUS, DEFAULT_SEPARATION_WEIGHT, DEFAULT_TARGET_SEEK_WEIGHT,
@@ -17,6 +18,8 @@ pub struct BoidProperties {
     pub alignment_weight: f32,
     pub cohesion_weight: f32,
     pub target_seek_weight: f32,
+    /// Dash tuning, grouped in its own struct so all five values stay together.
+    pub dash: DashProperties,
 }
 
 impl Default for BoidProperties {
@@ -29,6 +32,7 @@ impl Default for BoidProperties {
             alignment_weight: DEFAULT_ALIGNMENT_WEIGHT,
             cohesion_weight: DEFAULT_COHESION_WEIGHT,
             target_seek_weight: DEFAULT_TARGET_SEEK_WEIGHT,
+            dash: DashProperties::default(),
         }
     }
 }
@@ -41,6 +45,11 @@ pub struct Boid {
     pub acceleration: Vec2,
     pub properties: BoidProperties,
     pub difficulty_tier: u32,
+    /// Which part of the dash cycle this boid is in right now.
+    pub dash_state: DashState,
+    /// Simulation steps left in the current dash state. Every non-idle state is
+    /// simply a countdown, so one counter is enough for all three of them.
+    pub dash_state_steps_remaining: u32,
 }
 
 impl Boid {
@@ -64,6 +73,8 @@ impl Boid {
             acceleration: Vec2::zero(),
             properties,
             difficulty_tier,
+            dash_state: DashState::Idle,
+            dash_state_steps_remaining: 0,
         }
     }
 
@@ -93,6 +104,7 @@ mod tests {
             alignment_weight: 0.8,
             cohesion_weight: 1.2,
             target_seek_weight: 0.4,
+            ..BoidProperties::default()
         };
         let boid = Boid::with_properties(Vec2::zero(), Vec2::zero(), properties);
 
