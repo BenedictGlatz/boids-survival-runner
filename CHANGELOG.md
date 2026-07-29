@@ -30,6 +30,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Start-menu option for the frametime graph's curves: "separate" keeps simulation and draw time as two curves, "combined" plots a single curve for the whole frame.
 - A collapsed "Developer Settings" section in the start menu, holding the frametime-graph options.
+- A player dash on the space bar. It fires in the direction currently held on the movement keys and
+  gives the player a short burst of about three times their top speed, which then bleeds off as if
+  slowed by friction — enough to cover roughly 180 pixels and slip out of a closing swarm. Pressing
+  the space bar without a direction held does nothing and does not spend the cooldown, and a dash into
+  the edge of the world stops there. A bar at the bottom centre of the screen shows the 1.4 second
+  cooldown: it empties on use and refills from the left, cyan again once the dash is ready. The space
+  bar is only claimed while a round is running, so it keeps activating the menu buttons everywhere
+  else.
+- A visible warning before a boid dashes: the boid pulses in both size and brightness, and the pulse
+  speeds up and grows stronger the closer the lunge gets, so the swarm reads as "that one, in a
+  moment" rather than as a sudden hit out of nowhere. A boid stays slightly enlarged and bright for
+  the duration of its lunge.
 - Boids from wave three onward can dash at the player. A dash runs in four phases: the boid first
   charges up for about three quarters of a second, then lunges at the position the player stood in
   at the moment of the launch, then flocks normally again, and finally waits out a cooldown before it

@@ -1,7 +1,9 @@
 import { initEngine, resizeEngine, setWave, snapshot, tick } from './engine-bridge.js';
 import { Renderer } from './renderer/renderer.js';
 import { InputManager } from './input/inputManager.js';
+import { buildControls } from './input/controls.js';
 import { PlayerController } from './player/playerController.js';
+import { dashCooldownProgress, isDashReady } from './player/dashCooldown.js';
 import { GameState, STATE } from './gameState.js';
 import { Hud } from './ui/hud.js';
 import { Menu } from './ui/menu.js';
@@ -16,6 +18,7 @@ import {
   FRAME_GRAPH_SAMPLE_COUNT,
   HIT_COOLDOWN_MS,
   MAX_SIMULATION_STEPS_PER_FRAME,
+  PLAYER_DASH_COOLDOWN_MS,
   PLAYER_STARTING_LIVES,
   RENDER_INTERVAL_TOLERANCE_MS,
   SIMULATION_STEP_MS,
@@ -59,6 +62,7 @@ const emptyFrame = {
   positions: new Float32Array(),
   velocities: new Float32Array(),
   tiers: new Uint32Array(),
+  dashPhases: new Float32Array(),
 };
 
 async function bootstrap() {
@@ -126,6 +130,9 @@ async function startGame() {
   await initEngine(window.innerWidth, window.innerHeight, playerStartPosition);
   resetGameData(performance.now(), snapshot());
   state.transition(STATE.PLAYING);
+  // Claims the space bar for the dash. Outside a round it has to stay with the
+  // menu, where every button and the developer section are activated with it.
+  input.setGameplayActive(true);
   menu.hide();
   hud.show();
 
@@ -156,6 +163,8 @@ function resetGameData(startedAt, initialFrame) {
     // wall time, so backgrounding the tab cannot hand out free score.
     simulationTimeMs: 0,
     lastHitAtSimulationMs: -HIT_COOLDOWN_MS,
+    // Seeded a whole cooldown into the past, so the dash is ready on frame one.
+    lastDashAtSimulationMs: -PLAYER_DASH_COOLDOWN_MS,
     // The countdown runs before the simulation starts, so it stays on wall
     // time — three seconds should be three real seconds.
     countdownEndsAt: startedAt + START_COUNTDOWN_SECONDS * 1000,
@@ -227,11 +236,20 @@ function runSimulationStep() {
   gameData.timerSeconds = gameData.simulationTimeMs / 1000;
   gameData.score = Math.floor(gameData.timerSeconds);
 
+  // Read once per step: the dash request is a latch, so consuming it here is what
+  // keeps one key press from firing a dash in every step of a multi-step frame.
+  const controls = buildControls(input);
+  const dashing = controls.dashRequested && isPlayerDashReady();
+
+  if (dashing) {
+    gameData.lastDashAtSimulationMs = gameData.simulationTimeMs;
+  }
+
   // The player has to move inside the same fixed step as the flock: its
   // position is an input to tick() and to the engine's collision test, so
   // integrating it per rendered frame would desync the two.
   const playerPosition = player.update(
-    input.getMovementDirection(),
+    { direction: controls.direction, dash: dashing },
     SIMULATION_STEP_SECONDS,
     {
       width: window.innerWidth,
@@ -259,6 +277,22 @@ function isPlayerInvulnerable() {
   return gameData.simulationTimeMs - gameData.lastHitAtSimulationMs < HIT_COOLDOWN_MS;
 }
 
+function isPlayerDashReady() {
+  return isDashReady(
+    gameData.simulationTimeMs,
+    gameData.lastDashAtSimulationMs,
+    PLAYER_DASH_COOLDOWN_MS,
+  );
+}
+
+function playerDashCooldownProgress() {
+  return dashCooldownProgress(
+    gameData.simulationTimeMs,
+    gameData.lastDashAtSimulationMs,
+    PLAYER_DASH_COOLDOWN_MS,
+  );
+}
+
 function renderCurrentState(timestamp) {
   if (!state.is(STATE.PLAYING)) {
     renderer.drawFrame(emptyFrame, player.getPosition());
@@ -272,6 +306,7 @@ function renderCurrentState(timestamp) {
       playerInvulnerable: isPlayerInvulnerable(),
       lives: gameData.lives,
       maxLives: gameData.maxLives,
+      dashCooldownProgress: playerDashCooldownProgress(),
     });
   } else {
     renderer.drawFrame(gameData.currentFrame, playerPosition, {
@@ -279,6 +314,7 @@ function renderCurrentState(timestamp) {
       maxLives: gameData.maxLives,
       countdownSeconds: Math.ceil((gameData.countdownEndsAt - timestamp) / 1000),
       playerInvulnerable: true,
+      dashCooldownProgress: 1,
     });
   }
 
@@ -295,11 +331,16 @@ function beginRound() {
   gameData.roundActive = true;
   gameData.simulationTimeMs = 0;
   gameData.lastHitAtSimulationMs = -HIT_COOLDOWN_MS;
+  // Re-seeded along with the clock it is measured against: leaving the old value
+  // in place would compare a timestamp to a clock that just jumped back to zero.
+  gameData.lastDashAtSimulationMs = -PLAYER_DASH_COOLDOWN_MS;
   scheduler.discardPendingTime();
 }
 
 function endRound() {
   state.transition(STATE.GAME_OVER);
+  // Hands the space bar back to the menu, whose buttons are activated with it.
+  input.setGameplayActive(false);
   hud.hide();
   frameTimeGraph.hide();
   menu.showGameOver(() => {

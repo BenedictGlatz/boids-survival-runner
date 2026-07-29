@@ -29,7 +29,8 @@
     "lives": "Lives",
     "timer": "Time",
     "wave": "Wave",
-    "boids": "Boids"
+    "boids": "Boids",
+    "dash": "Dash — Space"
   },
   "perf": {
     "simulation": "sim",

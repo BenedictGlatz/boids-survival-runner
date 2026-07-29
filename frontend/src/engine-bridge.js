@@ -56,5 +56,6 @@ function normalizeFrameResponse(response) {
     positions: response.positions(),
     velocities: response.velocities(),
     tiers: response.tiers(),
+    dashPhases: response.dash_phases(),
   };
 }

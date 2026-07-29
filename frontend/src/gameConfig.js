@@ -14,6 +14,24 @@ export const PLAYER_DECELERATION = 1500;
 /** Safety net for the player integrator. Must stay above SIMULATION_STEP_SECONDS. */
 export const PLAYER_MAX_DELTA_SECONDS = 0.05;
 
+// ---------------------------------------------------------------------------
+// Player dash (space bar)
+// ---------------------------------------------------------------------------
+
+/** Speed the dash starts at — roughly three times the normal top speed. */
+export const PLAYER_DASH_SPEED = 1100;
+
+/**
+ * How quickly the raised speed limit falls back to `PLAYER_MAX_SPEED`, in
+ * pixels per second squared. Together with the dash speed this is what sets the
+ * dash distance: (1100 - 360) / 3000 is about a quarter of a second of extra
+ * speed, which carries the player roughly 180 pixels.
+ */
+export const PLAYER_DASH_SPEED_DECAY = 3000;
+
+/** How long the player has to wait before dashing again. */
+export const PLAYER_DASH_COOLDOWN_MS = 1400;
+
 // The Rust engine advances exactly one fixed step per tick() call and does not
 // scale by delta time, so the simulation must run at a constant rate no matter
 // how often the canvas is redrawn.
