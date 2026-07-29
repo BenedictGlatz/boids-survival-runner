@@ -75,6 +75,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   and `cargo llvm-cov --lib` in `engine/`. Untested frontend modules count against the percentage,
   and the two largest DOM modules are deliberately not excluded, so the number states how much of the
   frontend this Node-only suite cannot reach instead of hiding it.
+- Unit tests for four frontend modules that had none: the fixed-timestep `FrameScheduler` (step
+  accounting, leftover time carried between frames, the catch-up cap, and the clock reset that keeps a
+  frozen countdown from becoming a burst), the `GameState` machine, `buildControls` (including that one
+  space-bar press reaches exactly one simulation step of a multi-step frame), and the whole
+  `PlayerController` (acceleration, braking to a complete stop, the dash and its decay, the wall clamp,
+  and the delta-time cap that stops a backgrounded tab from teleporting the player).
+- WASM boundary tests in `engine/tests/wasm_tests.rs`, which was previously an empty stub. They cover
+  the four-buffer frame contract that plain `cargo test` cannot reach at all, because the buffer
+  getters return `js_sys` typed arrays and need a JavaScript runtime: index alignment across all four
+  buffers, `snapshot` not advancing the world, the wave spawner's safe distance from the player, the
+  window-resize wrap, and the sign convention of the dash phase. Run with `wasm-pack test`.
 
 ### Changed
 

@@ -26,8 +26,10 @@ cd engine && cargo llvm-cov --lib --html      # engine/target/llvm-cov/html/inde
 # A single Rust test
 cd engine && cargo test update_wraps_boids_at_world_edges
 
-# WASM boundary tests in engine/tests/wasm_tests.rs (currently a stub)
+# WASM boundary tests in engine/tests/wasm_tests.rs — the four-buffer contract.
+# `cargo test` reports 0 tests for this file; only wasm-pack actually runs it.
 cd engine && wasm-pack test --headless --firefox
+cd engine && wasm-pack test --headless --chrome   # if Firefox is unavailable
 
 # Rust lint / format
 cd engine && cargo clippy && cargo fmt
@@ -89,6 +91,15 @@ suite cannot reach the DOM half, and that half is covered by the Playwright suit
 exclusions are generated WASM glue, the test files, and `gameConfig.js` (constants, nothing
 executable). `--lib` on the Rust side is load-bearing: it keeps the host run to the `#[cfg(test)]`
 modules and out of `engine/tests/`, which only ever runs under `wasm-pack`.
+
+**Two consequences of that split which are easy to misread.** First, `engine/tests/wasm_tests.rs`
+compiles for the host target but reports **0 tests** under `cargo test` — `#[wasm_bindgen_test]`
+expands to nothing there. A green `cargo test` therefore says nothing at all about the WASM boundary,
+and that is exactly how the file sat as an empty stub for two months without any signal. The boundary
+is only checked by `wasm-pack test`. Second, `cargo llvm-cov` instruments the host target, so those
+tests do **not** raise the Rust coverage figure: `wasm_bridge/response.rs` still reports 0 % while
+being covered by 14 browser tests. The number understates reality there, and any report of it has to
+say so rather than leaving the two facts side by side looking contradictory.
 
 ## Architecture
 

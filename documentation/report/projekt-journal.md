@@ -44,6 +44,7 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-07-29 | 2,0 | D-01          | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt                                                                 |
 | 2026-07-29 | 3,5 | T-01          | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben |
 | 2026-07-29 | 1,5 | T-03          | Coverage für beide Sprachen eingerichtet (`@vitest/coverage-v8`, `cargo llvm-cov`), Ausgangsmessung genommen; T-07 als neue Maßnahme aufgenommen und Kapazitätsplan fortgeschrieben                      |
+| 2026-07-29 | 3,0 | T-07          | Unit-Tests für `frameScheduler`, `gameState`, `controls` und `playerController` geschrieben; `engine/tests/wasm_tests.rs` vom Stub zum Buffer-Vertragstest ausgebaut                                     |
 
 ## Entscheidungen
 
@@ -182,6 +183,34 @@ Zufall, sondern strukturell: Die Getter in `response.rs` liefern
 `js_sys::Float32Array`/`Uint32Array` und brauchen eine JS-Laufzeit, sind per
 `cargo test` also prinzipiell unerreichbar. Damit hat die Messung die Begründung für
 T-07b gleich mitgeliefert, statt sie behaupten zu müssen.
+
+→ Kap. 8, 9
+
+### 2026-07-29 — `wasm_tests.rs` füllen statt die Absenz begründen
+
+**Gewählt:** Der seit dem 25.05. leere Stub wird mit 14 `#[wasm_bindgen_test]`-Fällen
+gefüllt, die den Vier-Buffer-Vertrag aus S-02 prüfen: Index-Ausrichtung aller vier
+Buffer, `snapshot` bewegt die Welt nicht, `set_wave` ist idempotent, neue Boids halten
+den Sicherheitsabstand, `resize` holt jeden Boid in die neuen Grenzen zurück, und der
+Vorzeichen-Vertrag der Dash-Phase.
+
+**Verworfen:** Die von `08-qualitaet.md` ausdrücklich angebotene zweite Variante, die
+Absenz zu begründen. Sie wäre vertretbar gewesen, aber das Argument dagegen ist
+stärker als das dafür: Der Buffer-Vertrag ist die zweite tragende Invariante des
+Projekts und liegt im gewählten Fokus-Thema. Vor allem ist er die einzige Stelle, die
+`cargo test` **prinzipiell** nicht erreichen kann — die Getter liefern
+`js_sys::Float32Array` und brauchen eine JS-Laufzeit. Eine begründete Absenz hätte
+also genau dort keine Prüfung gelassen, wo es keine Alternative zu dieser Testart gibt.
+
+**Konsequenz — und der eigentliche Fund:** Auf dem Host-Target expandiert
+`#[wasm_bindgen_test]` zu nichts. `cargo test` meldet für die Datei **0 Tests** und
+bleibt grün. Genau deshalb ist der leere Stub zwei Monate lang niemandem aufgefallen:
+Es gab kein Signal, das hätte fehlschlagen können. Zweite Folge derselben
+Target-Trennung: `cargo llvm-cov` instrumentiert das Host-Target, die 14 neuen Tests
+heben die Rust-Coverage also **nicht** — `wasm_bridge/response.rs` steht weiter bei
+0 %, obwohl es jetzt vollständig geprüft ist. Beide Zahlen sind richtig und
+widersprechen sich nur scheinbar; Kap. 8.1 muss das ausschreiben, sonst liest es sich
+wie ein Fehler im Bericht.
 
 → Kap. 8, 9
 
