@@ -26,7 +26,7 @@ ihres Landens.
 >   füllen oder die Absenz begründen — nicht stillschweigend stehenlassen.
 >
 > Nach T-03: Coverage-Tabelle `Verzeichnis | Statements | Branches | Functions |
-> Lines` und die **bewusste Priorisierung** erklären — Simulationsmathematik hoch,
+Lines` und die **bewusste Priorisierung** erklären — Simulationsmathematik hoch,
 > DOM-/Renderer-Module niedrig, weil letztere durch E2E abgedeckt werden. Die
 > Musterdokumentation macht genau das und begründet ihre niedrige Gesamtzahl
 > überzeugend; ein ehrlicher, begründeter Wert ist mehr wert als ein hoher.
@@ -59,13 +59,13 @@ ihres Landens.
 Die Kommentar-Konvention ist in diesem Projekt keine Stilempfehlung, sondern eine
 ausdrückliche Regel in `CLAUDE.md` bzw. `.github/copilot-instructions.md`:
 
-> Jeder nicht-triviale Block erhält einen Kommentar in Alltagssprache, der *was*
-> und *warum* erklärt, nicht *wie*.
+> Jeder nicht-triviale Block erhält einen Kommentar in Alltagssprache, der _was_
+> und _warum_ erklärt, nicht _wie_.
 
 Die Begründung ist die oberste Projektregel: Die Codebasis wird von Studierenden
-gelesen, die Rust und WebAssembly neu lernen. Ein Kommentar, der das *Wie*
+gelesen, die Rust und WebAssembly neu lernen. Ein Kommentar, der das _Wie_
 wiederholt, ist für diese Leser wertlos — der Code sagt es bereits. Wertvoll ist
-das *Warum*, und zwar besonders dort, wo eine naheliegende Lösung absichtlich
+das _Warum_, und zwar besonders dort, wo eine naheliegende Lösung absichtlich
 **nicht** gewählt wurde. Beispiele aus dem Bestand: warum der Dash eine
 Geschwindigkeitsobergrenze als Parameter übergibt statt `max_speed` zu erhöhen
 (sonst skaliert auch die Lenkstärke mit), warum die Glow-Farben vorberechnet in
@@ -90,9 +90,9 @@ Drei weitere Punkte sind als harte Regel formuliert:
 **JSDoc ist die maschinengeprüfte Hälfte dieser Konvention.** Was für Rust die
 Doc-Kommentar-Pflicht ist, leistet im Frontend `eslint-plugin-jsdoc`: Auf der
 öffentlichen API erzwingt der Linter Vorhandensein, Typen und Beschreibungen —
-Details in Kap. 7.5. Die Arbeitsteilung ist damit sauber: Die *Warum*-Kommentare im
+Details in Kap. 7.5. Die Arbeitsteilung ist damit sauber: Die _Warum_-Kommentare im
 Blockinneren bleiben eine menschliche Urteilsfrage und lassen sich nicht prüfen; die
-*Schnittstellen*-Dokumentation ist strukturell und wird geprüft. Der Befund aus
+_Schnittstellen_-Dokumentation ist strukturell und wird geprüft. Der Befund aus
 T-01 stützt genau diese Trennung: Die Prosa-Kommentare waren durchgehend gepflegt,
 die Schnittstellen-Dokumentation aber lückenhaft — inklusive der WASM-Bridge selbst.
 Die Regel ohne Werkzeug hielt also gerade dort nicht, wo sie am wichtigsten war.

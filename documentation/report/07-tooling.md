@@ -14,20 +14,20 @@ Reihenfolge nach Dokumentationswert: T-01 → T-02 → T-03 → T-05 → T-06 �
 Alle Frontend-Werkzeuge laufen über npm-Scripts in `frontend/package.json`. Der
 Stand nach T-01:
 
-| Script            | Nutzen                                                              |
-|-------------------|---------------------------------------------------------------------|
-| `dev`             | Baut das WASM-Paket und startet Vite auf Port 5173                  |
-| `build`           | Produktionsbuild inkl. WASM-Rebuild                                 |
-| `build:wasm`      | Baut nur das WASM-Paket (`--target web`)                            |
-| `preview`         | Liefert den Produktionsbuild lokal aus                              |
-| `test`            | Vitest-Suite einmalig                                               |
-| `test:watch`      | Vitest im Watch-Modus                                               |
-| `lint`            | ESLint über `frontend/` — muss fehler- und warnungsfrei sein        |
-| `lint:fix`        | ESLint mit Autofix                                                  |
-| `format`          | Prettier schreibend über das gesamte Repository                     |
-| `format:check`    | Prettier prüfend — der Modus für die CI                             |
-| `docs:ki-verzeichnis` | Erzeugt das KI-Verzeichnis (Kap. 12) aus `ai/*.json`            |
-| `docs:check`      | Prüft die Doku-Disziplin (Prompt-Log, Journal, Changelog)           |
+| Script                | Nutzen                                                       |
+| --------------------- | ------------------------------------------------------------ |
+| `dev`                 | Baut das WASM-Paket und startet Vite auf Port 5173           |
+| `build`               | Produktionsbuild inkl. WASM-Rebuild                          |
+| `build:wasm`          | Baut nur das WASM-Paket (`--target web`)                     |
+| `preview`             | Liefert den Produktionsbuild lokal aus                       |
+| `test`                | Vitest-Suite einmalig                                        |
+| `test:watch`          | Vitest im Watch-Modus                                        |
+| `lint`                | ESLint über `frontend/` — muss fehler- und warnungsfrei sein |
+| `lint:fix`            | ESLint mit Autofix                                           |
+| `format`              | Prettier schreibend über das gesamte Repository              |
+| `format:check`        | Prettier prüfend — der Modus für die CI                      |
+| `docs:ki-verzeichnis` | Erzeugt das KI-Verzeichnis (Kap. 12) aus `ai/*.json`         |
+| `docs:check`          | Prüft die Doku-Disziplin (Prompt-Log, Journal, Changelog)    |
 
 > TODO: bei den jeweiligen Maßnahmen ergänzen: `typecheck` (T-02) ·
 > `test:coverage` (T-03) · `test:e2e`, `test:e2e:report` (T-04) · `deploy` (T-06) ·
@@ -45,7 +45,7 @@ erzwungen, weil das Frontend ohne das gebaute WASM-Paket nicht startet.
 
 **`format` und `format:check` tragen `--ignore-path ../.prettierignore`.** Die
 Scripts laufen aus `frontend/`, formatieren aber das ganze Repository (`..`).
-Prettier sucht seine Ignore-Datei relativ zum *Arbeitsverzeichnis*, nicht relativ
+Prettier sucht seine Ignore-Datei relativ zum _Arbeitsverzeichnis_, nicht relativ
 zum Zielpfad — ohne den expliziten Pfad würde es `engine/target/` und `dist/`
 mitformatieren. Der Fallstrick ist nicht offensichtlich und hat beim Einrichten
 genau einmal zugeschlagen.
@@ -80,11 +80,11 @@ Eingesetzte Regelsätze:
 Die projektspezifischen Hard Rules aus `CLAUDE.md` sind soweit möglich als Regel
 abgebildet statt als Prosa-Konvention:
 
-| Projektregel                            | Umsetzung                                              |
-|-----------------------------------------|--------------------------------------------------------|
-| Keine ungenutzten Variablen             | `no-unused-vars`, mit `^_` als Ausnahme-Präfix          |
-| `const`/`let` statt `var`               | `no-var` und `prefer-const`                            |
-| JSDoc auf öffentlicher API              | `jsdoc/require-jsdoc` und die Inhaltsregeln, siehe 7.5 |
+| Projektregel                | Umsetzung                                              |
+| --------------------------- | ------------------------------------------------------ |
+| Keine ungenutzten Variablen | `no-unused-vars`, mit `^_` als Ausnahme-Präfix         |
+| `const`/`let` statt `var`   | `no-var` und `prefer-const`                            |
+| JSDoc auf öffentlicher API  | `jsdoc/require-jsdoc` und die Inhaltsregeln, siehe 7.5 |
 
 Ebenso wichtig ist, was **bewusst nicht** aktiviert wurde. Strengere Sammel-Plugins
 (`eslint-plugin-unicorn`, `eslint-plugin-sonarjs`) wurden geprüft und verworfen:
@@ -120,12 +120,12 @@ abwechselnd die Änderung des anderen zunichte.
 Die Konfiguration (`.prettierrc.json`) bleibt bewusst klein, weil Prettiers
 Vorgaben dem vorhandenen Stil schon nahekamen:
 
-| Option         | Wert       | Grund                                                     |
-|----------------|------------|-----------------------------------------------------------|
-| `singleQuote`  | `true`     | Entspricht dem durchgehenden Stil in `frontend/src`        |
-| `trailingComma`| `all`      | Kleinere Diffs beim Anhängen von Argumenten                |
-| `printWidth`   | `100`      | Entspricht der bereits gelebten Zeilenbreite               |
-| `proseWrap`    | `preserve` | **Wichtig:** schützt die deutsche Prosa dieses Berichts    |
+| Option          | Wert       | Grund                                                   |
+| --------------- | ---------- | ------------------------------------------------------- |
+| `singleQuote`   | `true`     | Entspricht dem durchgehenden Stil in `frontend/src`     |
+| `trailingComma` | `all`      | Kleinere Diffs beim Anhängen von Argumenten             |
+| `printWidth`    | `100`      | Entspricht der bereits gelebten Zeilenbreite            |
+| `proseWrap`     | `preserve` | **Wichtig:** schützt die deutsche Prosa dieses Berichts |
 
 `proseWrap: preserve` ist der einzige Wert, der nicht Geschmackssache ist. Prettier
 würde Absätze sonst auf `printWidth` umbrechen und damit jede handgesetzte
@@ -136,8 +136,8 @@ verteilen — Diffs, in denen ein geänderter Halbsatz zwanzig Zeilen anfasst.
 Repository-Wurzelverzeichnis, nicht in `frontend/`, weil Prettiers Zuständigkeit
 das ganze Repository ist: die Markdown-Kapitel dieses Berichts, `README.md` und
 `CHANGELOG.md` liegen außerhalb von `frontend/`. Prettier löst seine Konfiguration
-von der *zu formatierenden Datei* aus nach oben auf, eine Datei an der Wurzel deckt
-damit beide Seiten ohne Duplikat ab. Die *Abhängigkeit* steht dennoch in
+von der _zu formatierenden Datei_ aus nach oben auf, eine Datei an der Wurzel deckt
+damit beide Seiten ohne Duplikat ab. Die _Abhängigkeit_ steht dennoch in
 `frontend/package.json` — das ist der einzige Node-Paketwurzelpunkt im Repository,
 und ein zweites `package.json` samt zweitem Lockfile nur für eine devDependency
 anzulegen wäre teurer als die kleine Asymmetrie. Zur Konsequenz beim Aufruf
@@ -160,7 +160,7 @@ zwei Dinge getrennt:
 1. **Vorhandensein** (`jsdoc/require-jsdoc`) — gibt es überhaupt einen Block?
 2. **Inhalt** (`require-param`, `require-param-type`, `require-param-description`,
    `require-returns`, `require-returns-type`, `require-returns-description`) — hat
-   jeder Parameter einen Typ *und* eine Beschreibung, und ist der Rückgabewert
+   jeder Parameter einen Typ _und_ eine Beschreibung, und ist der Rückgabewert
    dokumentiert?
 
 Verpflichtend ist beides für dieselbe Menge: **exportierte Funktionen und Klassen
@@ -177,12 +177,12 @@ sowie die öffentlichen Methoden einer exportierten Klasse.** Bewusst ausgenomme
 - **Modulprivate Funktionen.** `brighten()` in `canvasRenderer.js` hat einen
   einzeiligen Prosa-Kommentar und braucht keine Tag-Liste.
 
-Technisch bemerkenswert ist, *wie* diese Menge definiert ist. Die naheliegende
+Technisch bemerkenswert ist, _wie_ diese Menge definiert ist. Die naheliegende
 Option `publicOnly: true` unterscheidet nur exportiert/nicht exportiert und kennt
 die Unterstrich-Konvention des Projekts nicht. Stattdessen steht in der Config eine
 Liste von esquery-Selektoren — `JSDOC_REQUIRED_CONTEXTS` —, die „exportierte
 Klasse, Methode, kein Konstruktor, Name beginnt nicht mit `_`" ausdrückt. Diese
-*eine* Liste wird von der Vorhandensein- **und** von allen Inhaltsregeln benutzt.
+_eine_ Liste wird von der Vorhandensein- **und** von allen Inhaltsregeln benutzt.
 Das ist der Punkt: Ohne die gemeinsame Liste greifen die Inhaltsregeln auf jede
 Funktion zu, die zufällig schon einen Kommentar trägt — auch auf private —, und
 `--fix` schreibt dort leere `@param`-Zeilen hinein. Genau das passierte beim ersten
@@ -221,7 +221,7 @@ Projekts beschreibt Kap. 8.4.
 
 > TODO: `npm run dev` baut zuerst das WASM-Paket und startet dann Vite auf Port 5173.
 > Die Kette erklären: `wasm-pack build ../engine --target web --out-dir
-> ../frontend/src/wasm/engine`. Warum `--target web` und nicht `--target bundler`
+../frontend/src/wasm/engine`. Warum `--target web` und nicht `--target bundler`
 > (die README-Variante ist veraltet), und warum das Ausgabeverzeichnis gitignoriert
 > ist.
 

@@ -45,12 +45,12 @@ The project is divided into two distinct, independently testable layers.
 
 ## Tech Stack
 
-| Layer     | Technology                                        |
-|-----------|---------------------------------------------------|
-| Frontend  | HTML, CSS, JavaScript (ES modules)                |
-| Rendering | HTML5 Canvas or WebGL                             |
-| Engine    | Rust (stable toolchain, managed via Cargo)        |
-| WASM      | `wasm-bindgen`, `wasm-pack`                       |
+| Layer     | Technology                                 |
+| --------- | ------------------------------------------ |
+| Frontend  | HTML, CSS, JavaScript (ES modules)         |
+| Rendering | HTML5 Canvas or WebGL                      |
+| Engine    | Rust (stable toolchain, managed via Cargo) |
+| WASM      | `wasm-bindgen`, `wasm-pack`                |
 
 ---
 
@@ -64,8 +64,8 @@ is the top priority — always favour clear, teachable code over clever or obscu
 - Avoid advanced Rust features (e.g. complex iterator chains, trait wizardry, macro-heavy patterns)
   unless they are genuinely the simplest way to express the logic.
 - When a simpler approach exists — even if marginally less efficient — choose the simpler approach.
-- Every non-trivial block of logic must include a plain-language comment explaining *what* it does
-  and *why*, not just *how*.
+- Every non-trivial block of logic must include a plain-language comment explaining _what_ it does
+  and _why_, not just _how_.
 - Prefer explicit variable names over abbreviated or terse identifiers (e.g. `separation_force`
   over `sep_f`).
 - Prefer `for` loops over iterator combinators when the loop body is non-trivial; iterators are
@@ -143,7 +143,7 @@ is the top priority — always favour clear, teachable code over clever or obscu
 
 ### Commit Discipline
 
-- This is a mandatory step — DO NOT SKIP IT. 
+- This is a mandatory step — DO NOT SKIP IT.
 
 - Every completed change must be committed immediately using the
   **[Conventional Commits](https://www.conventionalcommits.org/)** format:
@@ -204,11 +204,11 @@ is the top priority — always favour clear, teachable code over clever or obscu
 
 #### Test runners
 
-| Layer            | Runner                        | Command                    | Location of tests                        |
-|------------------|-------------------------------|----------------------------|------------------------------------------|
-| Engine (Rust)    | `cargo test`                  | `cd engine && cargo test`  | `#[cfg(test)]` module in the same file    |
-| Engine boundary  | `wasm-pack test`              | `cd engine && wasm-pack test --headless --firefox` | `engine/tests/`         |
-| Frontend (JS)    | [Vitest](https://vitest.dev/) | `cd frontend && npm test`  | `<module>.test.js` beside the module      |
+| Layer           | Runner                        | Command                                            | Location of tests                      |
+| --------------- | ----------------------------- | -------------------------------------------------- | -------------------------------------- |
+| Engine (Rust)   | `cargo test`                  | `cd engine && cargo test`                          | `#[cfg(test)]` module in the same file |
+| Engine boundary | `wasm-pack test`              | `cd engine && wasm-pack test --headless --firefox` | `engine/tests/`                        |
+| Frontend (JS)   | [Vitest](https://vitest.dev/) | `cd frontend && npm test`                          | `<module>.test.js` beside the module   |
 
 - The frontend suite runs in Node, not in a browser, and must not require a built WASM package.
   Keep the logic worth testing in modules that import nothing — the way `loop/frameScheduler.js` and

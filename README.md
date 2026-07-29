@@ -4,10 +4,10 @@ A browser-based survival game powered by a high-performance Rust/WebAssembly swa
 
 ## Architecture
 
-| Layer    | Location     | Technology                      |
-|----------|--------------|---------------------------------|
-| Engine   | `engine/`    | Rust, wasm-bindgen, wasm-pack   |
-| Frontend | `frontend/`  | HTML, CSS, JavaScript (ES modules), Vite |
+| Layer    | Location    | Technology                               |
+| -------- | ----------- | ---------------------------------------- |
+| Engine   | `engine/`   | Rust, wasm-bindgen, wasm-pack            |
+| Frontend | `frontend/` | HTML, CSS, JavaScript (ES modules), Vite |
 
 The Rust engine handles all per-frame simulation logic and exposes a minimal, strongly-typed API to the JavaScript frontend via WebAssembly. The frontend owns rendering (HTML5 Canvas), input handling, and game-state transitions.
 
@@ -76,10 +76,10 @@ Vite's hot-module replacement keeps the browser in sync automatically while the 
 
 ## Controls
 
-| Key | Action |
-|-----|--------|
-| **W A S D** or **arrow keys** | Move |
-| **Space** | Dash — a short burst in the direction you are holding |
+| Key                           | Action                                                |
+| ----------------------------- | ----------------------------------------------------- |
+| **W A S D** or **arrow keys** | Move                                                  |
+| **Space**                     | Dash — a short burst in the direction you are holding |
 
 The dash needs a direction: pressing Space while standing still does nothing and does not spend the
 cooldown. The bar at the bottom centre of the screen shows when the dash is ready again.

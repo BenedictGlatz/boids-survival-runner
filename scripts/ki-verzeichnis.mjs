@@ -44,7 +44,10 @@ const DEFAULT_USE = 'impl';
  * @returns {string} Einzeilige, Markdown-sichere Fassung.
  */
 function forTable(text) {
-  return text.replace(/\|/g, '\\|').replace(/\s*\n+\s*/g, ' / ').trim();
+  return text
+    .replace(/\|/g, '\\|')
+    .replace(/\s*\n+\s*/g, ' / ')
+    .trim();
 }
 
 // Alle Sessiondateien chronologisch einlesen; das Datum steckt im Dateinamen.

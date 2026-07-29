@@ -19,8 +19,9 @@ maschinenlesbare Prozessdokumentation.
 
 ## 6.2 Komponenten & Struktur
 
-> TODO: Welche Regeln aus dem Regelwerk die *Struktur* des Codes tatsächlich geformt
+> TODO: Welche Regeln aus dem Regelwerk die _Struktur_ des Codes tatsächlich geformt
 > haben — das ist der überprüfbare Teil:
+>
 > - „Human readability is the top priority", explizit begründet damit, dass hier
 >   Studierende Rust und WebAssembly lernen: keine Trait-Akrobatik, keine
 >   makrolastigen Muster, `for`-Schleifen statt dichter Iterator-Ketten.
@@ -34,6 +35,7 @@ maschinenlesbare Prozessdokumentation.
 ## 6.3 Entwicklungsprozess & Workflow
 
 > TODO:
+>
 > - **Spec-driven:** erwartetes mathematisches Verhalten und Edge Cases werden vor
 >   der Implementierung definiert. `docs/spec-s05-dash.md` als ausgeführtes Beispiel
 >   inklusive Testfall-Enumeration und Aufwand Soll/Ist.
@@ -44,9 +46,9 @@ maschinenlesbare Prozessdokumentation.
 > - **Begleitende Dokumentation** als bewusste Prozessentscheidung: Fakten pro
 >   Änderung ins Journal, Struktur-Kapitel in zusammenhängenden Sitzungen.
 >   Begründung und verworfene Alternativen stehen im Journal unter
->   *2026-07-29 — Dokumentation begleitend statt nachgelagert*.
+>   _2026-07-29 — Dokumentation begleitend statt nachgelagert_.
 > - **Ehrlich benennen:** Das Prompt-Logging war zunächst lückenhaft (22 Prompts auf
 >   27 Commits). Ursachenanalyse und die daraus gezogene Konsequenz stehen im Journal
->   unter *Herausforderungen*; die Lücke selbst wird in Kap. 12 offengelegt. Die
+>   unter _Herausforderungen_; die Lücke selbst wird in Kap. 12 offengelegt. Die
 >   Beobachtung ist berichtswürdig: Ein Ritual hält, wenn es zur Commit-Zeit an
->   *einer* Datei stattfindet, und schläft ein, wenn es außerhalb dieses Takts liegt.
+>   _einer_ Datei stattfindet, und schläft ein, wenn es außerhalb dieses Takts liegt.

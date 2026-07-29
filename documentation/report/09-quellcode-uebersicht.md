@@ -7,7 +7,7 @@ Testzahlen, Coverage-Prozente und Commit-Zahlen gehören ausschließlich hierher
 anderen Kapitel verweisen zurück. Sonst tauchen dieselben Zahlen in Kap. 3, 4 und 8
 auf und laufen bis zur Abgabe auseinander.
 
-**Zahlen erst nach dem Code-Freeze (24.08.2026) einsetzen** — und zwingend *nach*
+**Zahlen erst nach dem Code-Freeze (24.08.2026) einsetzen** — und zwingend _nach_
 T-01/T-02, weil die JSDoc-Pflicht die Zeilenzahlen erhöht und die 400-Zeilen-Regel
 neue Datei-Splits auslösen kann.
 
@@ -55,6 +55,7 @@ git log --format='%s' | grep -oE '^[a-z]+' | sort | uniq -c | sort -rn
 ## 9.3 Weitere Masszahlen
 
 > TODO:
+>
 > - Anzahl Commits und ihre Verteilung nach Conventional-Commit-Typ (Befehl oben) —
 >   belegt die Commit-Disziplin aus Kap. 6 mit Daten.
 > - Sprachen: eine Locale (`en`), Verweis auf die i18n-Regel.

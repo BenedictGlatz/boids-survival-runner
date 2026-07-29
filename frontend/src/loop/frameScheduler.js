@@ -30,9 +30,8 @@ export class FrameScheduler {
    * @returns {number} Steps to run this frame, never above the catch-up limit.
    */
   beginFrame(timestamp) {
-    const elapsedMs = this._previousTimestamp === null
-      ? 0
-      : Math.max(0, timestamp - this._previousTimestamp);
+    const elapsedMs =
+      this._previousTimestamp === null ? 0 : Math.max(0, timestamp - this._previousTimestamp);
     this._previousTimestamp = timestamp;
 
     // Clamping the debt also bounds the loop below, so no separate counter is

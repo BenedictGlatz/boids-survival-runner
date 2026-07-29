@@ -13,15 +13,17 @@ was nicht dort gesichert wurde. Das Schreiben ist ein `grep` nach `→ Kap. 10`.
 > T-01…T-06, D-01). **Ist** aus der Aufwandstabelle des Journals, aggregiert je
 > Maßnahmen-ID.
 >
-> Der Katalog fragt zwei Dinge getrennt: *mit welcher Kapazität wurden welche
-> Maßnahmen geplant* und *welche Kapazität wurde schließlich auf welche Maßnahmen
-> eingesetzt*. Beide Richtungen beantworten, nicht nur die Differenz.
+> Der Katalog fragt zwei Dinge getrennt: _mit welcher Kapazität wurden welche
+> Maßnahmen geplant_ und _welche Kapazität wurde schließlich auf welche Maßnahmen
+> eingesetzt_. Beide Richtungen beantworten, nicht nur die Differenz.
 >
 > Was hier ehrlich stehen muss, weil es der Plan von Anfang an ausweist:
+>
 > - Das Gesamtbudget von ≈131 h lag **über** der verfügbaren Kapazität von ~5 Wochen.
 > - Der Anforderungskatalog verlangte Tooling (≈24 h), das in der ursprünglichen
 >   Schätzung von 85 h überhaupt nicht enthalten war.
 > - Gegenfinanzierung war die bewusste Streichung von Schild und Slow-Time aus S-05.
+>
 > Eine Planung, die eine erkannte Überbuchung dokumentiert und gegensteuert, ist
 > stärker als eine, die im Nachhinein aufgeht.
 >
@@ -33,11 +35,12 @@ was nicht dort gesichert wurde. Das Schreiben ist ein `grep` nach `→ Kap. 10`.
 
 ## 10.2 Herausforderungen
 
-> TODO: aus dem Journal-Abschnitt *Herausforderungen* komponieren. Technische und
+> TODO: aus dem Journal-Abschnitt _Herausforderungen_ komponieren. Technische und
 > organisatorische trennen, wie es die Musterdokumentation tut. Jeweils: Problem,
 > was es gekostet hat, wie es gelöst wurde.
 >
 > Bereits gesichert:
+>
 > - Die Lückenhaftigkeit des eigenen Prompt-Logging-Rituals und die strukturelle
 >   Ursache (Append zur Commit-Zeit hält, Append außerhalb des Takts nicht).
 >
@@ -52,9 +55,10 @@ was nicht dort gesichert wurde. Das Schreiben ist ein `grep` nach `→ Kap. 10`.
 > ein konkretes Ereignis in diesem Projekt zeigen.
 >
 > Kandidaten, schon belegbar:
+>
 > - **Ein Ritual hält nur im vorhandenen Takt.** Der Changelog wurde durchgehend
 >   gepflegt, das Prompt-Log nicht — Unterschied ist nicht Disziplin, sondern ob der
->   Append zur Commit-Zeit an *einer* Datei stattfindet. Übertragbar auf jede
+>   Append zur Commit-Zeit an _einer_ Datei stattfindet. Übertragbar auf jede
 >   Prozessvorgabe im Betrieb.
 > - **Eine schmale, explizit dokumentierte Schnittstelle zahlt sich aus.** Der
 >   Vier-Puffer-Vertrag machte Engine und Frontend unabhängig testbar.

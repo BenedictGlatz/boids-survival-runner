@@ -55,7 +55,9 @@ const codeChanged = changed.filter(
 // 1) Prompt-Log für heute vorhanden und vollständig klassifiziert?
 const sessionFile = join(REPO, 'ai', `${today}-session.json`);
 if (!existsSync(sessionFile)) {
-  problems.push(`ai/${today}-session.json fehlt — Prompts dieser Sitzung sind nicht protokolliert.`);
+  problems.push(
+    `ai/${today}-session.json fehlt — Prompts dieser Sitzung sind nicht protokolliert.`,
+  );
 } else {
   const entries = JSON.parse(readFileSync(sessionFile, 'utf8'));
   const missing = entries.filter((e) => !e.topic).length;
@@ -96,7 +98,9 @@ for (const dir of ['engine/src', 'frontend/src']) {
       } else if (/\.(rs|js)$/.test(e.name)) {
         const count = readFileSync(p, 'utf8').split('\n').length;
         if (count > 400) {
-          problems.push(`${p.slice(REPO.length + 1)}: ${count} Zeilen — über der 400-Zeilen-Regel.`);
+          problems.push(
+            `${p.slice(REPO.length + 1)}: ${count} Zeilen — über der 400-Zeilen-Regel.`,
+          );
         }
       }
     }

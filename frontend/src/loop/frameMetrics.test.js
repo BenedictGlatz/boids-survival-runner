@@ -101,8 +101,9 @@ describe('FrameMetrics ring buffer', () => {
     }
 
     expect(metrics.oldestIndex()).toBe(2);
-    expect(readSamplesInDrawOrder(metrics).map((sample) => sample.simulationMs))
-      .toEqual([3, 4, 5, 6]);
+    expect(readSamplesInDrawOrder(metrics).map((sample) => sample.simulationMs)).toEqual([
+      3, 4, 5, 6,
+    ]);
   });
 
   it('drops overwritten frames out of the peak once they leave the window', () => {

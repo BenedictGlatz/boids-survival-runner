@@ -50,14 +50,8 @@ export class PlayerController {
       this.velocity.x += direction.x * PLAYER_ACCELERATION * safeDeltaSeconds;
       this.velocity.y += direction.y * PLAYER_ACCELERATION * safeDeltaSeconds;
     } else {
-      this.velocity.x = moveTowardZero(
-        this.velocity.x,
-        PLAYER_DECELERATION * safeDeltaSeconds,
-      );
-      this.velocity.y = moveTowardZero(
-        this.velocity.y,
-        PLAYER_DECELERATION * safeDeltaSeconds,
-      );
+      this.velocity.x = moveTowardZero(this.velocity.x, PLAYER_DECELERATION * safeDeltaSeconds);
+      this.velocity.y = moveTowardZero(this.velocity.y, PLAYER_DECELERATION * safeDeltaSeconds);
     }
 
     // The extra speed of a dash bleeds off over the next few steps, so the dash

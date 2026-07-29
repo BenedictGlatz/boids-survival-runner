@@ -46,14 +46,15 @@
 ## 5.3 Integration / Schnittstellen
 
 > TODO: Die Grenze als Entwurfsregel, nicht als Implementierungsdetail:
+>
 > - **Namensübersetzung an genau einer Stelle.** `engine-bridge.js` wandelt die
 >   `snake_case`-Getter aus Rust in ein `camelCase`-Frame-Objekt, damit
 >   Engine-Namenskonventionen nicht weiter ins Frontend durchschlagen.
-> - **`GameEngine::tick()` rückt genau einen Schritt vor** und skaliert *nicht* mit
+> - **`GameEngine::tick()` rückt genau einen Schritt vor** und skaliert _nicht_ mit
 >   der Delta-Zeit. Die daraus folgenden Verpflichtungen für den Aufrufer aus
 >   CLAUDE.md §Invariante 1 hier auflisten — sie sind der eigentliche Vertrag:
->   Spieler im selben Step integrieren, Treffer für *jeden* Step konsumieren,
->   Einmal-Eingaben latchen und *einmal* konsumieren (eine „Taste gedrückt"-Prüfung
+>   Spieler im selben Step integrieren, Treffer für _jeden_ Step konsumieren,
+>   Einmal-Eingaben latchen und _einmal_ konsumieren (eine „Taste gedrückt"-Prüfung
 >   pro Step macht aus einem Tastendruck bis zu fünf Dashes), Simulationsschulden
 >   klemmen und bei eingefrorener Welt verwerfen.
 > - **Build-Kopplung:** `npm run build:wasm` ist der maßgebliche Engine-Build und

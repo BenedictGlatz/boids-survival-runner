@@ -51,7 +51,7 @@ cd frontend && npm run format
 stale; do not build into `engine/pkg/`, the frontend imports from `frontend/src/wasm/engine/`.
 
 ESLint (flat config, `frontend/eslint.config.js`) lints the frontend and must stay at **zero errors
-and zero warnings**. `eslint-plugin-jsdoc` enforces JSDoc — presence *and* typed
+and zero warnings**. `eslint-plugin-jsdoc` enforces JSDoc — presence _and_ typed
 `@param`/`@returns` with descriptions — on exported functions/classes and on public methods of an
 exported class. Deliberately out of scope: plain exported constants (`gameConfig.js`),
 underscore-prefixed private members (`_startDash`), and `*.test.js`. Both the presence rule and the
@@ -78,12 +78,12 @@ Two independently testable layers with a deliberately narrow boundary between th
 
 ### Engine — `engine/` (Rust → WASM)
 
-Owns *all* simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
+Owns _all_ simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
 
 - `math/vector.rs` — `Vec2` with pure operations (`add`, `sub`, `scale`, `limit`, `normalize`).
 - `simulation/boid.rs` — `Boid` (position, velocity, acceleration, `difficulty_tier`) and
   `BoidProperties`. **Tuning values live per boid, not globally** — several variants coexist in one
-  flock. `constants.rs` holds *defaults*, not invariants.
+  flock. `constants.rs` holds _defaults_, not invariants.
 - `simulation/rules.rs` — the four steering rules as pure functions: `separation`, `alignment`,
   `cohesion`, `seek_target`. Each takes `&Boid` plus a neighbour slice and returns an unweighted force.
   All four scale their desired velocity by `properties.max_speed`, so raising that property changes
@@ -102,7 +102,7 @@ Owns *all* simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
   inside the relaxation so it keeps its line; the wrap uses `rem_euclid`, so a displacement larger
   than the world cannot leak a boid off-screen.
 - `simulation/flock.rs` — `Flock::update()` is the per-step core: it offers at most one new dash,
-  clones the boid vector into a **snapshot** so every boid steers against the *previous* step's state,
+  clones the boid vector into a **snapshot** so every boid steers against the _previous_ step's state,
   advances each boid's dash state, applies weighted rules (a dashing boid gets separation only —
   cohesion, alignment and seeking are off, which is what makes it break out of the swarm),
   integrates, wraps at world edges, relaxes overlaps, then counts player hits. O(n²) in the boid count.
@@ -134,9 +134,9 @@ Owns rendering, input, game state, and UI. Contains **no** simulation math.
 
 ### The two load-bearing invariants
 
-**1. Fixed timestep.** `GameEngine::tick()` advances exactly one step and does *not* scale by delta
+**1. Fixed timestep.** `GameEngine::tick()` advances exactly one step and does _not_ scale by delta
 time. The frontend therefore runs the simulation at a constant 60 steps/second
-(`SIMULATION_STEP_MS`) and throttles *only rendering* to the chosen target FPS. Consequences that
+(`SIMULATION_STEP_MS`) and throttles _only rendering_ to the chosen target FPS. Consequences that
 break subtly if ignored:
 
 - The player must be integrated inside the same step as the flock — its position is an input to
@@ -171,7 +171,7 @@ This project is developed by university students learning Rust and WebAssembly.
 - Write as if the reader is meeting Rust for the first time. Prefer straightforward code over
   idiomatic one-liners; avoid trait wizardry, macro-heavy patterns, and dense iterator chains.
 - Prefer `for` loops over iterator combinators when the body is non-trivial.
-- Every non-trivial block gets a plain-language comment explaining *what* and *why*, not *how*.
+- Every non-trivial block gets a plain-language comment explaining _what_ and _why_, not _how_.
 - Explicit names over abbreviations (`separation_force`, not `sep_f`).
 - No micro-optimisation (manual SIMD, bit tricks, `unsafe` pointer arithmetic) unless a profiler
   identified the bottleneck; any such code needs a detailed comment.
@@ -197,7 +197,7 @@ This project is developed by university students learning Rust and WebAssembly.
 ### Mandatory per-change steps
 
 1. **AI prompt logging — do not skip.** Append every user prompt to the active session file in
-   `ai/` (`ai/YYYY-MM-DD-session.json`) *before* replying. `ai/` is committed and must never be
+   `ai/` (`ai/YYYY-MM-DD-session.json`) _before_ replying. `ai/` is committed and must never be
    gitignored. Each entry is `{"model", "prompt", "topic", "use"}`:
    - `topic` (required) — one of `engine`, `wasm-bridge`, `frontend-ui`, `loop-input`,
      `tooling-tests`, `prozess-doku`. These are the six sections of the report's KI-Verzeichnis.
@@ -215,17 +215,17 @@ This project is developed by university students learning Rust and WebAssembly.
    or explicitly tell the developer which coverage is still outstanding.
 5. **Journal.** Append to `documentation/report/projekt-journal.md`, **in German**, in the same
    commit:
-   - **always** one row in *Aufwand* — date, hours, spec/measure ID (`S-01`…`S-06`, `T-01`…`T-06`,
+   - **always** one row in _Aufwand_ — date, hours, spec/measure ID (`S-01`…`S-06`, `T-01`…`T-06`,
      `D-01` from `docs/specs-overview.md`), one line on what was done;
-   - **when applicable** an *Entscheidung* block for any non-obvious technical decision — chosen
+   - **when applicable** an _Entscheidung_ block for any non-obvious technical decision — chosen
      option, rejected alternatives, why, consequence, and a `→ Kap. n` tag;
-   - **when applicable** a *Herausforderung* bullet for anything that cost more than ~30 min of
+   - **when applicable** a _Herausforderung_ bullet for anything that cost more than ~30 min of
      unplanned work.
 
    Never record anything a command can regenerate (LOC, test counts, script lists) — those belong
    in `documentation/report/09-quellcode-uebersicht.md` as the command that produces them.
 
-   The university report is written *alongside* development, not afterwards. Structure chapters
+   The university report is written _alongside_ development, not afterwards. Structure chapters
    (01–06) are composed in a few sittings; only chapters 07, 08 and 12 grow per commit. What every
    commit owes is **facts**, not prose. See `documentation/report/00-index.md`.
 

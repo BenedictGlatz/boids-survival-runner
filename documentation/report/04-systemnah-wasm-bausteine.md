@@ -40,6 +40,7 @@ verworfener Alternativen.
 > → `dash_render_phase` (die eine Zahl, aus der das Frontend zeichnet).
 >
 > Inhaltlich abzudecken:
+>
 > - Die Zustandsmaschine `Idle → Charging → Dashing → Cooling`; Dauern zählen in
 >   **Simulationsschritten**, nie in Millisekunden.
 > - Der Determinismus-Kern: `dash_selection.rs` leitet die Auswahl deterministisch
@@ -53,9 +54,9 @@ verworfener Alternativen.
 
 ### 4.2.2 Komponenten-Interaktion
 
-> TODO: Die Schrittreihenfolge in `Flock::update()` — sie *ist* die Interaktion:
+> TODO: Die Schrittreihenfolge in `Flock::update()` — sie _ist_ die Interaktion:
 > höchstens einen neuen Dash anbieten → Boid-Vektor in einen **Snapshot** klonen,
-> damit jeder Boid gegen den Zustand des *vorherigen* Steps steuert → Dash-Zustände
+> damit jeder Boid gegen den Zustand des _vorherigen_ Steps steuert → Dash-Zustände
 > fortschreiben → gewichtete Regeln anwenden (ein dashender Boid erhält **nur**
 > Separation; Kohäsion, Alignment und Seeking sind aus — genau das lässt ihn aus dem
 > Schwarm ausbrechen) → integrieren → an den Weltgrenzen wrappen → Overlaps
@@ -96,6 +97,7 @@ verworfener Alternativen.
 
 > TODO: „Persistenz" heißt hier **Fortbestehen im linearen WASM-Speicher über Ticks
 > hinweg** — ein für das Fokus-Thema genuin interessanter Abschnitt:
+>
 > - Der `Flock` und die Ausgabepuffer leben über Tick-Grenzen; pro Frame wird
 >   **nichts** neu serialisiert oder alloziert. Hot-Path-Code minimiert Allokationen
 >   je Frame (copilot-instructions.md).

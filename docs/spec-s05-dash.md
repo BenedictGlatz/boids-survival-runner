@@ -28,15 +28,15 @@ zurückgezogen. Der Schwarm wirkt dadurch nicht mehr wie eine einzige Masse.
 
 ### Verhalten
 
-| Aspekt | Festlegung |
-|---|---|
-| Auslöser | Leertaste (`event.code === 'Space'`) |
-| Richtung | die aktuell gehaltene Eingaberichtung (WASD / Pfeiltasten) |
-| Ohne Richtungseingabe | kein Dash, **Cooldown wird nicht verbraucht** |
-| Wirkung | Impuls auf `PLAYER_DASH_SPEED`, danach Abbau wie durch Reibung |
-| Unverwundbarkeit | keine — Ausweichen muss räumlich gelingen |
-| Cooldown | `PLAYER_DASH_COOLDOWN_MS`, gemessen auf der Simulationsuhr |
-| Anzeige | Balken unten mittig, aufs Canvas gezeichnet |
+| Aspekt                | Festlegung                                                     |
+| --------------------- | -------------------------------------------------------------- |
+| Auslöser              | Leertaste (`event.code === 'Space'`)                           |
+| Richtung              | die aktuell gehaltene Eingaberichtung (WASD / Pfeiltasten)     |
+| Ohne Richtungseingabe | kein Dash, **Cooldown wird nicht verbraucht**                  |
+| Wirkung               | Impuls auf `PLAYER_DASH_SPEED`, danach Abbau wie durch Reibung |
+| Unverwundbarkeit      | keine — Ausweichen muss räumlich gelingen                      |
+| Cooldown              | `PLAYER_DASH_COOLDOWN_MS`, gemessen auf der Simulationsuhr     |
+| Anzeige               | Balken unten mittig, aufs Canvas gezeichnet                    |
 
 ### Mathematik
 
@@ -83,15 +83,15 @@ Hintergrund darf keinen Cooldown-Fortschritt verschenken.
 
 ### Edge Cases
 
-| Fall | Verhalten |
-|---|---|
-| Rundenstart | `lastDashAtSimulationMs = -PLAYER_DASH_COOLDOWN_MS`, Dash ab Frame 1 verfügbar |
-| `beginRound()` | Zeitstempel wird **mit** neu geseedet; `simulationTimeMs` springt dort auf 0 zurück |
-| Mehrschritt-Frame | ein Tastendruck ergibt genau einen Dash (Latch, pro Schritt konsumiert) |
-| Taste gehalten | `event.repeat` wird verworfen — kein Dauer-Dash |
-| Dash in die Wand | `clampToBounds` nullt die betroffene Achse **und** setzt die Obergrenze zurück, damit normale Bewegung den Boost nicht erbt |
-| Fensterfokus verloren | `blur` löscht den Latch |
-| Leertaste im Menü | Dash-Taste ist nur bei laufender Runde beansprucht (siehe unten) |
+| Fall                  | Verhalten                                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Rundenstart           | `lastDashAtSimulationMs = -PLAYER_DASH_COOLDOWN_MS`, Dash ab Frame 1 verfügbar                                              |
+| `beginRound()`        | Zeitstempel wird **mit** neu geseedet; `simulationTimeMs` springt dort auf 0 zurück                                         |
+| Mehrschritt-Frame     | ein Tastendruck ergibt genau einen Dash (Latch, pro Schritt konsumiert)                                                     |
+| Taste gehalten        | `event.repeat` wird verworfen — kein Dauer-Dash                                                                             |
+| Dash in die Wand      | `clampToBounds` nullt die betroffene Achse **und** setzt die Obergrenze zurück, damit normale Bewegung den Boost nicht erbt |
+| Fensterfokus verloren | `blur` löscht den Latch                                                                                                     |
+| Leertaste im Menü     | Dash-Taste ist nur bei laufender Runde beansprucht (siehe unten)                                                            |
 
 ### Barrierefreiheit — die eine echte Regression
 
@@ -124,12 +124,12 @@ gar nicht verletzbar.
 `Copy` bleiben. Alle Dauern zählen in **Simulationsschritten**, nicht in
 Millisekunden — die Engine kennt keine Delta-Zeit.
 
-| Phase | Was passiert |
-|---|---|
-| `Charging` | Boid flockt normal weiter und pulsiert sichtbar |
-| `Dashing` | beim Eintritt wird die Geschwindigkeit **einmal** gesetzt: `direction * max_speed * speed_multiplier` |
-| `Cooling` | flockt normal, ist aber nicht wählbar |
-| `Idle` | flockt normal und ist wieder wählbar |
+| Phase      | Was passiert                                                                                          |
+| ---------- | ----------------------------------------------------------------------------------------------------- |
+| `Charging` | Boid flockt normal weiter und pulsiert sichtbar                                                       |
+| `Dashing`  | beim Eintritt wird die Geschwindigkeit **einmal** gesetzt: `direction * max_speed * speed_multiplier` |
+| `Cooling`  | flockt normal, ist aber nicht wählbar                                                                 |
+| `Idle`     | flockt normal und ist wieder wählbar                                                                  |
 
 ### Steering im Dash
 
@@ -152,11 +152,11 @@ gewünschte Effekt.
 `integrate` bekommt die Obergrenze übergeben, statt `properties.max_speed` zu lesen.
 Die drei Alternativen und warum sie ausfallen:
 
-| Ansatz | Problem |
-|---|---|
-| Zusätzliche Kraft | `clamp_force` begrenzt die Summe auf `max_acceleration` — der Impuls käme mit ~2 % seiner Stärke an |
+| Ansatz                       | Problem                                                                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zusätzliche Kraft            | `clamp_force` begrenzt die Summe auf `max_acceleration` — der Impuls käme mit ~2 % seiner Stärke an                                                      |
 | `max_speed` temporär erhöhen | **alle vier** Steering-Regeln skalieren ihren Wunschvektor mit `max_speed`; ein 3× Speed würde Separation, Alignment, Cohesion und Seek mitverdreifachen |
-| `integrate` umgehen | zweiter Bewegungspfad, der irgendwann das Wrapping vergisst |
+| `integrate` umgehen          | zweiter Bewegungspfad, der irgendwann das Wrapping vergisst                                                                                              |
 
 Angenehmer Nebeneffekt: im ersten Schritt nach dem Dash liefert `step_speed_limit`
 wieder `max_speed`, und `.limit()` schneidet die Restgeschwindigkeit in einem Schritt
@@ -196,13 +196,13 @@ versehentlich Welle-1-Boids freischalten.
 
 Werte für die beiden Endpunkte der Kurve:
 
-| | Tier 2 (Welle 3) | Tier 4 (Welle 5+) |
-|---|---|---|
-| Vorwarnung | 44 Schritte (0,73 s) | 34 Schritte (0,57 s) |
-| Dash-Dauer | 20 Schritte (0,33 s) | 22 Schritte (0,37 s) |
+|                 | Tier 2 (Welle 3)            | Tier 4 (Welle 5+)           |
+| --------------- | --------------------------- | --------------------------- |
+| Vorwarnung      | 44 Schritte (0,73 s)        | 34 Schritte (0,57 s)        |
+| Dash-Dauer      | 20 Schritte (0,33 s)        | 22 Schritte (0,37 s)        |
 | Geschwindigkeit | 4,6 × 3,0 = 13,8 px/Schritt | 5,5 × 3,4 = 18,7 px/Schritt |
-| Reichweite | ~276 px | ~411 px |
-| Cooldown | 240 Schritte (4 s) | 180 Schritte (3 s) |
+| Reichweite      | ~276 px                     | ~411 px                     |
+| Cooldown        | 240 Schritte (4 s)          | 180 Schritte (3 s)          |
 
 Der Spieler bewegt sich mit 360 px/s = 6 px/Schritt, ein Dash also mit 2,3–3,1× der
 Spielergeschwindigkeit. Ein stehender Spieler wird getroffen; ein bewegter braucht
@@ -246,17 +246,17 @@ Ein neuer flacher `Float32Array` `dash_phases`, eine Zahl pro Boid,
 index-gleich mit `positions` / `velocities` / `tiers`. Das Vorzeichen trägt den
 Zustand:
 
-| Wert | Bedeutung |
-|---|---|
-| `0.0` | nichts zu zeichnen (`Idle` oder `Cooling`) |
-| `0 < v < 1` | lädt auf; `v` ist der Fortschritt der Aufladung |
-| `-1 ≤ v < 0` | dasht; `-v` ist der noch verbleibende Anteil |
+| Wert         | Bedeutung                                       |
+| ------------ | ----------------------------------------------- |
+| `0.0`        | nichts zu zeichnen (`Idle` oder `Cooling`)      |
+| `0 < v < 1`  | lädt auf; `v` ist der Fortschritt der Aufladung |
+| `-1 ≤ v < 0` | dasht; `-v` ist der noch verbleibende Anteil    |
 
 Die Zählerbereiche garantieren, dass keine der beiden Spannen `0.0` erreicht — das
 Vorzeichen ist also eindeutig, und „idle" kann nicht mit „hat gerade angefangen zu
 laden" verwechselt werden.
 
-Ein `Uint32Array`-Zustand *plus* `Float32Array`-Fortschritt wäre zwei zusätzliche
+Ein `Uint32Array`-Zustand _plus_ `Float32Array`-Fortschritt wäre zwei zusätzliche
 Buffer-Kopien pro Frame (3 → 5 statt 3 → 4) für Information, die in eine Zahl passt.
 Sollte je ein weiterer Sichtzustand nötig werden („Dash abgebrochen"), ist das der
 Moment für den getrennten Zustands-Buffer — nicht jetzt.
@@ -352,13 +352,13 @@ die hellsten Spitzen liegen nahe am Absprung, nicht am Anfang.
 
 ## 7) Aufwand
 
-| Teil | Aufwand |
-|---|--------:|
-| Boid-Dash Engine (Zustandsmaschine, Auswahl, Grenze) | 4 h |
-| Spieler-Dash Frontend (Eingabe, Bewegung, Cooldown) | 2,5 h |
-| Darstellung (Puls, Cooldown-Balken) | 2 h |
-| Tests (30 Rust, 21 JavaScript) | 2 h |
-| Spec und Dokumentation | 1,5 h |
-| **Summe** | **12 h** |
+| Teil                                                 |  Aufwand |
+| ---------------------------------------------------- | -------: |
+| Boid-Dash Engine (Zustandsmaschine, Auswahl, Grenze) |      4 h |
+| Spieler-Dash Frontend (Eingabe, Bewegung, Cooldown)  |    2,5 h |
+| Darstellung (Puls, Cooldown-Balken)                  |      2 h |
+| Tests (30 Rust, 21 JavaScript)                       |      2 h |
+| Spec und Dokumentation                               |    1,5 h |
+| **Summe**                                            | **12 h** |
 
 Bleibt im 14-h-Budget von S-05. Offen in S-05 sind damit noch Schild und Slow-Time.

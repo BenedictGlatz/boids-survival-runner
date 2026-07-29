@@ -9,9 +9,9 @@ Es wird nicht mit abgegeben.
 ## Warum diese Struktur
 
 Der Bericht entsteht **begleitend zur Entwicklung**, nicht danach. Die
-Musterdokumentation des Professors nennt in ihren eigenen *Lessons Learned* die
+Musterdokumentation des Professors nennt in ihren eigenen _Lessons Learned_ die
 nachgelagerte Erstellung als Hauptursache für Zeitdruck am Projektende. Der
-Mechanismus dagegen steht in `CLAUDE.md` → *Mandatory per-change steps*, Schritt 5:
+Mechanismus dagegen steht in `CLAUDE.md` → _Mandatory per-change steps_, Schritt 5:
 pro Änderung werden **Fakten** in [projekt-journal.md](projekt-journal.md) gesichert,
 nicht Prosa in Kapitel geschrieben.
 
@@ -23,20 +23,20 @@ Ein Kapitel pro Datei, numerisches Präfix = Berichtsreihenfolge, ASCII-Slugs
 Status: `Gerüst` (nur Überschriften) → `Entwurf` (Inhalt steht, Sprache rau) →
 `Fertig` (abgabereif).
 
-| # | Kapitel | Budget | Status | Blocker |
-|---|---------|-------:|--------|---------|
-| 01 | [Anforderungen und Ziele](01-anforderungen-und-ziele.md) | ~2 S. | Gerüst | — |
-| 02 | [Technik Stack](02-tech-stack.md) | ~2 S. | Gerüst | wächst mit T-01…T-06 |
-| 03 | [Frontend: Struktur / Bausteine](03-frontend-bausteine.md) | ~5 S. | Gerüst | Dateiliste erst nach T-01/T-02 einfrieren |
-| 04 | [Systemnah / WASM: Struktur / Bausteine](04-systemnah-wasm-bausteine.md) | ~5 S. | Gerüst | — (Fokus-Thema, zuerst schreiben) |
-| 05 | [Frontend/Systemnah-Integration — WASM](05-integration-wasm.md) | ~2 S. | Gerüst | — |
-| 06 | [KI-driven Engineering & Prozess](06-ki-engineering-und-prozess.md) | ~2 S. | Gerüst | — |
-| 07 | [Tooling](07-tooling.md) | ~3 S. | Gerüst | T-01…T-06, je Werkzeug ein Absatz |
-| 08 | [Qualität](08-qualitaet.md) | ~2 S. | Gerüst | T-03, T-04, T-05 |
-| 09 | [Quellcode-Übersicht](09-quellcode-uebersicht.md) | ~1 S. | Gerüst | Zahlen erst nach Code-Freeze |
-| 10 | [Projektbericht](10-projektbericht.md) | ~2 S. | Gerüst | speist sich aus dem Journal |
-| 11 | [Anhang](11-anhang.md) | — | Gerüst | akkretiv |
-| 12 | [KI-Verzeichnis](12-ki-verzeichnis.md) | — | generiert | `npm run docs:ki-verzeichnis` |
+| #   | Kapitel                                                                  | Budget | Status    | Blocker                                   |
+| --- | ------------------------------------------------------------------------ | -----: | --------- | ----------------------------------------- |
+| 01  | [Anforderungen und Ziele](01-anforderungen-und-ziele.md)                 |  ~2 S. | Gerüst    | —                                         |
+| 02  | [Technik Stack](02-tech-stack.md)                                        |  ~2 S. | Gerüst    | wächst mit T-01…T-06                      |
+| 03  | [Frontend: Struktur / Bausteine](03-frontend-bausteine.md)               |  ~5 S. | Gerüst    | Dateiliste erst nach T-01/T-02 einfrieren |
+| 04  | [Systemnah / WASM: Struktur / Bausteine](04-systemnah-wasm-bausteine.md) |  ~5 S. | Gerüst    | — (Fokus-Thema, zuerst schreiben)         |
+| 05  | [Frontend/Systemnah-Integration — WASM](05-integration-wasm.md)          |  ~2 S. | Gerüst    | —                                         |
+| 06  | [KI-driven Engineering & Prozess](06-ki-engineering-und-prozess.md)      |  ~2 S. | Gerüst    | —                                         |
+| 07  | [Tooling](07-tooling.md)                                                 |  ~3 S. | Gerüst    | T-01…T-06, je Werkzeug ein Absatz         |
+| 08  | [Qualität](08-qualitaet.md)                                              |  ~2 S. | Gerüst    | T-03, T-04, T-05                          |
+| 09  | [Quellcode-Übersicht](09-quellcode-uebersicht.md)                        |  ~1 S. | Gerüst    | Zahlen erst nach Code-Freeze              |
+| 10  | [Projektbericht](10-projektbericht.md)                                   |  ~2 S. | Gerüst    | speist sich aus dem Journal               |
+| 11  | [Anhang](11-anhang.md)                                                   |      — | Gerüst    | akkretiv                                  |
+| 12  | [KI-Verzeichnis](12-ki-verzeichnis.md)                                   |      — | generiert | `npm run docs:ki-verzeichnis`             |
 
 Seitenbudget insgesamt: **~26 S.** Zulässig sind 5–12 Seiten, bis 22 möglich. Die
 Summe liegt bewusst darüber — beim Trocken-Zusammenbau (siehe unten) wird gekürzt,
@@ -62,11 +62,11 @@ sie direkt. `npm run docs:diagrams` extrahiert sie nach `rendered/*.svg` für Wo
 
 Drei Bausteinsichten sind gefordert:
 
-| Kapitel | Komponente |
-|---|---|
-| 04 | `dash.rs` + `dash_properties.rs` + `dash_selection.rs` + Integration in `Flock::update()` |
-| 05 | `wasm_bridge/` ↔ `engine-bridge.js`, plus `sequenceDiagram` eines Frames |
-| 03 | `input/inputManager.js` + `input/controls.js` |
+| Kapitel | Komponente                                                                                |
+| ------- | ----------------------------------------------------------------------------------------- |
+| 04      | `dash.rs` + `dash_properties.rs` + `dash_selection.rs` + Integration in `Flock::update()` |
+| 05      | `wasm_bridge/` ↔ `engine-bridge.js`, plus `sequenceDiagram` eines Frames                  |
+| 03      | `input/inputManager.js` + `input/controls.js`                                             |
 
 In Word **SVG einfügen, nicht PNG** — SVG skaliert druckscharf.
 
@@ -87,8 +87,8 @@ trägt. Wird das erst am 01.09. versucht, ist es zu spät.
 
 ## Termine
 
-| Datum | Meilenstein |
-|---|---|
-| ~15.08.2026 | Trocken-Zusammenbau, Seitenbudget prüfen |
-| **24.08.2026** | **Code-Freeze** — danach nur Prosa, Diagramme, Layout |
-| 03.09.2026 | Abgabe Dokumentation, Working Code, Abschlusspräsentation |
+| Datum          | Meilenstein                                               |
+| -------------- | --------------------------------------------------------- |
+| ~15.08.2026    | Trocken-Zusammenbau, Seitenbudget prüfen                  |
+| **24.08.2026** | **Code-Freeze** — danach nur Prosa, Diagramme, Layout     |
+| 03.09.2026     | Abgabe Dokumentation, Working Code, Abschlusspräsentation |

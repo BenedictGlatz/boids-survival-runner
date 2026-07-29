@@ -13,6 +13,7 @@ Fließtext referenziert.
 ## 11.1 Tabellen
 
 > TODO: Sammelstelle. Vorgesehen:
+>
 > - Verzeichnisstruktur und Schichtenzuordnung (Engine / Frontend / Bridge)
 > - Tech Stack Canvas (Langfassung, falls Kap. 2 gekürzt werden muss)
 > - Modulübersicht Engine mit Aufgabe je Datei
@@ -26,6 +27,7 @@ Fließtext referenziert.
 ## 11.2 Abbildungen
 
 > TODO: Die gerenderten SVGs aus `rendered/`. Vorgesehen:
+>
 > - Bausteinsicht Dash-Cluster (Kap. 4.2.1)
 > - Bausteinsicht WASM-Grenze (Kap. 5.2.2 a)
 > - Sequenzdiagramm eines Frames (Kap. 5.2.2 b)
@@ -40,6 +42,7 @@ Fließtext referenziert.
 > TODO: Kurze, aussagekräftige Ausschnitte — je 10–25 Zeilen, keine ganzen Dateien.
 > Jeder Ausschnitt braucht eine Beschriftung und wird im Fließtext referenziert.
 > Kandidaten, nach Aussagekraft geordnet:
+>
 > 1. `dash_selection.rs` — die deterministische Auswahl per Integer-Hash über
 >    `step_counter`; der stärkste Beleg für das Fokus-Thema.
 > 2. `wasm_bridge/response.rs` — der Vier-Puffer-Vertrag.

@@ -4,12 +4,12 @@ Erfassungsstelle für alles, was **später nicht mehr rekonstruierbar** ist. Kei
 Kapitel des Berichts, sondern dessen Rohmaterial — speist vor allem
 [Kapitel 10 Projektbericht](10-projektbericht.md).
 
-**Pflicht pro Änderung** (`CLAUDE.md` → *Mandatory per-change steps*, Schritt 5):
+**Pflicht pro Änderung** (`CLAUDE.md` → _Mandatory per-change steps_, Schritt 5):
 
-- **immer** eine Zeile in *Aufwand*;
-- **wenn zutreffend** ein Block in *Entscheidungen* — jede nicht offensichtliche
+- **immer** eine Zeile in _Aufwand_;
+- **wenn zutreffend** ein Block in _Entscheidungen_ — jede nicht offensichtliche
   technische Entscheidung, inklusive verworfener Alternativen;
-- **wenn zutreffend** ein Punkt in *Herausforderungen* — alles, was mehr als ~30 min
+- **wenn zutreffend** ein Punkt in _Herausforderungen_ — alles, was mehr als ~30 min
   ungeplante Arbeit gekostet hat.
 
 **Nie hier festhalten**, was ein Befehl regenerieren kann: LOC, Testzahlen,
@@ -39,25 +39,25 @@ die Zeit zwischen Commits ein aktiv irreführender Aufwandsindikator. Verworfene
 Ansätze hinterlassen überhaupt keinen Commit — und das sind genau die Stunden, nach
 denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quelle.
 
-| Datum | h | Spec/Maßnahme | Was |
-|------------|----:|------|-----|
-| 2026-07-29 | 2,0 | D-01 | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt |
-| 2026-07-29 | 3,5 | T-01 | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben |
+| Datum      |   h | Spec/Maßnahme | Was                                                                                                                                                                                                      |
+| ---------- | --: | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-29 | 2,0 | D-01          | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt                                                                 |
+| 2026-07-29 | 3,5 | T-01          | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben |
 
 ## Entscheidungen
 
 ### 2026-07-29 — Dokumentation begleitend statt nachgelagert
 
-**Gewählt:** Pro Änderung werden *Fakten* in dieses Journal gesichert; die
+**Gewählt:** Pro Änderung werden _Fakten_ in dieses Journal gesichert; die
 Struktur-Kapitel (01–06) werden in wenigen zusammenhängenden Sitzungen geschrieben.
 Nur Kapitel 07, 08 und 12 wachsen wirklich pro Commit.
 
 **Verworfen:**
 
-| Alternative | Grund der Ablehnung |
-|---|---|
-| Alle Kapitel pro Commit fortschreiben | Die Struktur-Kapitel beschreiben Aufbau. Bei laufendem Code-Churn — JSDoc-Pflicht und die 400-Zeilen-Regel erzwingen Datei-Splits — würde derselbe Absatz mehrfach neu geschrieben. |
-| Dokumentation komplett am Ende | Genau der Fehler, den die Musterdokumentation in ihren *Lessons Learned* selbst benennt. Verworfene Alternativen und Ist-Aufwände sind nach Wochen nicht mehr rekonstruierbar. |
+| Alternative                                     | Grund der Ablehnung                                                                                                                                                                                       |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Alle Kapitel pro Commit fortschreiben           | Die Struktur-Kapitel beschreiben Aufbau. Bei laufendem Code-Churn — JSDoc-Pflicht und die 400-Zeilen-Regel erzwingen Datei-Splits — würde derselbe Absatz mehrfach neu geschrieben.                       |
+| Dokumentation komplett am Ende                  | Genau der Fehler, den die Musterdokumentation in ihren _Lessons Learned_ selbst benennt. Verworfene Alternativen und Ist-Aufwände sind nach Wochen nicht mehr rekonstruierbar.                            |
 | Fakten in die jeweiligen Kapiteldateien streuen | Eine Tatsache speist oft 2–3 Kapitel; die Ablage in genau einem Kapitel verliert sie für die anderen. Außerdem erzwingt das Schreiben deutscher Prosa mitten in der Implementierung einen Kontextwechsel. |
 
 **Konsequenz:** Ein einziges Append-Ziel ohne Entscheidungsaufwand. Ein normaler
@@ -74,9 +74,9 @@ Coverage, E2E, CI/CD und GitHub-Pages-Deployment werden nachgezogen (T-01…T-06
 ≈24 h) und dabei dokumentiert.
 
 **Verworfen:** Den Ist-Zustand nur beschreiben. Der Anforderungskatalog verlangt
-diese Werkzeuge namentlich in den Kapiteln *Tooling* und *Qualität*, und „Linter &
+diese Werkzeuge namentlich in den Kapiteln _Tooling_ und _Qualität_, und „Linter &
 Formatter aktiv und grün, hohe Testabdeckung" ist zusätzlich ein eigenes
-Bewertungskriterium im Deliverable *Working Code*. Die Lücke kostet also zweifach.
+Bewertungskriterium im Deliverable _Working Code_. Die Lücke kostet also zweifach.
 
 **Konsequenz:** Gesamtbudget steigt auf ≈131 h und liegt über der verfügbaren
 Kapazität. Gegenfinanzierung: Schild und Slow-Time aus S-05 entfallen bewusst.
@@ -97,15 +97,15 @@ Ausgenommen bleiben einfache exportierte Konstanten, Unterstrich-Präfixe und
 
 **Verworfen:**
 
-| Alternative | Grund der Ablehnung |
-|---|---|
-| `publicOnly: true` | Unterscheidet nur exportiert/nicht exportiert und kennt die `_methode`-Konvention des Projekts nicht. Hätte `_startDash`, `_drawCurves` usw. wie öffentliche API behandelt und damit genau die Grenze verwischt, die der Unterstrich zieht. |
-| Nur die Vorhandensein-Regel einschränken, Inhaltsregeln auf Standard lassen | Die Inhaltsregeln greifen dann auf *jede* Funktion zu, die zufällig schon einen einzeiligen Prosa-Kommentar trägt — auch private und modulprivate. `--fix` schrieb dort leere `@param`-Zeilen hinein (siehe Herausforderungen). |
-| Legacy `.eslintrc` statt Flat Config | Bei ESLint 9 nur noch über eine Kompatibilitätsschicht. Für eine neu angelegte Konfiguration gibt es keinen Grund, diese Schicht einzuziehen; `"type": "module"` ist ohnehin gesetzt. |
-| Strengere Sammel-Plugins (`unicorn`, `sonarjs`) | Optimieren auf idiomatisch-dichtes JavaScript und arbeiten damit direkt gegen die oberste Projektregel („`for`-Schleifen statt Iterator-Ketten", „ausgeschriebene Namen"). Ein Linter, der die Lesbarkeitsentscheidung anmeckert, wird abgeschaltet statt befolgt. |
+| Alternative                                                                 | Grund der Ablehnung                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `publicOnly: true`                                                          | Unterscheidet nur exportiert/nicht exportiert und kennt die `_methode`-Konvention des Projekts nicht. Hätte `_startDash`, `_drawCurves` usw. wie öffentliche API behandelt und damit genau die Grenze verwischt, die der Unterstrich zieht.                        |
+| Nur die Vorhandensein-Regel einschränken, Inhaltsregeln auf Standard lassen | Die Inhaltsregeln greifen dann auf _jede_ Funktion zu, die zufällig schon einen einzeiligen Prosa-Kommentar trägt — auch private und modulprivate. `--fix` schrieb dort leere `@param`-Zeilen hinein (siehe Herausforderungen).                                    |
+| Legacy `.eslintrc` statt Flat Config                                        | Bei ESLint 9 nur noch über eine Kompatibilitätsschicht. Für eine neu angelegte Konfiguration gibt es keinen Grund, diese Schicht einzuziehen; `"type": "module"` ist ohnehin gesetzt.                                                                              |
+| Strengere Sammel-Plugins (`unicorn`, `sonarjs`)                             | Optimieren auf idiomatisch-dichtes JavaScript und arbeiten damit direkt gegen die oberste Projektregel („`for`-Schleifen statt Iterator-Ketten", „ausgeschriebene Namen"). Ein Linter, der die Lesbarkeitsentscheidung anmeckert, wird abgeschaltet statt befolgt. |
 
 **Konsequenz:** Die Regel prüft genau die Schnittstellen und lässt die
-*Warum*-Kommentare im Blockinneren unangetastet — die bleiben eine menschliche
+_Warum_-Kommentare im Blockinneren unangetastet — die bleiben eine menschliche
 Urteilsfrage. Endstand fehler- **und** warnungsfrei, was `lint` erst als
 CI-Gate (T-05) brauchbar macht. Nebennutzen: Weil `require-param-type` mit
 aktiviert ist, liefern dieselben Blöcke später die Typinformation für `checkJs`
@@ -120,12 +120,12 @@ die devDependency in `frontend/package.json`. `proseWrap: preserve`.
 
 **Verworfen:**
 
-| Alternative | Grund der Ablehnung |
-|---|---|
-| Konfiguration in `frontend/` | Prettiers Zuständigkeit ist das ganze Repository — die Berichtskapitel, `README.md` und `CHANGELOG.md` liegen außerhalb von `frontend/`. Prettier löst die Konfiguration von der zu formatierenden Datei nach oben auf, eine Wurzeldatei deckt beide Seiten ohne Duplikat ab. |
-| Eigenes `package.json` an der Wurzel | Zweites Lockfile und zweiter `npm install` nur für eine devDependency — teurer als die kleine Asymmetrie zwischen Konfigurationsort und Abhängigkeitsort. |
-| `proseWrap` auf Standard (`preserve` ist nicht Prettiers Default für alle Fälle) lassen bzw. `always` | Würde die deutsche Prosa in `documentation/report/**` bei jedem Lauf auf `printWidth` neu umbrechen. Ein geänderter Halbsatz hätte dann Diffs über zwanzig Zeilen. |
-| Markdown ganz aus Prettiers Zuständigkeit nehmen | Kap. 7.4 fordert Formatierung für JS/JSON/Markdown; mit `proseWrap: preserve` ist die Prosa geschützt, und die Normalisierung von Tabellen bleibt ein einmaliger Aufwand. |
+| Alternative                                                                                           | Grund der Ablehnung                                                                                                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Konfiguration in `frontend/`                                                                          | Prettiers Zuständigkeit ist das ganze Repository — die Berichtskapitel, `README.md` und `CHANGELOG.md` liegen außerhalb von `frontend/`. Prettier löst die Konfiguration von der zu formatierenden Datei nach oben auf, eine Wurzeldatei deckt beide Seiten ohne Duplikat ab. |
+| Eigenes `package.json` an der Wurzel                                                                  | Zweites Lockfile und zweiter `npm install` nur für eine devDependency — teurer als die kleine Asymmetrie zwischen Konfigurationsort und Abhängigkeitsort.                                                                                                                     |
+| `proseWrap` auf Standard (`preserve` ist nicht Prettiers Default für alle Fälle) lassen bzw. `always` | Würde die deutsche Prosa in `documentation/report/**` bei jedem Lauf auf `printWidth` neu umbrechen. Ein geänderter Halbsatz hätte dann Diffs über zwanzig Zeilen.                                                                                                            |
+| Markdown ganz aus Prettiers Zuständigkeit nehmen                                                      | Kap. 7.4 fordert Formatierung für JS/JSON/Markdown; mit `proseWrap: preserve` ist die Prosa geschützt, und die Normalisierung von Tabellen bleibt ein einmaliger Aufwand.                                                                                                     |
 
 **Konsequenz:** Ein Formatierungslauf deckt Code und Dokumentation ab. Preis: Die
 Scripts brauchen `--ignore-path ../.prettierignore`, weil Prettier die Ignore-Datei
@@ -142,11 +142,11 @@ eigenen `style:`-Commit, damit der Tooling-Commit lesbar bleibt.
 
 **Verworfen:**
 
-| Alternative | Grund der Ablehnung |
-|---|---|
-| PlantUML | Bessere arc42-Ausgabe, braucht aber Java oder einen Server — zu schwer für vier Diagramme. |
-| draw.io | Nicht diffbar, nicht versionierbar, und widerspricht dem Ziel, ohne Zeichenwerkzeug auszukommen. |
-| ASCII-Kästen | Kostenlos und diffbar, liest sich in einem bewerteten Bericht aber amateurhaft. |
+| Alternative  | Grund der Ablehnung                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| PlantUML     | Bessere arc42-Ausgabe, braucht aber Java oder einen Server — zu schwer für vier Diagramme.       |
+| draw.io      | Nicht diffbar, nicht versionierbar, und widerspricht dem Ziel, ohne Zeichenwerkzeug auszukommen. |
+| ASCII-Kästen | Kostenlos und diffbar, liest sich in einem bewerteten Bericht aber amateurhaft.                  |
 
 **Konsequenz:** Diagramme sind diffbar und überleben inkrementelle Änderungen (ein
 neues Modul = eine neue Zeile). Bekannte Einschränkung: Mermaid lässt sich nicht
@@ -159,10 +159,10 @@ exportieren → in Word einfügen, bei vier Diagrammen akzeptabel.
 ## Herausforderungen & Lessons Learned
 
 - **2026-07-29 — Das eigene Prompt-Logging war lückenhaft.** Für den 29.07. war
-  *ein* Prompt geloggt, obwohl der Tag drei Commits inklusive einer 365-zeiligen
+  _ein_ Prompt geloggt, obwohl der Tag drei Commits inklusive einer 365-zeiligen
   Spezifikation hervorbrachte; insgesamt 22 Prompts auf 27 Commits. Die Ursache ist
-  strukturell: `CHANGELOG.md` verlangt einen Append an *eine* Datei zur Commit-Zeit
-  und wurde durchgehend gepflegt, das Prompt-Log verlangt einen Append *vor* der
+  strukturell: `CHANGELOG.md` verlangt einen Append an _eine_ Datei zur Commit-Zeit
+  und wurde durchgehend gepflegt, das Prompt-Log verlangt einen Append _vor_ der
   Antwort und schlief ein. Konsequenz für das Journal-Ritual: an die funktionierende
   Gewohnheit andocken (Commit-Zeit, eine Datei, ein Append) und mit
   `npm run docs:check` beratend — nicht blockierend — prüfen. Blockierende Git-Hooks
