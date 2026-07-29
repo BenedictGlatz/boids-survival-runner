@@ -19,6 +19,10 @@ cd frontend && npm run build:wasm
 # Rust unit tests (all #[cfg(test)] modules inside engine/src)
 cd engine && cargo test
 
+# Rust coverage (needs `cargo install cargo-llvm-cov` + `rustup component add llvm-tools-preview`)
+cd engine && cargo llvm-cov --lib --summary-only
+cd engine && cargo llvm-cov --lib --html      # engine/target/llvm-cov/html/index.html
+
 # A single Rust test
 cd engine && cargo test update_wraps_boids_at_world_edges
 
@@ -33,6 +37,9 @@ cd frontend && npm test
 
 # Frontend tests in watch mode
 cd frontend && npm run test:watch
+
+# Frontend coverage report (text + HTML in frontend/coverage/ + json-summary)
+cd frontend && npm run test:coverage
 
 # A single frontend test file
 cd frontend && npx vitest run src/loop/frameMetrics.test.js
@@ -71,6 +78,17 @@ needs neither a browser nor a built WASM package. Only import-free logic modules
 way — a test that pulls in `engine-bridge.js`, the canvas renderer or any DOM module will not run.
 Test files sit beside the module they cover as `<module>.test.js`, mirroring the Rust `#[cfg(test)]`
 convention, and count against the same 400-line limit.
+
+Coverage is measured on **both** sides of the language boundary and reported separately, because a
+single blended number would hide which half is actually tested: `npm run test:coverage`
+(`@vitest/coverage-v8`) for the frontend, `cargo llvm-cov --lib` for the engine. Two deliberate
+choices in `frontend/vitest.config.js`: `all: true`, so modules without a test count against the
+percentage instead of being invisible; and no `exclude` for `index.js` or `frameTimeGraph.js`, the
+two files that depress the number most — the low frontend figure is the honest statement that this
+suite cannot reach the DOM half, and that half is covered by the Playwright suite instead. The only
+exclusions are generated WASM glue, the test files, and `gameConfig.js` (constants, nothing
+executable). `--lib` on the Rust side is load-bearing: it keeps the host run to the `#[cfg(test)]`
+modules and out of `engine/tests/`, which only ever runs under `wasm-pack`.
 
 ## Architecture
 

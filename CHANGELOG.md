@@ -70,6 +70,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Plan hours for the tooling and documentation measures the assignment requires (`T-01`…`T-06`,
   `D-01`) in `docs/specs-overview.md`, together with the resulting over-budget total and the
   deliberate cut that pays for it.
+- Coverage reporting on both sides of the language boundary, reported separately rather than blended:
+  `npm run test:coverage` in `frontend/` (`@vitest/coverage-v8`, text plus HTML plus a JSON summary)
+  and `cargo llvm-cov --lib` in `engine/`. Untested frontend modules count against the percentage,
+  and the two largest DOM modules are deliberately not excluded, so the number states how much of the
+  frontend this Node-only suite cannot reach instead of hiding it.
 
 ### Changed
 

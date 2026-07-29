@@ -28,5 +28,11 @@
     "prompt": "In unserer letzten Session hast du mich auf folgende Diskrepanz zwischen dem geforderten Projektumfang und dem aktuellen Stand hingewiesen:\n\n\"Drei Dinge, die du wissen solltest\nDie Tooling-Lücke ist größer als gedacht. Der Katalog verlangt Linter, Formatter, JSDoc-Enforcement, TypeScript, Coverage, E2E, CI/CD und Deployment — vorhanden ist nichts davon. Ich habe das als T-01…T-06 mit ≈24 h in docs/specs-overview.md geplant. Damit liegt das Gesamtbudget bei ≈131 h und über deiner Kapazität; gegenfinanziert durch das bewusste Streichen von Schild und Slow-Time. Das ist im Kapazitätsplan ehrlich dokumentiert — eine Planung, die eine erkannte Überbuchung ausweist, liest sich besser als eine, die im Nachhinein aufgeht.\"\n\nIch möchte dass du jetzt die Implementation eines Linters und Formatters planst, sowie die Dokumentation dafür.",
     "topic": "tooling-tests",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "In unserer letzten Session hast du mir das gesagt:\n\n\"In unserer letzten Session hast du mich auf folgende Diskrepanz zwischen dem geforderten Projektumfang und dem aktuellen Stand hingewiesen:\n\n\"Drei Dinge, die du wissen solltest\nDie Tooling-Lücke ist größer als gedacht. Der Katalog verlangt Linter, Formatter, JSDoc-Enforcement, TypeScript, Coverage, E2E, CI/CD und Deployment — vorhanden ist nichts davon. Ich habe das als T-01…T-06 mit ≈24 h in docs/specs-overview.md geplant. Damit liegt das Gesamtbudget bei ≈131 h und über deiner Kapazität; gegenfinanziert durch das bewusste Streichen von Schild und Slow-Time. Das ist im Kapazitätsplan ehrlich dokumentiert — eine Planung, die eine erkannte Überbuchung ausweist, liest sich besser als eine, die im Nachhinein aufgeht.\"\n\nIch möchte dass du jetzt die Umsetzung von E2E Tests, Coverage Reports und Unit tests planst, insofern diese noch nicht gemäß den Projektvorgaben des Professors umgesetzt sind",
+    "topic": "tooling-tests",
+    "use": "impl"
   }
 ]

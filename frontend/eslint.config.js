@@ -25,7 +25,7 @@ const JSDOC_REQUIRED_CONTEXTS = [
 // already declares "type": "module"). See documentation/report/07-tooling.md
 // §7.3 for the reasoning behind every non-obvious choice below.
 export default [
-  { ignores: ['src/wasm/**', 'dist/**', 'node_modules/**'] },
+  { ignores: ['src/wasm/**', 'dist/**', 'node_modules/**', 'coverage/**'] },
 
   js.configs.recommended,
   jsdoc.configs['flat/recommended'],

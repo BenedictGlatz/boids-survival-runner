@@ -28,7 +28,7 @@ Jeder Entscheidungs-Block trägt einen `→ Kap. n`-Tag. Damit ist die Schreibph
 ## Aufwand
 
 Eine Zeile pro **Arbeitssitzung**, nicht pro Task. Bis zur Abgabe sind ~20–25 Zeilen
-zu erwarten. Maßnahmen-IDs (`S-01`…`S-06`, `T-01`…`T-06`, `D-01`) kommen aus
+zu erwarten. Maßnahmen-IDs (`S-01`…`S-06`, `T-01`…`T-07`, `D-01`) kommen aus
 [docs/specs-overview.md](../../docs/specs-overview.md) und sind das gemeinsame
 Vokabular von Planung, Journal und Kapitel 10.
 
@@ -43,6 +43,7 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | ---------- | --: | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-07-29 | 2,0 | D-01          | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt                                                                 |
 | 2026-07-29 | 3,5 | T-01          | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben |
+| 2026-07-29 | 1,5 | T-03          | Coverage für beide Sprachen eingerichtet (`@vitest/coverage-v8`, `cargo llvm-cov`), Ausgangsmessung genommen; T-07 als neue Maßnahme aufgenommen und Kapazitätsplan fortgeschrieben                      |
 
 ## Entscheidungen
 
@@ -155,6 +156,34 @@ Puppeteer/Chromium (~150 MB). Fallback bei Proxy-Problemen: mermaid.live → SVG
 exportieren → in Word einfügen, bei vier Diagrammen akzeptabel.
 
 → Kap. 4, 7
+
+### 2026-07-29 — Coverage getrennt je Sprache, ohne Schwellwert-Gate
+
+**Gewählt:** Zwei Messungen, zwei Zahlen, nebeneinander berichtet:
+`@vitest/coverage-v8` für das Frontend, `cargo llvm-cov --lib` für die Engine.
+`all: true`, damit ungetestete Module mitzählen. Kein `exclude` für `index.js` und
+`ui/frameTimeGraph.js`, die beiden Dateien, die die Zahl am stärksten drücken.
+Zunächst keine `thresholds`.
+
+**Verworfen:**
+
+| Alternative                                    | Grund der Ablehnung                                                                                                                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Nur Frontend-Coverage (die ursprünglichen 2 h) | Die Engine ist das gewählte Fokus-Thema und enthält den Großteil der Logik. Eine Coverage-Aussage, die ausgerechnet diese Hälfte nicht misst, ist die schwächere Aussage — 1,5 h Mehraufwand dagegen billig. |
+| Eine gemeinsame Gesamtzahl                     | Sie würde die beiden Hälften verrechnen und damit genau die Information zerstören, die interessant ist: Welche Sprachseite ist getestet und welche nicht.                                                    |
+| DOM-Module per `exclude` ausblenden            | Hebt die Zahl, ohne einen Test zu schreiben. Genau die Politur, gegen die die Musterdokumentation mit ihrer begründet niedrigen Zahl argumentiert.                                                           |
+| Schwellwerte sofort setzen                     | Eine Untergrenze über dem Ist-Stand macht jeden CI-Lauf (T-05) rot, ohne etwas Neues zu sagen. Sinnvoll erst nach T-07, dann auf dem erreichten Niveau minus Reserve.                                        |
+
+**Konsequenz:** Die Ausgangsmessung ist unangenehm und genau deshalb brauchbar —
+Frontend 10,4 % Statements, Engine 86,7 % Lines. Vor allem lokalisiert sie die Lücke
+präzise an der Sprachgrenze: Die reine Simulation liegt bei 96–100 %,
+`wasm_bridge/mod.rs` bei 47 % und `wasm_bridge/response.rs` bei **0 %**. Das ist kein
+Zufall, sondern strukturell: Die Getter in `response.rs` liefern
+`js_sys::Float32Array`/`Uint32Array` und brauchen eine JS-Laufzeit, sind per
+`cargo test` also prinzipiell unerreichbar. Damit hat die Messung die Begründung für
+T-07b gleich mitgeliefert, statt sie behaupten zu müssen.
+
+→ Kap. 8, 9
 
 ## Herausforderungen & Lessons Learned
 

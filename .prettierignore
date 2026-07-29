@@ -4,6 +4,7 @@
 /frontend/node_modules/
 /frontend/dist/
 /frontend/src/wasm/
+/frontend/coverage/
 
 # Reference PDFs are not text files Prettier can format.
 documentation/**/*.pdf
