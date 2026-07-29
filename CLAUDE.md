@@ -64,11 +64,26 @@ Owns *all* simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
   flock. `constants.rs` holds *defaults*, not invariants.
 - `simulation/rules.rs` — the four steering rules as pure functions: `separation`, `alignment`,
   `cohesion`, `seek_target`. Each takes `&Boid` plus a neighbour slice and returns an unweighted force.
-- `simulation/physics.rs` — `integrate`, `clamp_force`, `aabb_overlap`.
-- `simulation/flock.rs` — `Flock::update()` is the per-step core: it clones the boid vector into a
-  **snapshot** so every boid steers against the *previous* step's state, applies weighted rules,
-  integrates, wraps at world edges, relaxes overlaps (`BOID_OVERLAP_RELAXATION_STEPS` pairwise
-  passes), then counts player hits. This is O(n²) in the boid count.
+  All four scale their desired velocity by `properties.max_speed`, so raising that property changes
+  steering strength as well as top speed — which is why a dash passes a speed cap instead.
+- `simulation/physics.rs` — `integrate(boid, speed_limit)`, `clamp_force`, `aabb_overlap`. The speed
+  limit is a parameter, not read from the boid, so a dashing boid can exceed its normal `max_speed`
+  for a few steps without its steering being rescaled.
+- `simulation/dash.rs` + `dash_properties.rs` — the per-boid dash state machine
+  (`Idle → Charging → Dashing → Cooling`), its tuning, the per-tier ramp, and `dash_render_phase`,
+  the single number the frontend draws the warning pulse from. Durations count in **simulation
+  steps**, never milliseconds.
+- `simulation/dash_selection.rs` — who dashes next, derived deterministically from
+  `Flock::step_counter` with the same integer-hash trick as `find_spawn_position`. There is no `rand`
+  dependency anywhere in the engine, and adding one would break reproducibility.
+- `simulation/overlap.rs` — `resolve_boid_overlaps` and `wrap_position`. A dashing boid is immovable
+  inside the relaxation so it keeps its line; the wrap uses `rem_euclid`, so a displacement larger
+  than the world cannot leak a boid off-screen.
+- `simulation/flock.rs` — `Flock::update()` is the per-step core: it offers at most one new dash,
+  clones the boid vector into a **snapshot** so every boid steers against the *previous* step's state,
+  advances each boid's dash state, applies weighted rules (a dashing boid gets separation only —
+  cohesion, alignment and seeking are off, which is what makes it break out of the swarm),
+  integrates, wraps at world edges, relaxes overlaps, then counts player hits. O(n²) in the boid count.
 - `wasm_bridge/` — the only `#[wasm_bindgen]` surface. `GameEngine` owns the flock, world bounds,
   wave state, and reusable output buffers; `create_boid_for_wave` / `properties_for_difficulty_tier`
   derive per-wave variants; `find_spawn_position` keeps new boids a safe distance from the player.
@@ -82,7 +97,13 @@ Owns rendering, input, game state, and UI. Contains **no** simulation math.
   Rust getters into a `camelCase` frame object, so engine naming never leaks further into the frontend.
 - `loop/frameScheduler.js` — pure timing arithmetic for the fixed-timestep loop.
 - `loop/frameMetrics.js`, `ui/frameTimeGraph.js` — opt-in per-frame performance overlay.
-- `player/playerController.js` — player integration (accelerate/decelerate/clamp).
+- `input/inputManager.js` + `input/controls.js` — keyboard state and the per-step control object.
+  The dash key is edge-triggered and latched, and only captured while a round is running: outside one
+  the space bar has to keep activating the menu buttons and the developer `<details>`.
+- `player/playerController.js` — player integration (accelerate/decelerate/clamp) plus the dash, whose
+  impulse survives the per-step speed clamp by temporarily raising the limit.
+- `player/dashCooldown.js`, `renderer/dashPulse.js` — the dash's import-free arithmetic, split out so
+  it is testable under Vitest in the same way `loop/frameGraphScale.js` is.
 - `renderer/renderer.js` → `renderer/canvasRenderer.js` — indirection so a WebGL backend could
   replace the canvas one without touching callers.
 - `gameState.js` — `MENU` / `PLAYING` / `GAME_OVER` state machine, transitions only.
@@ -99,13 +120,20 @@ break subtly if ignored:
 - The player must be integrated inside the same step as the flock — its position is an input to
   `tick()` and to the engine's collision test.
 - Hits must be consumed for **every** step of a multi-step frame; reading only the last frame drops hits.
+- Conversely, one-shot player input must be **latched and consumed once**, not read as held state:
+  a "is the key down" check per step turns one space-bar press into up to five dashes.
 - Simulation debt is clamped (`MAX_SIMULATION_STEPS_PER_FRAME`) and deliberately discarded whenever
   the world is frozen (countdown, round start, death), or a restart would open with a catch-up burst.
-- Score and the in-game timer derive from `simulationTimeMs`, never from wall time.
+- Score, the in-game timer and every ability cooldown derive from `simulationTimeMs`, never from wall
+  time — and any timestamp measured against it must be re-seeded in `beginRound()`, where that clock
+  jumps back to zero.
 
-**2. Flat buffers across the boundary.** `FrameResponse` returns `Float32Array` positions and
-velocities plus a `Uint32Array` of difficulty tiers — flat, cache-friendly, index-aligned. Keep the
-interface minimal and strongly typed; do not pass objects or per-entity structs across.
+**2. Flat buffers across the boundary.** `FrameResponse` returns `Float32Array` positions,
+velocities and dash phases plus a `Uint32Array` of difficulty tiers — flat, cache-friendly,
+index-aligned, four buffers in total. Keep the interface minimal and strongly typed; do not pass
+objects or per-entity structs across. `dash_phases` shows the pattern for packing a per-boid render
+state into one number: `0` means nothing to draw, a positive value is charge-up progress and a
+negative one is dash-remaining, so the sign carries the state and no second buffer is needed.
 
 Note that `INITIAL_BOID_COUNT` is duplicated in `engine/src/constants.rs` and
 `frontend/src/gameConfig.js` — keep the two in sync when changing it.
