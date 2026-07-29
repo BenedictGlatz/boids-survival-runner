@@ -244,3 +244,21 @@ wie ein Fehler im Bericht.
   echten Fehlers. Zweite Lehre: `--fix` auf einer frisch eingeführten Regel erst auf
   wenigen Dateien gegenprüfen, bevor man es über die Codebasis laufen lässt.
   → Kap. 7, 8, 10
+
+- **2026-07-29 — Der Production-Build lieferte seit Monaten keine Übersetzungen
+  aus.** Beim Vorbereiten der E2E-Tests fiel auf, dass `frontend/dist/` kein
+  `locales/`-Verzeichnis enthält. `ui/i18n.js` holt `./locales/en.json` per `fetch`
+  zur Laufzeit, die Datei taucht damit nie im Modulgraph auf — und Vite kopiert nur,
+  was es entweder importiert sieht oder unter `public/` findet. Im gebauten Spiel
+  schlug der `fetch` also fehl, `t()` fiel auf seinen Fallback zurück und **jedes**
+  Label stand als Rohschlüssel auf dem Bildschirm (`menu.play` statt „Play"). Der
+  Dev-Server lieferte die Datei dagegen aus, weil er das ganze Projektverzeichnis
+  bedient — deshalb war der Fehler in monatelanger Entwicklung nie sichtbar. Behebung:
+  `frontend/locales/` → `frontend/public/locales/`, zehn Minuten.
+  Der eigentliche Punkt ist nicht der Fehler, sondern **wer ihn findet**: 51
+  Rust-Tests und 92 Frontend-Tests konnten ihn strukturell nicht finden, weil keiner
+  von ihnen ein Build-Artefakt anfasst. Die Entscheidung, E2E gegen `vite preview`
+  statt gegen den Dev-Server laufen zu lassen, hat sich damit bezahlt, bevor der erste
+  E2E-Test geschrieben war. Das ist zugleich das beste Argument für die Existenz der
+  E2E-Stufe im Bericht — belegt statt behauptet.
+  → Kap. 5, 8, 10

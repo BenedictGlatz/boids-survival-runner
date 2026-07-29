@@ -32,7 +32,7 @@ find frontend/src -name '*.js' -not -path '*/wasm/*' -exec wc -l {} + | sort -n
 grep -rhoE '\b(it|test)\(' frontend/src --include='*.test.js' | wc -l
 
 # Weitere Assets
-wc -l frontend/styles/main.css frontend/index.html frontend/locales/en.json
+wc -l frontend/styles/main.css frontend/index.html frontend/public/locales/en.json
 
 # Repository-Historie
 git log --oneline | wc -l

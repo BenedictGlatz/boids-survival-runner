@@ -101,3 +101,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - The score and in-game timer no longer advance while the browser tab is in the background, which previously handed out score for time in which no boid moved.
+- The production build now ships the locale file. `ui/i18n.js` fetches `./locales/en.json` at runtime,
+  so Vite never saw it in the module graph and left it out of `dist/`; every label in a built copy of
+  the game therefore rendered as its raw key (`menu.play` instead of "Play"). The locales moved to
+  `frontend/public/locales/`, which Vite copies verbatim. Only the production build was affected — the
+  dev server served the file either way, which is why it went unnoticed.

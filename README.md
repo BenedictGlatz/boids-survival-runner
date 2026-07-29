@@ -126,7 +126,7 @@ Covered so far: `src/loop/frameMetrics.js`, `src/ui/frameGraphScale.js`,
 
 ## Project Conventions
 
-- All user-facing strings are externalized in `frontend/locales/`.
+- All user-facing strings are externalized in `frontend/public/locales/`.
 - Every change is recorded in `CHANGELOG.md` (Keep a Changelog format).
 - Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) specification.
 - Source files must not exceed 400 lines.

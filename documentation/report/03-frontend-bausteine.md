@@ -20,7 +20,7 @@ JSDoc-Pflicht bläht Dateien auf und kann die 400-Zeilen-Regel in neue Splits ki
 
 > TODO: `ui/menu.js` + `ui/optionGroup.js` (Startmenü aus einem gemeinsamen
 > Options-Gruppen-Modul), `ui/frameTimeGraph.js` (opt-in Overlay),
-> `ui/i18n.js` + `frontend/locales/en.json`. Betonen: keine hartcodierten
+> `ui/i18n.js` + `frontend/public/locales/en.json`. Betonen: keine hartcodierten
 > nutzersichtbaren Strings, alles über namespaced Keys.
 
 ### 3.2.2 Eine wesentliche Komponente: Darstellung des Aufbaus — Bausteinsicht

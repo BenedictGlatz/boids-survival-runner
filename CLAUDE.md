@@ -212,7 +212,10 @@ This project is developed by university students learning Rust and WebAssembly.
   past it. This rule does **not** apply under `documentation/` — a five-page report chapter
   necessarily exceeds it and must not be sharded.
 - **No hard-coded user-facing strings.** Everything goes through `ui/i18n.js` with namespaced keys
-  (`menu.start`, `hud.score`); English (`frontend/locales/en.json`) is the default locale.
+  (`menu.start`, `hud.score`); English (`frontend/public/locales/en.json`) is the default locale.
+  It lives under `public/` because `ui/i18n.js` `fetch`es it at runtime rather than importing it —
+  files Vite never sees in the module graph are only shipped if they sit in `public/`. Anywhere else
+  and the production build silently omits them, leaving every label as its raw key.
 - **No magic numbers.** Named constants in `engine/src/constants.rs` or `frontend/src/gameConfig.js`.
 - Every `#[wasm_bindgen]` export needs a doc comment. Every `unsafe` block needs a justification comment.
 - Unit tests are required for all math and simulation functions; keep them as `#[cfg(test)]` modules
