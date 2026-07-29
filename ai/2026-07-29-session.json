@@ -1,6 +1,26 @@
 [
   {
     "model": "claude-opus-5",
-    "prompt": "Ich möchte mit dir ein neues Gameplay Feature planen. Sowohl der Spieler als auch die Boids sollen einen Dash bekommen.\n\nDer Spieler soll den Dash mit der Leertaste auslösen können, er beschleunigt den Spieler über eine kurze Distanz nach vorne, beispielsweise um auszuweichen. Der Dash soll einen Cooldown haben, der mit einem Balken am Bildschirmrand angezeigt wird.\n\nDie Boids sollen auch einen Dash erhalten, es sollen allerdings immer nur ein paar Boids Dashen, also eine kleine Gruppe. Das gibt diesen Boids auch die Möglichkeit sich temporär wieder vom Schwarm zu lösen und die Cohesion zu brechen. Dem Spieler muss visuell signalisiert werden welche Boids gleich dashen werden, beispielsweise über ein leuchten oder pulsieren der entsprechenden Boids."
+    "prompt": "Ich möchte mit dir ein neues Gameplay Feature planen. Sowohl der Spieler als auch die Boids sollen einen Dash bekommen.\n\nDer Spieler soll den Dash mit der Leertaste auslösen können, er beschleunigt den Spieler über eine kurze Distanz nach vorne, beispielsweise um auszuweichen. Der Dash soll einen Cooldown haben, der mit einem Balken am Bildschirmrand angezeigt wird.\n\nDie Boids sollen auch einen Dash erhalten, es sollen allerdings immer nur ein paar Boids Dashen, also eine kleine Gruppe. Das gibt diesen Boids auch die Möglichkeit sich temporär wieder vom Schwarm zu lösen und die Cohesion zu brechen. Dem Spieler muss visuell signalisiert werden welche Boids gleich dashen werden, beispielsweise über ein leuchten oder pulsieren der entsprechenden Boids.",
+    "topic": "engine",
+    "use": "impl"
+  },
+  {
+    "model": "claude-sonnet-5",
+    "prompt": "kannst ich in diesem Chat PDFS als Quellen anhängen?",
+    "topic": "prozess-doku",
+    "use": "rein-informativ"
+  },
+  {
+    "model": "claude-sonnet-5",
+    "prompt": "Kannst du auch bilder in pdfs lesen, oder nur text?",
+    "topic": "prozess-doku",
+    "use": "rein-informativ"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Es handelt sich hier um ein Projekt für die Uni. Neben dem Code muss auch eine Dokumentation angefertigt werden. Ich möchte dass du während die Software entwickelt wirst, gleichzeitig bereits damit beginnst stichpunktartig die Dokumentation zu schreiben.\n\nIch habe für dich im Ordner Documentation zwei PDFs als Referenz abgelegt, einmal den Anforderungskatalog des Professors und einmal eine Musterdokumentation eines vorherigen Projekt bei diesem Professor. Ich möchte dass wir anhanddessen planen wie du während der Umsetzung nebenbei dokumentierst.",
+    "topic": "prozess-doku",
+    "use": "impl"
   }
 ]

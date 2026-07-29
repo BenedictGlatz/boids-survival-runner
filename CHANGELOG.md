@@ -52,6 +52,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   simulation steps, so the swarm never turns into a wall of lunges. Later waves warn for a shorter
   time, dash faster and further, and recover quicker.
 
+- Scaffold for the university project and architecture report under `documentation/report/`: one
+  Markdown file per required chapter, each pre-filled with the headings the assignment asks for, the
+  sources it is to be composed from, and what still blocks it. `00-index.md` tracks per-chapter status
+  and holds the assembly recipe.
+- `documentation/report/projekt-journal.md`, an append-only record of the facts that cannot be
+  reconstructed later: hours actually spent per session, technical decisions with their rejected
+  alternatives, and challenges. It is now a mandatory per-change step, so the report grows alongside
+  the code instead of being written at the end.
+- Prompt logs under `ai/` now carry a `topic` and a `use` field, classifying each prompt by subject
+  area and by what became of the answer. All existing entries were classified.
+- `npm run docs:ki-verzeichnis` generates the report's AI index from `ai/*.json`, grouped by subject
+  area with the model mix.
+- `npm run docs:check` reports, without failing, whether today's prompt log, journal entry and
+  changelog edit are in place, and flags source files past the 400-line limit.
+- Plan hours for the tooling and documentation measures the assignment requires (`T-01`…`T-06`,
+  `D-01`) in `docs/specs-overview.md`, together with the resulting over-budget total and the
+  deliberate cut that pays for it.
+
 ### Changed
 - The frametime graph's vertical axis now follows the selected target framerate instead of the measured load. The dashed line always marks the frame budget of that framerate (16.67 ms at 60 FPS) and sits halfway up the plot, so the free half above it shows by how much a frame missed its budget. The axis therefore holds still for a whole round: the same curve height always means the same cost.
 - The frametime graph now draws continuous curves instead of stacked bars, in the style of an external frametime monitor: a thin line over a tinted area, scrolling in from the left while the history fills up.

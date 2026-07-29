@@ -8,7 +8,9 @@
     "build": "npm run build:wasm && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "docs:ki-verzeichnis": "node ../scripts/ki-verzeichnis.mjs",
+    "docs:check": "node ../scripts/docs-check.mjs"
   },
   "devDependencies": {
     "vite": "^5.0.0",

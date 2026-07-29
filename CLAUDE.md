@@ -157,7 +157,9 @@ This project is developed by university students learning Rust and WebAssembly.
 
 ### Hard rules
 
-- **No source file over 400 lines** (Rust, JS, or test). Split into focused modules before growing past it.
+- **No source file over 400 lines** (Rust, JS, or test). Split into focused modules before growing
+  past it. This rule does **not** apply under `documentation/` — a five-page report chapter
+  necessarily exceeds it and must not be sharded.
 - **No hard-coded user-facing strings.** Everything goes through `ui/i18n.js` with namespaced keys
   (`menu.start`, `hud.score`); English (`frontend/locales/en.json`) is the default locale.
 - **No magic numbers.** Named constants in `engine/src/constants.rs` or `frontend/src/gameConfig.js`.
@@ -173,8 +175,14 @@ This project is developed by university students learning Rust and WebAssembly.
 ### Mandatory per-change steps
 
 1. **AI prompt logging — do not skip.** Append every user prompt to the active session file in
-   `ai/` (`ai/YYYY-MM-DD-session.json`, a JSON array of `{"model": "...", "prompt": "..."}`) *before*
-   replying. `ai/` is committed and must never be gitignored.
+   `ai/` (`ai/YYYY-MM-DD-session.json`) *before* replying. `ai/` is committed and must never be
+   gitignored. Each entry is `{"model", "prompt", "topic", "use"}`:
+   - `topic` (required) — one of `engine`, `wasm-bridge`, `frontend-ui`, `loop-input`,
+     `tooling-tests`, `prozess-doku`. These are the six sections of the report's KI-Verzeichnis.
+   - `use` (optional, set at commit time) — one of `rein-informativ`, `recherche-informativ`,
+     `impl`, `uebernommen`, `ueberarbeitet`. Omitted means `impl`. Mark the two informational
+     values explicitly; they are the minority and the ones that show whether an answer was
+     weighed or just accepted.
 2. **Changelog.** Record user-visible changes in `CHANGELOG.md` under `[Unreleased]`
    (Keep a Changelog categories), in the same commit as the change.
 3. **Commit.** Every completed change is committed immediately, atomically, using
@@ -183,6 +191,21 @@ This project is developed by university students learning Rust and WebAssembly.
    **Never `git push` unless explicitly asked.**
 4. **Tests.** Assess whether the change warrants automated tests. Either write them in the same step
    or explicitly tell the developer which coverage is still outstanding.
+5. **Journal.** Append to `documentation/report/projekt-journal.md`, **in German**, in the same
+   commit:
+   - **always** one row in *Aufwand* — date, hours, spec/measure ID (`S-01`…`S-06`, `T-01`…`T-06`,
+     `D-01` from `docs/specs-overview.md`), one line on what was done;
+   - **when applicable** an *Entscheidung* block for any non-obvious technical decision — chosen
+     option, rejected alternatives, why, consequence, and a `→ Kap. n` tag;
+   - **when applicable** a *Herausforderung* bullet for anything that cost more than ~30 min of
+     unplanned work.
+
+   Never record anything a command can regenerate (LOC, test counts, script lists) — those belong
+   in `documentation/report/09-quellcode-uebersicht.md` as the command that produces them.
+
+   The university report is written *alongside* development, not afterwards. Structure chapters
+   (01–06) are composed in a few sittings; only chapters 07, 08 and 12 grow per commit. What every
+   commit owes is **facts**, not prose. See `documentation/report/00-index.md`.
 
 ### Workflow
 
