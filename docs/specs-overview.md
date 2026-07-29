@@ -32,6 +32,8 @@ Detail-Specs:
 
 ## 3) Aufwandsschätzung (grob)
 
+### 3.1) Fachliche Specs
+
 | Spec                         | Aufwand |
 |------------------------------|--------:|
 | S-01 Schwarm-Simulation      | 18 h    |
@@ -42,7 +44,7 @@ Detail-Specs:
 | S-06 Querschnitt             | 12 h    |
 | **Summe**                    | **71 h**|
 | + Integration/Test (~20 %)   | ~14 h   |
-| **Gesamt**                   | **≈ 85 h (≈ 11 PT)** |
+| **Gesamt Specs**             | **≈ 85 h (≈ 11 PT)** |
 
 **Schwerpunkt:** Die Engine (S-01/S-02, ~23 h) ist der teuerste Block. Das
 Grundgerüst ist spielbar; offen sind v. a. die restlichen Power-Ups,
@@ -52,3 +54,51 @@ Der Dash aus S-05 ist umgesetzt (~12 h der dort geschätzten 14 h, siehe
 [spec-s05-dash.md](spec-s05-dash.md)) und hat S-05 von *Frontend* auf *Engine/FE*
 verschoben, weil der Boid-Dash in der Simulation liegt. Offen bleiben in S-05
 Schild und Slow-Time.
+
+### 3.2) Tooling- und Qualitätsmaßnahmen
+
+Diese Maßnahmen sind vom Anforderungskatalog der Prüfungsleistung gefordert
+(Kapitel „Tooling" und „Qualität") und waren in der ursprünglichen Schätzung
+nicht enthalten. Sie werden schrittweise nachgezogen und dabei dokumentiert.
+
+| ID   | Maßnahme                                                | Aufwand |
+|------|---------------------------------------------------------|--------:|
+| T-01 | ESLint + Prettier + `require-jsdoc`-Enforcement          | 5 h     |
+| T-02 | TypeScript-Prüfung über `allowJs` + `checkJs`            | 3 h     |
+| T-03 | Vitest-Coverage-Report                                   | 2 h     |
+| T-04 | E2E-Tests (Playwright) inkl. Report                      | 6 h     |
+| T-05 | CI/CD: GitHub-Actions-Pipeline (build, test, lint, fmt)  | 5 h     |
+| T-06 | Deployment auf GitHub Pages (inkl. `vite.config.js`)     | 3 h     |
+| **Summe Tooling**                                        || **24 h**|
+
+### 3.3) Dokumentation
+
+| ID   | Maßnahme                                                | Aufwand |
+|------|---------------------------------------------------------|--------:|
+| D-01 | Projekt- & Architekturdokumentation, Diagramme, Layout   | 22 h    |
+
+### 3.4) Gesamtbudget und bewusste Kürzung
+
+| Block                        | Aufwand |
+|------------------------------|--------:|
+| Specs S-01…S-06              | ≈ 85 h  |
+| Tooling T-01…T-06            | ≈ 24 h  |
+| Dokumentation D-01           | ≈ 22 h  |
+| **Gesamt**                   | **≈ 131 h (≈ 17 PT)** |
+
+Bis zur Abgabe am **03.09.2026** stehen realistisch ~5 Wochen zur Verfügung. Das
+Gesamtbudget von ≈ 131 h liegt damit über der verfügbaren Kapazität, weshalb
+bewusst gekürzt wird:
+
+- **Schild und Slow-Time aus S-05 entfallen** (≈ 2 h Restbudget in S-05). Der
+  Dash belegt das Power-Up-Thema bereits vollständig — inklusive Engine-Anteil,
+  Vorwarnung und Barrierefreiheits-Trade-off. Zwei weitere Power-Ups würden
+  fachlich wenig Neues zeigen.
+- **Priorität bei Tooling über Feature-Breite**, weil „Linter & Formatter aktiv
+  und grün, hohe Testabdeckung" ein eigenes Bewertungskriterium ist.
+- **Code-Freeze am 24.08.2026**; die restlichen ~10 Tage sind für Prosa,
+  Diagramme und Layout reserviert.
+
+Ist-Aufwände werden pro Arbeitssitzung in
+[documentation/report/projekt-journal.md](../documentation/report/projekt-journal.md)
+festgehalten und speisen den Kapazitätsplan des Projektberichts.
