@@ -65,7 +65,84 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-07-30 | 2,5 | S-03 | Weltgröße von der Monitorauflösung entkoppelt: feste logische Welt 1920×1080, Contain-Fit im Renderer über das neue Modul `renderer/worldTransform.js` samt acht Unit-Tests, Arena-Zeichnung nach `renderer/arenaLayer.js` ausgelagert, sichtbare Weltkante, `resizeEngine` aus dem Frontend entfernt; neuer E2E-Flow `letterbox.spec.js` und Pixelsonde in `obstacles.spec.js` gegen den neuen Renderscale nachgemessen |
 
+| 2026-07-30 | 2,0 | S-03 | Dash-Schweif „Ion Streak" aus dem Designsystem umgesetzt: `renderer/dashTrail.js` (Kennwerte und Verlaufsmathematik), `renderer/dashTrailHistory.js` (Ringpuffer-Historie), `renderer/trailLayer.js` (Zeichnen) und `renderer/trailSampling.js` (Abtasten pro Frame); Renderer-Farben nach `renderer/entityPalette.js` gezogen, `secondsSinceRender` im `FrameScheduler` als Wall-Time-Basis der Präsentation; 20 neue Unit-Zusicherungen, Sichtprüfung per Screenshot |
+
 ## Entscheidungen
+
+### 2026-07-30 — Der Schweif liest den Dash aus der Geschwindigkeit statt aus einem Zustand
+
+**Gewählt:** Die Stärke des Schweifs ist eine Funktion der aktuellen Geschwindigkeit
+(Spieler) beziehungsweise der vorhandenen `dash_phases[i]` (Boids). Es gibt keinen
+Schweif-Zeitgeber, kein Feld „ich dashe" und keinen sechsten Buffer über die
+WASM-Grenze.
+
+**Verworfen:** (a) eine eigene Restlaufzeit im Frontend, die beim Dash gesetzt und
+heruntergezählt wird; (b) ein zusätzliches Flag-Array aus der Engine, das je Boid „dasht"
+meldet.
+
+**Warum:** Beide Alternativen führen eine zweite Wahrheit über denselben Vorgang ein, die
+mit der ersten auseinanderlaufen kann. Ein Zeitgeber im Frontend müsste jeden Weg kennen,
+auf dem ein Dash vorzeitig endet — Weltkante und Hindernis setzen die Geschwindigkeitsgrenze
+zurück, ohne dass ein Zeitgeber davon erfährt; der Schweif würde ins Leere weiterlaufen. Die
+Geschwindigkeit selbst weiß es immer, weil sie der Dash _ist_. Für die Boids trägt
+`dash_phases` die Information bereits und ist mit dem Vorzeichen genau so verpackt, dass die
+Dash-Phase vom Aufladen unterscheidbar ist; ein Flag-Array wäre eine vierte Kopie derselben
+Aussage.
+
+**Konsequenz:** Der Schweif endet immer dort, wo der Dash tatsächlich endet, auch bei
+Wandtreffer und Hinderniskollision. Der Preis ist ein schwacher Schweif schon bei normalem
+Lauftempo: Die Stärkerampe beginnt bewusst bei 60 % der Höchstgeschwindigkeit, damit ein
+auslaufender Dash ausblendet statt an einer harten Schwelle abzureißen — bei Höchstgeschwindigkeit
+sind das rund 20 % Stärke, also ein Fünftel der Breite und der Deckkraft. Das ist als
+Bewegungsspur lesbar, aber es ist eine Nebenwirkung und keine Absicht, und ein Test nagelt
+die Obergrenze fest.
+→ Kap. 5, 8
+
+### 2026-07-30 — Historie und Verlaufsmathematik des Schweifs liegen in getrennten Dateien
+
+**Gewählt:** `dashTrail.js` hält die Kennwerte und die reinen Funktionen (Stärke, Breite,
+Deckkraft, Absprungring), `dashTrailHistory.js` die Klasse `DashTrails` mit den Ringpuffern
+und dem Modul-Singleton. Die Abhängigkeit läuft in genau eine Richtung: die Historie liest
+die Kennwerte, nie umgekehrt.
+
+**Verworfen:** eine Datei wie im Handoff, mit einem Re-Export als Fassade
+(`export { DashTrails } from './dashTrailHistory.js'`), damit Aufrufer weiter einen Import
+haben.
+
+**Warum:** Die Handoff-Datei kam auf 406 Zeilen und lag damit über der 400-Zeilen-Grenze.
+Die Fassaden-Variante war der erste Versuch und ist falsch: Sie schließt einen Importzyklus,
+und ES-Module werten den Zyklus in der Tiefe zuerst aus — `new DashTrails()` würde beim
+Laden auf `MAX_TRAILS` zugreifen, während dieses `const` noch in seiner temporalen Todeszone
+liegt, und der erste Frame stürbe mit einem `ReferenceError`. Die Zyklusfreiheit ist hier
+also keine Stilfrage, sondern die Bedingung dafür, dass ein Singleton auf Modulebene
+überhaupt gebaut werden darf.
+
+**Konsequenz:** Aufrufer importieren aus zwei Dateien. Die Testsuite ist entsprechend
+zweigeteilt (`dashTrail.test.js`, `dashTrailHistory.test.js`), was der Konvention
+„Test neben dem Modul" ohnehin entspricht.
+→ Kap. 5, 8
+
+### 2026-07-30 — Präsentationsanimationen laufen auf Wall Time, nicht auf der Simulationsuhr
+
+**Gewählt:** Der `FrameScheduler` bekommt `secondsSinceRender(timestamp)`; der Loop gibt
+diesen Wert als `renderState.deltaSeconds` weiter, und der Absprungring des Schweifs altert
+damit.
+
+**Verworfen:** den Ring über `simulationTimeMs` altern zu lassen, wie es Score, Timer und
+jede Fähigkeit im Spiel tun.
+
+**Warum:** Die Simulationsuhr ist die richtige Basis für alles, was Spielzustand ist — nur
+so bleibt ein Lauf bei 30 und bei 120 fps derselbe Lauf. Der Absprungring ist aber kein
+Spielzustand, sondern Bild: Er wird nur in gezeichneten Frames überhaupt fortgeschrieben.
+Auf der Simulationsuhr wäre er an die Zahl der gezeichneten Frames gekoppelt und liefe bei
+30 fps halb so schnell ab wie bei 60.
+
+**Konsequenz:** Zwei Zeitbasen im `renderState`, klar getrennt: Alles, was der Spieler als
+Zustand liest, kommt aus `gameData`; alles, was nur aussieht, aus `deltaSeconds`. Das
+Fehlen von `deltaSeconds` ist zugleich das Signal „dieses Bild steht" — während Countdown
+und nach dem Tod wird deshalb nicht abgetastet, sodass die Karte den eingefrorenen Frame
+samt seiner Schweife behält.
+→ Kap. 5, 8
 
 ### 2026-07-30 — Die Spielwelt hat eine feste Größe, das Fenster skaliert sie nur
 

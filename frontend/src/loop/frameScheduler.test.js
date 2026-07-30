@@ -155,3 +155,34 @@ describe('FrameScheduler.shouldRenderNow', () => {
     expect(scheduler.shouldRenderNow(1060, 30)).toBe(false);
   });
 });
+
+describe('FrameScheduler.secondsSinceRender', () => {
+  it('is zero before anything has been drawn', () => {
+    // There is no previous drawn frame to measure against, and the caller needs a number it
+    // can hand to an animation without it jumping — not the page's whole uptime.
+    expect(makeScheduler().secondsSinceRender(5000)).toBe(0);
+  });
+
+  it('reports the wall-clock gap between two drawn frames, in seconds', () => {
+    const scheduler = makeScheduler();
+    scheduler.markRendered(1000);
+
+    expect(scheduler.secondsSinceRender(1016)).toBeCloseTo(0.016);
+  });
+
+  it('measures from the last drawn frame, not the last asked-about one', () => {
+    const scheduler = makeScheduler();
+    scheduler.markRendered(1000);
+    scheduler.shouldRenderNow(1010, 30);
+    scheduler.markRendered(1040);
+
+    expect(scheduler.secondsSinceRender(1060)).toBeCloseTo(0.02);
+  });
+
+  it('never goes negative on a timestamp that moved backwards', () => {
+    const scheduler = makeScheduler();
+    scheduler.markRendered(1000);
+
+    expect(scheduler.secondsSinceRender(900)).toBe(0);
+  });
+});

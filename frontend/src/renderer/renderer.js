@@ -28,6 +28,14 @@ export class Renderer {
   }
 
   /**
+   * Drops every dash trail, so a new round starts without the previous one's ribbons.
+   * @returns {void}
+   */
+  resetTrails() {
+    this._impl.resetTrails();
+  }
+
+  /**
    * @param {number} width - CSS pixels.
    * @param {number} height - CSS pixels.
    */

@@ -7,34 +7,23 @@ import {
   WORLD_WIDTH,
 } from '../gameConfig.js';
 import { drawArena, drawLetterboxMargins, drawWorldEdge } from './arenaLayer.js';
-import { dashGlowLevel, dashPulseScale } from './dashPulse.js';
+import { dashPulseScale } from './dashPulse.js';
+import { dashTrails } from './dashTrailHistory.js';
+import {
+  BOID_COLORS,
+  glowColorForBoid,
+  PLAYER_COLOR,
+  PLAYER_HIT_COLOR,
+  PLAYER_OUTLINE_COLOR,
+  trailColorForTier,
+} from './entityPalette.js';
 import { drawObstacles } from './obstacleLayer.js';
+import { drawDashTrails } from './trailLayer.js';
+import { sampleDashTrails } from './trailSampling.js';
 import { fitWorldToCanvas } from './worldTransform.js';
 
 const BOID_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.22)';
 const BOID_OUTLINE_WIDTH = 1.5;
-const PLAYER_COLOR = '#38bdf8';
-
-/**
- * Amber while invulnerable — the colour of a temporary state change, the same one an
- * expiring obstacle wears. A player learns the meaning in one place and can read it
- * everywhere.
- */
-const PLAYER_HIT_COLOR = '#fbbf24';
-const PLAYER_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.72)';
-
-/**
- * One colour per difficulty tier. Five tiers need five colours that stay apart at arrow
- * size, so they cannot all live in the red family — the tier a boid belongs to has to be
- * readable in a moving crowd of ninety.
- *
- * What did change is the fourth tier: it used to be amber, and amber now means "this is
- * temporary" on its own (invulnerability, an expiring obstacle). A permanently amber boid
- * would say the wrong thing, so that tier moved to fuchsia, which carries no other
- * meaning in the system. Going brighter instead was not an option either: the dash
- * warning already ramps a boid towards white.
- */
-const BOID_COLORS = ['#f03a5f', '#fb7185', '#f97316', '#d946ef', '#a855f7'];
 
 const HEALTH_BAR_WIDTH = 52;
 const HEALTH_BAR_HEIGHT = 7;
@@ -60,18 +49,6 @@ const COUNTDOWN_SCRIM_COLOR = 'rgba(7, 8, 11, 0.5)';
 /** Cyan glow, because the countdown belongs to the player, not to the swarm. */
 const COUNTDOWN_GLOW_COLOR = 'rgba(56, 189, 248, 0.55)';
 const COUNTDOWN_GLOW_BLUR = 18;
-
-/**
- * How many brightness steps a boid colour is precomputed in, from the plain
- * colour up to nearly white.
- *
- * Blending a colour per boid per frame would build a new string on every one of
- * them, which the coding standards rule out on the hot path. Quantising the glow
- * to a fixed number of steps means every colour a boid can ever have is already
- * in memory before the first frame is drawn.
- */
-const GLOW_STEPS = 6;
-const BOID_GLOW_COLORS = buildGlowColorTable(BOID_COLORS, GLOW_STEPS);
 
 /**
  * Arrow outline in boid-local coordinates as [forward, lateral] pairs, drawn in
@@ -124,6 +101,17 @@ export class CanvasRenderer {
   }
 
   /**
+   * Drops every dash trail. Belongs at the start of a round, next to the dash cooldown
+   * reseed: boid indices are handed out again there, so last round's history has no owner
+   * any more. The 200-px jump check would catch that on its own — but only after one wrongly
+   * drawn frame.
+   * @returns {void}
+   */
+  resetTrails() {
+    dashTrails.reset();
+  }
+
+  /**
    * @param {number} width - CSS pixels.
    * @param {number} height - CSS pixels.
    * @returns {void}
@@ -164,6 +152,18 @@ export class CanvasRenderer {
     // Under the boids and the player, so an obstacle reads as terrain they move over
     // rather than as something in front of them.
     drawObstacles(ctx, frame);
+    // The order is the statement: a dash trail sits over the obstacles, because it is
+    // movement rather than terrain, and under the boids and the player, because it is their
+    // exhaust rather than an object of its own. Sampling happens first, so a ribbon and its
+    // owner are never a frame apart.
+    //
+    // Only for a live frame, which the loop marks by handing over `deltaSeconds`: during the
+    // countdown and after a death nothing moves, and sampling a standing frame would retract
+    // the ribbons that belong to the picture instead of leaving it frozen.
+    if (renderState.deltaSeconds !== undefined) {
+      sampleDashTrails(dashTrails, frame, playerPosition, renderState);
+    }
+    drawDashTrails(ctx, dashTrails, trailColorForTier);
     drawBoids(ctx, frame);
     drawPlayer(ctx, playerPosition, renderState.playerInvulnerable === true);
     drawPlayerHealth(ctx, playerPosition, renderState);
@@ -271,51 +271,6 @@ function drawBoids(ctx, frame) {
     ctx.fill();
     ctx.stroke();
   }
-}
-
-/** Picks the precomputed colour for a boid's tier and current glow. */
-function glowColorForBoid(tier, dashPhase) {
-  if (dashPhase === 0) {
-    return BOID_COLORS[tier];
-  }
-
-  const level = dashGlowLevel(dashPhase);
-  const step = Math.min(Math.round(level * (GLOW_STEPS - 1)), GLOW_STEPS - 1);
-
-  return BOID_GLOW_COLORS[tier][step];
-}
-
-/**
- * Precomputes, for every boid colour, a short ramp from the plain colour toward
- * white. Index `0` is the colour itself, the last index is the brightest.
- */
-function buildGlowColorTable(colors, steps) {
-  const table = [];
-
-  for (const color of colors) {
-    const shades = [];
-
-    for (let step = 0; step < steps; step += 1) {
-      shades.push(brighten(color, step / (steps - 1)));
-    }
-
-    table.push(shades);
-  }
-
-  return table;
-}
-
-/** Mixes a `#rrggbb` colour toward white, with `amount` between 0 and 1. */
-function brighten(color, amount) {
-  const red = parseInt(color.slice(1, 3), 16);
-  const green = parseInt(color.slice(3, 5), 16);
-  const blue = parseInt(color.slice(5, 7), 16);
-
-  return `rgb(${mixToWhite(red, amount)}, ${mixToWhite(green, amount)}, ${mixToWhite(blue, amount)})`;
-}
-
-function mixToWhite(channel, amount) {
-  return Math.round(channel + (255 - channel) * amount);
 }
 
 function drawPlayer(ctx, playerPosition, playerInvulnerable) {

@@ -75,6 +75,26 @@ export class FrameScheduler {
     return timestamp - this._lastRenderedAt >= minimumIntervalMs;
   }
 
+  /**
+   * Wall-clock seconds since the previous drawn frame — the time base of everything that is
+   * presentation rather than simulation, such as the dash trail's launch ring.
+   *
+   * It cannot come from the simulation clock: rendering is throttled to the chosen target
+   * framerate, so a presentation animation that counted simulation steps would run at a
+   * different speed at 30 fps than at 120. Before the first drawn frame there is no previous
+   * one to measure against, and `0` is the honest answer — the caller then falls back to one
+   * step's worth of time.
+   * @param {number} timestamp - The requestAnimationFrame timestamp.
+   * @returns {number} Seconds since the last drawn frame, `0` on the first one.
+   */
+  secondsSinceRender(timestamp) {
+    if (this._lastRenderedAt === Number.NEGATIVE_INFINITY) {
+      return 0;
+    }
+
+    return Math.max(0, timestamp - this._lastRenderedAt) / 1000;
+  }
+
   /** @param {number} timestamp - The requestAnimationFrame timestamp. */
   markRendered(timestamp) {
     this._lastRenderedAt = timestamp;

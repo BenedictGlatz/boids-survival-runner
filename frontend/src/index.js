@@ -145,6 +145,9 @@ async function startGame() {
   };
 
   player.reset(playerStartPosition.x, playerStartPosition.y);
+  // Before the first frame of the new round is drawn: the engine below hands out boid indices
+  // again, so the ribbons still in the history belong to boids that no longer exist.
+  renderer.resetTrails();
   await initEngine(WORLD_WIDTH, WORLD_HEIGHT, playerStartPosition);
   gameData = createRoundData(performance.now(), snapshot());
   state.transition(STATE.PLAYING);
@@ -185,10 +188,14 @@ function loop(timestamp) {
 
   // Only drawing follows the chosen target framerate.
   if (scheduler.shouldRenderNow(timestamp, targetFps)) {
+    // Read before the frame is marked as drawn, or it would measure against itself. The dash
+    // trail's launch ring runs on this wall-clock delta rather than on the simulation clock:
+    // it is presentation, and presentation follows the frame rate.
+    const renderDeltaSeconds = scheduler.secondsSinceRender(timestamp);
     scheduler.markRendered(timestamp);
 
     const renderStartedAt = performance.now();
-    renderCurrentState(timestamp);
+    renderCurrentState(timestamp, renderDeltaSeconds);
     frameMetrics.commitRenderedFrame(performance.now() - renderStartedAt);
 
     // Drawn after the measurement closes, so the graph never reports its own cost.
@@ -275,7 +282,7 @@ function runSimulationStep() {
   }
 }
 
-function renderCurrentState(timestamp) {
+function renderCurrentState(timestamp, renderDeltaSeconds) {
   // After a death the last frame keeps being drawn, dimmed by the card's own scrim: the
   // swarm and the obstacles that killed you stay on screen instead of the arena going
   // empty. Nothing advances — the simulation stopped, and the picture says so.
@@ -299,12 +306,20 @@ function renderCurrentState(timestamp) {
   // Built once and handed to both the renderer and the HUD: the dash bar moved into the
   // HUD, but the player's own state is still drawn on the canvas, and they have to agree
   // within a frame.
+  // `deltaSeconds`, `playerSpeed` and the velocity are what the dash trail needs, and they are
+  // handed over only while the world is actually moving: their absence is how the renderer
+  // knows not to sample a frozen frame. The velocity comes from here rather than being read
+  // in the renderer, which has no business reaching into the simulation side.
   const renderState = gameData.roundActive
     ? {
         playerInvulnerable: isPlayerInvulnerable(gameData),
         lives: gameData.lives,
         maxLives: gameData.maxLives,
         dashCooldownProgress: playerDashCooldownProgress(gameData),
+        deltaSeconds: renderDeltaSeconds,
+        playerSpeed: Math.hypot(player.velocity.x, player.velocity.y),
+        playerVelocityX: player.velocity.x,
+        playerVelocityY: player.velocity.y,
       }
     : {
         lives: gameData.lives,

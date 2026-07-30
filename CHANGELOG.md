@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- Dashes now leave a trail — the "Ion Streak" of the design system. A tapered ribbon in the owner's colour, widest at the object and running to a point behind it, with a short white core right behind the front and an expanding ring at the point the dash was launched from. The player's is cyan, a dashing boid's is its tier colour, so up to four lunges in one push stay tellable apart. The ribbon lies over the obstacles but under the boids and the player, since it is exhaust rather than something in the arena, and it ends by itself when the impulse has bled off instead of on a timer. A boid that wraps around the world edge mid-dash tears its trail there rather than drawing a line across the arena, and a new round starts with none.
+
 - The edge of the world is now visible: the area outside it is drawn a shade darker than the arena floor, the grid stops at the boundary, and a hairline marks it. Boids wrap around that edge and always have, but it used to coincide with the screen edge and was therefore impossible to see.
 - Initial project structure with separate `engine` (Rust/WASM) and `frontend` (JavaScript) directories.
 - Skeleton modules for engine: `math`, `simulation`, `wasm_bridge`.

@@ -46,5 +46,11 @@
     "prompt": "Mir ist aufgefallen dass die Größe der Spielwelt und auch die der einzelnen Objekte von der Auflösung des Monitors abhängig ist. Das ist nicht gut, da auf kleineren, niedrig auflösenderen Monitoren das Spielfeld sehr viel enger ist und das Spiel damit sehr viel kleiner.\n\nIch möchte dass du die Größe von der Monitorauflösung entkoppelst. Die Spielgröße sollte unabhängig von der Monitorauflösung gleich groß sein, es sollten auf einem 4K Monitor genauso viele Boids nebeneinander passen wie auf einem Full HD Monitor.",
     "topic": "frontend-ui",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Ich habe mit Claude design eine neue Dash Animation für den Spieler und die Boids entworfen, bitte implementiere diese",
+    "topic": "frontend-ui",
+    "use": "impl"
   }
 ]
