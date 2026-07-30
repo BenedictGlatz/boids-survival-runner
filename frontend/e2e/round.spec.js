@@ -42,11 +42,13 @@ test.describe('starting a round', () => {
     await openStartMenu(page);
     await startRound(page);
 
-    await expect(page.locator('#hud-wave')).toContainText(`${STRINGS.hud.wave}: 1`);
+    // Label and value are separate elements, so the wave is asserted on the value
+    // alone — two digits, because a HUD number that changes width shifts the layout.
+    await expect(page.locator('#hud-wave .hud-stat__value')).toHaveText('01');
     expect(await hudNumber(page, '#hud-boids')).toBe(INITIAL_BOID_COUNT);
   });
 
-  test('labels every HUD panel from the locale file', async ({ page }) => {
+  test('labels every HUD value from the locale file', async ({ page }) => {
     await openStartMenu(page);
     await startRound(page);
 

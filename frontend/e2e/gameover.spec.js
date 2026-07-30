@@ -33,7 +33,7 @@ test.describe('the round lifecycle', () => {
     await expect(page.locator('#hud-timer')).toContainText('00:00');
     // The clock is re-seeded on restart, so the new round starts from wave one with
     // the opening flock rather than inheriting the previous round's state.
-    await expect(page.locator('#hud-wave')).toContainText(`${STRINGS.hud.wave}: 1`);
+    await expect(page.locator('#hud-wave .hud-stat__value')).toHaveText('01');
     expect(await hudNumber(page, '#hud-score')).toBe(0);
   });
 });

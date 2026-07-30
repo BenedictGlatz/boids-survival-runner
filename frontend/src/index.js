@@ -276,25 +276,26 @@ function renderCurrentState(timestamp) {
   }
 
   const playerPosition = player.getPosition();
+  // Built once and handed to both the renderer and the HUD: the dash bar moved into the
+  // HUD, but the player's own state is still drawn on the canvas, and they have to agree
+  // within a frame.
+  const renderState = gameData.roundActive
+    ? {
+        playerInvulnerable: isPlayerInvulnerable(gameData),
+        lives: gameData.lives,
+        maxLives: gameData.maxLives,
+        dashCooldownProgress: playerDashCooldownProgress(gameData),
+      }
+    : {
+        lives: gameData.lives,
+        maxLives: gameData.maxLives,
+        countdownSeconds: countdownSecondsLeft(gameData, timestamp),
+        playerInvulnerable: true,
+        dashCooldownProgress: 1,
+      };
 
-  if (gameData.roundActive) {
-    renderer.drawFrame(gameData.currentFrame, playerPosition, {
-      playerInvulnerable: isPlayerInvulnerable(gameData),
-      lives: gameData.lives,
-      maxLives: gameData.maxLives,
-      dashCooldownProgress: playerDashCooldownProgress(gameData),
-    });
-  } else {
-    renderer.drawFrame(gameData.currentFrame, playerPosition, {
-      lives: gameData.lives,
-      maxLives: gameData.maxLives,
-      countdownSeconds: countdownSecondsLeft(gameData, timestamp),
-      playerInvulnerable: true,
-      dashCooldownProgress: 1,
-    });
-  }
-
-  hud.update(gameData);
+  renderer.drawFrame(gameData.currentFrame, playerPosition, renderState);
+  hud.update(gameData, renderState);
 }
 
 function advanceCountdown(timestamp) {

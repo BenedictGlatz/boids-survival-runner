@@ -4,7 +4,6 @@ import {
   BOID_VISUAL_WIDTH,
   PLAYER_VISUAL_RADIUS,
 } from '../gameConfig.js';
-import { t } from '../ui/i18n.js';
 import { dashGlowLevel, dashPulseScale } from './dashPulse.js';
 import { drawObstacles } from './obstacleLayer.js';
 
@@ -58,20 +57,6 @@ const HEALTH_BAR_BACKDROP_COLOR = 'rgba(7, 8, 11, 0.72)';
 /** Green is reserved for life and used nowhere else in the whole interface. */
 const HEALTH_SEGMENT_COLOR = '#22c55e';
 const HEALTH_SEGMENT_EMPTY_COLOR = 'rgba(242, 244, 248, 0.18)';
-
-/** Panel geometry of the dash cooldown bar at the bottom of the screen. */
-const DASH_BAR_WIDTH = 168;
-const DASH_BAR_HEIGHT = 9;
-const DASH_BAR_BOTTOM_OFFSET = 26;
-const DASH_BAR_PADDING = 3;
-const DASH_BAR_LABEL_GAP = 6;
-const DASH_BAR_TRACK_COLOR = 'rgba(3, 7, 18, 0.7)';
-const DASH_BAR_EMPTY_COLOR = 'rgba(248, 250, 252, 0.18)';
-/** Cyan while ready, matching the player; muted while still recovering. */
-const DASH_BAR_READY_COLOR = PLAYER_COLOR;
-const DASH_BAR_CHARGING_COLOR = 'rgba(56, 189, 248, 0.45)';
-const DASH_BAR_LABEL_COLOR = 'rgba(226, 232, 240, 0.75)';
-const DASH_BAR_LABEL_FONT = "600 11px 'JetBrains Mono', monospace";
 
 /**
  * The countdown is the one moment the arena is empty, so it is allowed to be large.
@@ -160,7 +145,8 @@ export class CanvasRenderer {
     drawBoids(ctx, frame);
     drawPlayer(ctx, playerPosition, renderState.playerInvulnerable === true);
     drawPlayerHealth(ctx, playerPosition, renderState, this._width, this._height);
-    drawDashCooldown(ctx, renderState, this._width, this._height);
+    // The dash bar is not drawn here: it lives in the HUD (`ui/hud.js`), so its label is
+    // not re-rasterised on every frame.
     drawCountdown(ctx, renderState.countdownSeconds, this._width, this._height);
   }
 }
@@ -329,39 +315,6 @@ function drawPlayerHealth(ctx, playerPosition, renderState, width, height) {
     ctx.fillStyle = index < filledLives ? HEALTH_SEGMENT_COLOR : HEALTH_SEGMENT_EMPTY_COLOR;
     ctx.fillRect(segmentX, barY, segmentWidth, HEALTH_BAR_HEIGHT);
   }
-}
-
-/**
- * Draws the dash cooldown as a bar at the bottom centre of the screen: full and
- * cyan while the dash is ready, refilling from the left after it was used.
- */
-function drawDashCooldown(ctx, renderState, width, height) {
-  if (renderState.dashCooldownProgress === undefined) return;
-
-  const progress = Math.min(Math.max(renderState.dashCooldownProgress, 0), 1);
-  const isReady = progress >= 1;
-  const barX = (width - DASH_BAR_WIDTH) * 0.5;
-  const barY = height - DASH_BAR_BOTTOM_OFFSET - DASH_BAR_HEIGHT;
-
-  ctx.fillStyle = DASH_BAR_TRACK_COLOR;
-  ctx.fillRect(
-    barX - DASH_BAR_PADDING,
-    barY - DASH_BAR_PADDING,
-    DASH_BAR_WIDTH + DASH_BAR_PADDING * 2,
-    DASH_BAR_HEIGHT + DASH_BAR_PADDING * 2,
-  );
-
-  ctx.fillStyle = DASH_BAR_EMPTY_COLOR;
-  ctx.fillRect(barX, barY, DASH_BAR_WIDTH, DASH_BAR_HEIGHT);
-
-  ctx.fillStyle = isReady ? DASH_BAR_READY_COLOR : DASH_BAR_CHARGING_COLOR;
-  ctx.fillRect(barX, barY, DASH_BAR_WIDTH * progress, DASH_BAR_HEIGHT);
-
-  ctx.fillStyle = DASH_BAR_LABEL_COLOR;
-  ctx.font = DASH_BAR_LABEL_FONT;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(t('hud.dash'), width * 0.5, barY + DASH_BAR_HEIGHT + DASH_BAR_LABEL_GAP);
 }
 
 function drawCountdown(ctx, countdownSeconds, width, height) {

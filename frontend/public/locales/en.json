@@ -30,7 +30,8 @@
     "timer": "Time",
     "wave": "Wave",
     "boids": "Boids",
-    "dash": "Dash — Space"
+    "dash": "Dash",
+    "dashReady": "Dash Ready"
   },
   "perf": {
     "simulation": "sim",

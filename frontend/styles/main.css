@@ -44,29 +44,14 @@ body {
   pointer-events: none;
 }
 
-.hud-panel {
-  position: absolute;
-  min-width: 7.5rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: rgba(8, 10, 14, 0.58);
-  color: var(--text);
-  font-size: 0.95rem;
-  font-weight: 700;
-  line-height: 1;
-  text-align: center;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(6px);
-}
-
 .top-left {
   top: 1rem;
   left: 1rem;
 }
 
-/* Mirrors the .hud-panel look, but without its padding: on a <canvas> padding
-   grows the element box around the drawing surface and would break the 1:1
+/* The only framed thing left in the interface, and deliberately so: the frametime graph
+   is a diagnostic overlay, not part of the game's own HUD. No padding — on a <canvas>
+   padding grows the element box around the drawing surface and would break the 1:1
    mapping the graph relies on. Its size comes from the canvas attributes. */
 .frame-time-graph {
   position: absolute;
@@ -252,12 +237,6 @@ body {
 }
 
 @media (max-width: 640px) {
-  .hud-panel {
-    min-width: 6.25rem;
-    padding: 0.5rem 0.6rem;
-    font-size: 0.8rem;
-  }
-
   .top-left {
     top: 0.75rem;
     left: 0.75rem;
