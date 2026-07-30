@@ -6,6 +6,7 @@ import {
   PLAYER_DASH_SPEED_DECAY,
   PLAYER_MAX_DELTA_SECONDS,
   PLAYER_MAX_SPEED,
+  PLAYER_OBSTACLE_BOUNCE,
   PLAYER_VISUAL_RADIUS,
 } from '../gameConfig.js';
 
@@ -155,13 +156,17 @@ describe('PlayerController.applyObstacleBlock', () => {
     expect(player.position).toEqual({ x: 123, y: 456 });
   });
 
-  it('removes the velocity running into the surface', () => {
+  it('turns the velocity running into the surface around as a knockback', () => {
+    // Not merely removed: a fraction of it comes back the other way, which is what
+    // makes a collision read as being pushed off rather than as stopping dead. The
+    // fraction stays well under one, or a dashing player would be flung across the
+    // world by the obstacle they touched.
     const player = makePlayerAtCentre();
     player.velocity = { x: 200, y: 0 };
 
     player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
 
-    expect(player.velocity.x).toBeCloseTo(0, 6);
+    expect(player.velocity.x).toBeCloseTo(-200 * PLAYER_OBSTACLE_BOUNCE, 6);
   });
 
   it('keeps the velocity running along the surface', () => {
@@ -172,7 +177,6 @@ describe('PlayerController.applyObstacleBlock', () => {
 
     player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
 
-    expect(player.velocity.x).toBeCloseTo(0, 6);
     expect(player.velocity.y).toBeCloseTo(150, 6);
   });
 
@@ -200,16 +204,16 @@ describe('PlayerController.applyObstacleBlock', () => {
   });
 
   it('handles a diagonal surface', () => {
-    // A bar can sit at any angle, so the normal is rarely axis-aligned. The remaining
-    // velocity has to end up perpendicular to it rather than merely smaller.
+    // A bar can sit at any angle, so the normal is rarely axis-aligned. Whatever the
+    // angle, the player has to end up moving away from the obstacle rather than into it.
     const player = makePlayerAtCentre();
     const diagonal = { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
     player.velocity = { x: 100, y: 100 };
 
     player.applyObstacleBlock({ x: 500, y: 500 }, diagonal);
 
-    const intoTheSurface = player.velocity.x * diagonal.x + player.velocity.y * diagonal.y;
-    expect(intoTheSurface).toBeCloseTo(0, 6);
+    const alongTheNormal = player.velocity.x * diagonal.x + player.velocity.y * diagonal.y;
+    expect(alongTheNormal).toBeGreaterThan(0);
   });
 });
 

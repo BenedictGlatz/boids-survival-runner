@@ -119,6 +119,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Boids now lunge in groups rather than strictly one at a time. When the boid picked for a dash has neighbours of the same difficulty tier flying close beside it, up to four of them charge and launch together as one coordinated push; a boid flying alone still dashes by itself, so the group is an upgrade of the existing behaviour rather than a replacement.
 - Boid dashes happen noticeably more often: a dash is offered every 24 simulation steps instead of every 40, and the flock may hold eight boids charging or dashing at once instead of three, with a further slot per 40 boids instead of per 60. The previous tuning made the ability so rare that most rounds barely showed it.
 - The player dash now carries a further 50 % (decay 2300 to 1533 pixels per second squared), which keeps the dash a reliable answer to a group lunge rather than only to a single one. The kick at the start and the cooldown are unchanged.
+- Hitting an obstacle now knocks the player back instead of pressing them against it. The engine places them a short distance clear of the obstacle on the side they came from, and a third of the speed they ran in with comes back the other way, so the collision reads as a bounce while the movement along the surface still survives and lets them slide past.
+- Obstacles are now denser and stay longer: forty seconds instead of thirty, four in the world at once in the first wave instead of two, and up to twelve instead of eight. The corridor every obstacle keeps clear narrowed from 96 to 80 pixels, which is still well above the player's diameter and therefore keeps the no-dead-end guarantee intact.
+- An obstacle flashes red for about a third of a second when the player runs into it, so a hit is visibly attributed to the thing that caused it rather than only showing up as a lost life. The flash travels in the obstacle buffer as one number per obstacle, the same way the fade already does.
 
 ### Fixed
 
@@ -128,3 +131,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   the game therefore rendered as its raw key (`menu.play` instead of "Play"). The locales moved to
   `frontend/public/locales/`, which Vite copies verbatim. Only the production build was affected — the
   dev server served the file either way, which is why it went unnoticed.
+- The player can no longer get stuck in an obstacle. A blocked player used to be placed exactly on the
+  obstacle's surface, and the next step read that distance as another collision — even for a move
+  leading straight away from it, because the tested path still started on the surface. The player was
+  therefore corrected back onto the obstacle every step and could only leave it by chance; dashing in,
+  which ends the move deep inside, hit it almost every time. A blocked player is now placed a short
+  distance clear of the obstacle, on the side they came from, so an outward move is never blocked.

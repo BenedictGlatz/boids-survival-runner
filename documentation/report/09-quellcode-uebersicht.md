@@ -32,7 +32,7 @@ find frontend/src -name '*.js' -not -path '*/wasm/*' -exec wc -l {} + | sort -n
 grep -rhoE '\b(it|test)\(' frontend/src --include='*.test.js' | wc -l
 
 # Engine: Tests an der Sprachgrenze (laufen nur unter wasm-pack, nicht unter cargo test)
-grep -c '#\[wasm_bindgen_test\]' engine/tests/wasm_tests.rs
+grep -rhoE '#\[wasm_bindgen_test\]' engine/tests | wc -l
 
 # E2E-Fälle
 grep -rhoE '\btest\(' frontend/e2e --include='*.spec.js' | wc -l

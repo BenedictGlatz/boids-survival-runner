@@ -47,12 +47,12 @@ export const PLAYER_DASH_COOLDOWN_MS = 1400;
 
 /**
  * Values per obstacle in the engine's obstacle buffer:
- * `[spineStartX, spineStartY, spineEndX, spineEndY, radius, lifeFraction]`.
+ * `[spineStartX, spineStartY, spineEndX, spineEndY, radius, lifeFraction, hitFlash]`.
  *
  * Duplicated in `engine/src/wasm_bridge/mod.rs` and asserted on by the WASM boundary
  * tests, the same way `INITIAL_BOID_COUNT` is duplicated — keep the two in sync.
  */
-export const OBSTACLE_STRIDE = 6;
+export const OBSTACLE_STRIDE = 7;
 
 /**
  * Share of an obstacle's life spent fading in when it appears, and again fading out
@@ -60,6 +60,18 @@ export const OBSTACLE_STRIDE = 6;
  * and short enough that the obstacle is solid for most of its time on screen.
  */
 export const OBSTACLE_FADE_SHARE = 0.06;
+
+/**
+ * How much of the velocity that ran into an obstacle comes back the other way when the
+ * player hits it.
+ *
+ * Zero would only strip that velocity, which is a dead stop against the surface; one
+ * would be a perfect bounce and would fling a dashing player back across the world.
+ * A small fraction reads as being knocked back without taking control away — the
+ * engine has already moved the player clear of the obstacle, so this is only the
+ * feel of it.
+ */
+export const PLAYER_OBSTACLE_BOUNCE = 0.35;
 
 // The Rust engine advances exactly one fixed step per tick() call and does not
 // scale by delta time, so the simulation must run at a constant rate no matter

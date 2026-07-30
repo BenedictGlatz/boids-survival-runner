@@ -77,8 +77,9 @@ impl FrameResponse {
         self.obstacle_count
     }
 
-    /// Returns the obstacles as a flat buffer of six values each:
-    /// `[spine_start_x, spine_start_y, spine_end_x, spine_end_y, radius, life_fraction]`.
+    /// Returns the obstacles as a flat buffer of seven values each:
+    /// `[spine_start_x, spine_start_y, spine_end_x, spine_end_y, radius, life_fraction,
+    /// hit_flash]`.
     ///
     /// An obstacle is a capsule — a centre line swept by a circle of that radius —
     /// and a circular obstacle is the one whose two spine points coincide. There is
@@ -86,8 +87,11 @@ impl FrameResponse {
     /// produces the circle, so both shapes are one drawing call rather than two.
     ///
     /// `life_fraction` counts down from `1.0` to `0.0` over the obstacle's lifetime,
-    /// which is what the renderer fades it in and out by. Like `dash_phases` it packs
-    /// a whole render state into one number so no second buffer has to cross.
+    /// which is what the renderer fades it in and out by. `hit_flash` does the same for
+    /// the red flash after the player ran into this obstacle: `1.0` right after the hit,
+    /// down to `0.0`, and `0.0` whenever there is nothing to highlight. Like
+    /// `dash_phases` both pack a whole render state into one number, so no second buffer
+    /// has to cross.
     pub fn obstacles(&self) -> Float32Array {
         Float32Array::from(self.obstacles.as_slice())
     }
@@ -113,9 +117,10 @@ impl FrameResponse {
 
     /// The x component of the surface normal at the point of contact.
     ///
-    /// Zero when nothing was hit. The caller removes the part of its velocity that
-    /// points along this normal and keeps the rest, which is what turns a collision
-    /// into a slide along the obstacle rather than a full stop.
+    /// Zero when nothing was hit. It points back at the side the player came from, so
+    /// the caller can turn the part of its velocity that ran into the obstacle around
+    /// and keep the part running along it: the collision becomes a small knockback plus
+    /// a slide rather than a full stop.
     #[wasm_bindgen(getter)]
     pub fn block_normal_x(&self) -> f32 {
         self.block_normal_x

@@ -1,3 +1,4 @@
+use crate::constants::OBSTACLE_HIT_FLASH_STEPS;
 use crate::math::segment::{closest_point_on_segment, distance_between_segments};
 use crate::math::vector::Vec2;
 
@@ -16,6 +17,9 @@ pub struct Obstacle {
     /// far through its life it is without the frontend knowing the tuning.
     pub lifetime_steps: u32,
     pub remaining_steps: u32,
+    /// Steps left of the red flash that tells the player they just hit this obstacle.
+    /// Zero means there is nothing to highlight.
+    pub hit_flash_steps: u32,
 }
 
 /// Where a point sits relative to an obstacle's surface.
@@ -37,6 +41,7 @@ impl Obstacle {
             radius,
             lifetime_steps,
             remaining_steps: lifetime_steps,
+            hit_flash_steps: 0,
         }
     }
 
@@ -45,9 +50,20 @@ impl Obstacle {
         Self::new(centre, centre, radius, lifetime_steps)
     }
 
-    /// Counts one simulation step off this obstacle's remaining life.
+    /// Counts one simulation step off this obstacle's remaining life, and off the
+    /// hit flash if one is running.
     pub fn age_one_step(&mut self) {
         self.remaining_steps = self.remaining_steps.saturating_sub(1);
+        self.hit_flash_steps = self.hit_flash_steps.saturating_sub(1);
+    }
+
+    /// Starts the red flash that signals the player just ran into this obstacle.
+    ///
+    /// Restarting an already running flash on purpose: a player pressed against an
+    /// obstacle collides every step, and the flash should stay lit for as long as that
+    /// lasts rather than blinking out mid-contact.
+    pub fn mark_player_hit(&mut self) {
+        self.hit_flash_steps = OBSTACLE_HIT_FLASH_STEPS;
     }
 
     /// Whether this obstacle has run out of time and should be removed.
@@ -66,6 +82,15 @@ impl Obstacle {
         }
 
         self.remaining_steps as f32 / self.lifetime_steps as f32
+    }
+
+    /// How brightly the hit flash should be drawn, from 1.0 right after the hit down
+    /// to 0.0 once it has faded. Zero whenever the player has not hit this obstacle.
+    ///
+    /// One number again, for the same reason as `life_fraction`: the frontend gets the
+    /// whole flash state without learning how many steps it lasts.
+    pub fn hit_flash(&self) -> f32 {
+        self.hit_flash_steps as f32 / OBSTACLE_HIT_FLASH_STEPS as f32
     }
 
     /// Where `point` sits relative to this obstacle's surface.
@@ -282,6 +307,40 @@ mod tests {
         obstacle.age_one_step();
 
         assert!(obstacle.has_expired());
+    }
+
+    #[test]
+    fn a_fresh_obstacle_has_no_hit_flash() {
+        assert_eq!(bar().hit_flash(), 0.0);
+    }
+
+    #[test]
+    fn a_hit_lights_the_flash_and_it_fades_out_on_its_own() {
+        let mut obstacle = bar();
+
+        obstacle.mark_player_hit();
+        assert_eq!(obstacle.hit_flash(), 1.0);
+
+        for _ in 0..OBSTACLE_HIT_FLASH_STEPS {
+            obstacle.age_one_step();
+        }
+
+        assert_eq!(obstacle.hit_flash(), 0.0);
+    }
+
+    #[test]
+    fn a_second_hit_restarts_the_flash() {
+        // A player pressed against an obstacle collides every step, and the flash has
+        // to stay lit for as long as that lasts instead of blinking out mid-contact.
+        let mut obstacle = bar();
+
+        obstacle.mark_player_hit();
+        obstacle.age_one_step();
+        assert!(obstacle.hit_flash() < 1.0);
+
+        obstacle.mark_player_hit();
+
+        assert_eq!(obstacle.hit_flash(), 1.0);
     }
 
     #[test]

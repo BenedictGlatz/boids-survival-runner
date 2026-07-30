@@ -122,7 +122,7 @@ pub const MAXIMUM_DASH_SELECTION_DISTANCE: f32 = 340.0;
 // ---------------------------------------------------------------------------
 
 /// How long an obstacle stays in the world (30 seconds at 60 steps per second).
-pub const DEFAULT_OBSTACLE_LIFETIME_STEPS: u32 = 1800;
+pub const DEFAULT_OBSTACLE_LIFETIME_STEPS: u32 = 2400;
 
 /// The narrowest gap ever left between two obstacles, and between an obstacle and
 /// a world edge.
@@ -133,7 +133,7 @@ pub const DEFAULT_OBSTACLE_LIFETIME_STEPS: u32 = 1800;
 /// islands can touch and none can touch a wall, so every one of them can be walked
 /// around and the free space stays in one piece. At roughly three player diameters
 /// the remaining gap also reads as a lane rather than a slot.
-pub const MINIMUM_CORRIDOR_WIDTH: f32 = 96.0;
+pub const MINIMUM_CORRIDOR_WIDTH: f32 = 80.0;
 
 // Checked at compile time rather than in a test, because the whole no-dead-end
 // argument rests on this one inequality: a corridor narrower than the player would be
@@ -147,6 +147,24 @@ const _: () = assert!(MINIMUM_CORRIDOR_WIDTH > 2.0 * PLAYER_COLLISION_RADIUS);
 /// the player can travel in one simulation step — a dash covers about 18 pixels —
 /// or a fast enough player could pass clean through it between two steps.
 pub const MINIMUM_OBSTACLE_RADIUS: f32 = 12.0;
+
+/// How far outside an obstacle's inflated surface a blocked player is placed.
+///
+/// **This margin is what makes getting stuck impossible.** Placing the player exactly
+/// on the surface leaves them at a distance the very next collision test reads as a
+/// touch again — including on a move that leads *away* from the obstacle, because the
+/// swept path still starts on the surface. The player was then corrected back onto it
+/// every step and could not leave. Standing clear by a visible margin instead means an
+/// outward move is never blocked, and the push doubles as the knockback a collision
+/// should feel like. It has to stay well below `MINIMUM_CORRIDOR_WIDTH` so a player
+/// pushed off one obstacle cannot be pushed into the next.
+pub const PLAYER_OBSTACLE_KNOCKBACK_DISTANCE: f32 = 8.0;
+
+/// How long an obstacle keeps glowing red after the player ran into it (~0.3 s).
+///
+/// Long enough to be seen at the lowest supported frame rate, short enough that a
+/// player brushing along an obstacle sees separate flashes rather than one long one.
+pub const OBSTACLE_HIT_FLASH_STEPS: u32 = 18;
 
 /// Highest tier the obstacle density ramp reaches. Deliberately further than
 /// `MAX_BOID_DIFFICULTY_TIER`: the boid variants are at their limit from wave five
@@ -163,13 +181,13 @@ pub const OBSTACLE_SPAWN_INTERVAL_STEPS_PER_TIER_REDUCTION: u32 = 45;
 pub const MINIMUM_OBSTACLE_SPAWN_INTERVAL_STEPS: u32 = 180;
 
 /// Obstacles allowed in the world at the same time in the first wave.
-pub const DEFAULT_MAX_CONCURRENT_OBSTACLES: usize = 2;
+pub const DEFAULT_MAX_CONCURRENT_OBSTACLES: usize = 4;
 
 /// Additional simultaneous obstacles unlocked per density tier.
 pub const MAX_CONCURRENT_OBSTACLES_PER_TIER_BONUS: usize = 1;
 
 /// Hard ceiling on simultaneous obstacles, whatever the wave.
-pub const MAXIMUM_CONCURRENT_OBSTACLES: usize = 8;
+pub const MAXIMUM_CONCURRENT_OBSTACLES: usize = 12;
 
 /// Placements tried per spawn round before the round is given up on.
 ///

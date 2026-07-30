@@ -25,7 +25,11 @@ function makeContextStub() {
   return stub;
 }
 
-/** A frame holding obstacles built from `[startX, startY, endX, endY, radius, life]`. */
+/**
+ * A frame holding obstacles built from
+ * `[startX, startY, endX, endY, radius, life, hitFlash]`. A shorter array leaves the
+ * values it omits at zero, so an obstacle nobody hit is written without a flash.
+ */
 function frameWith(...obstacles) {
   const buffer = new Float32Array(obstacles.length * OBSTACLE_STRIDE);
   obstacles.forEach((obstacle, index) => buffer.set(obstacle, index * OBSTACLE_STRIDE));
@@ -138,6 +142,38 @@ describe('drawObstacles', () => {
     drawObstacles(fading, frameWith([100, 200, 400, 200, 30, 0.01]));
 
     expect(strokesOf(fading)[0][2]).not.toBe(strokesOf(solid)[0][2]);
+  });
+
+  it('draws no extra strokes for an obstacle nobody hit', () => {
+    const ctx = makeContextStub();
+
+    drawObstacles(ctx, frameWith([100, 200, 400, 200, 30, SOLID, 0]));
+
+    expect(strokesOf(ctx)).toHaveLength(2);
+  });
+
+  it('draws a red flash over an obstacle the player just hit', () => {
+    // The signal that the hit registered. It goes on top of the ordinary body and rim,
+    // so a hit obstacle is drawn four times rather than twice.
+    const ctx = makeContextStub();
+
+    drawObstacles(ctx, frameWith([100, 200, 400, 200, 30, SOLID, 1]));
+
+    const strokes = strokesOf(ctx);
+    expect(strokes).toHaveLength(4);
+    // Red, and at the full diameter like the body it covers.
+    expect(strokes[2][2]).toContain('rgba(220, 38, 38');
+    expect(strokes[2][1]).toBe(60);
+  });
+
+  it('draws a flash that has almost faded more faintly than a fresh one', () => {
+    const fresh = makeContextStub();
+    const fading = makeContextStub();
+
+    drawObstacles(fresh, frameWith([100, 200, 400, 200, 30, SOLID, 1]));
+    drawObstacles(fading, frameWith([100, 200, 400, 200, 30, SOLID, 0.1]));
+
+    expect(strokesOf(fading)[2][2]).not.toBe(strokesOf(fresh)[2][2]);
   });
 
   it('leaves the context state it found', () => {

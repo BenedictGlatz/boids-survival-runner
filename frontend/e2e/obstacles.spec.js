@@ -53,7 +53,7 @@ test.describe('temporary obstacles', () => {
     // The engine offers its first obstacle on the very first simulation step, so one is
     // on screen as soon as the countdown ends. This is the assertion that the whole
     // chain works end to end: the engine packs a buffer, the bridge hands it over with
-    // camelCase names, and the renderer decodes six values per obstacle and paints them.
+    // camelCase names, and the renderer decodes seven values per obstacle and paints them.
     await openStartMenu(page);
     await startRound(page);
     await page.waitForTimeout(FADE_IN_MS);

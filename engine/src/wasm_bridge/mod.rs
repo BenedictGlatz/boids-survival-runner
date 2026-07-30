@@ -19,7 +19,7 @@ const GOLDEN_ANGLE: f32 = 2.399_963_1;
 
 /// Values per obstacle in the obstacle buffer. Kept in step with the frontend's
 /// OBSTACLE_STRIDE, and asserted on in the WASM boundary tests.
-const OBSTACLE_STRIDE: usize = 6;
+const OBSTACLE_STRIDE: usize = 7;
 
 /// Browser-facing simulation engine.
 #[wasm_bindgen]
@@ -82,9 +82,9 @@ impl GameEngine {
     ///
     /// The player moved from the previous position to the attempted one during this
     /// step. Both are needed because an obstacle may have been in the way: the engine
-    /// tests the whole move rather than only where it ended, corrects it if it ran
-    /// into something, and reports the surface normal so the caller can slide along
-    /// the obstacle instead of stopping dead.
+    /// tests the whole move rather than only where it ended, pushes the player back
+    /// clear of anything it ran into, and reports the surface normal so the caller can
+    /// bounce its velocity off the obstacle instead of stopping dead.
     pub fn tick(
         &mut self,
         previous_x: f32,
@@ -104,6 +104,13 @@ impl GameEngine {
             PLAYER_COLLISION_RADIUS,
         );
         let player_position = resolution.position;
+
+        // Lighting up what was hit, while the index still refers to the obstacle it was
+        // taken from — the field update below removes whatever expired this step and
+        // would shift the rest along.
+        if let Some(index) = resolution.hit_obstacle {
+            self.obstacle_field.obstacles[index].mark_player_hit();
+        }
 
         // Obstacles age and spawn before the flock steps, so a boid never steers
         // against an obstacle that has already gone.
@@ -204,7 +211,9 @@ impl GameEngine {
 
         // OBSTACLE_STRIDE values each, in this order. There is no shape flag: a
         // circular obstacle has both spine points in the same place, which the
-        // frontend draws as a round line cap without a branch of its own.
+        // frontend draws as a round line cap without a branch of its own. The last two
+        // values are the two render states an obstacle can be in — fading over its
+        // life, and flashing red after a hit — one float each.
         for obstacle in &self.obstacle_field.obstacles {
             self.obstacles_buffer.push(obstacle.spine_start.x);
             self.obstacles_buffer.push(obstacle.spine_start.y);
@@ -212,6 +221,7 @@ impl GameEngine {
             self.obstacles_buffer.push(obstacle.spine_end.y);
             self.obstacles_buffer.push(obstacle.radius);
             self.obstacles_buffer.push(obstacle.life_fraction());
+            self.obstacles_buffer.push(obstacle.hit_flash());
         }
 
         FrameResponse {

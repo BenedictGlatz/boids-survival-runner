@@ -5,6 +5,7 @@ import {
   PLAYER_DECELERATION,
   PLAYER_MAX_DELTA_SECONDS,
   PLAYER_MAX_SPEED,
+  PLAYER_OBSTACLE_BOUNCE,
   PLAYER_VISUAL_RADIUS,
 } from '../gameConfig.js';
 
@@ -109,10 +110,11 @@ export class PlayerController {
    * Accepts the engine's correction after the player ran into an obstacle.
    *
    * The engine owns the obstacle geometry and has already worked out where the player
-   * actually ends up; all that is left here is the velocity. The component pointing
-   * into the surface is removed and the one running along it is kept, so the player
-   * slides along the obstacle instead of stopping dead — the same feel as the world
-   * edge, where `clampToBounds` zeroes one axis and leaves the other.
+   * actually ends up — a little way clear of the obstacle, on the side they came from.
+   * All that is left here is the velocity: the component pointing into the surface is
+   * turned around at a fraction of its strength and the one running along it is kept,
+   * so a collision knocks the player back a little and still lets them slide along the
+   * obstacle rather than stopping dead against it.
    *
    * A dash ends here too, for the reason it ends at a wall: leaving the raised speed
    * limit in place would let ordinary movement run above the top speed for the rest of
@@ -130,8 +132,11 @@ export class PlayerController {
     const intoTheSurface = this.velocity.x * surfaceNormal.x + this.velocity.y * surfaceNormal.y;
 
     if (intoTheSurface < 0) {
-      this.velocity.x -= surfaceNormal.x * intoTheSurface;
-      this.velocity.y -= surfaceNormal.y * intoTheSurface;
+      // Removing it once cancels the movement into the obstacle; the extra share
+      // reverses part of it, which is the knockback.
+      const removedAndReversed = intoTheSurface * (1 + PLAYER_OBSTACLE_BOUNCE);
+      this.velocity.x -= surfaceNormal.x * removedAndReversed;
+      this.velocity.y -= surfaceNormal.y * removedAndReversed;
     }
 
     this._speedLimit = PLAYER_MAX_SPEED;

@@ -39,21 +39,72 @@ die Zeit zwischen Commits ein aktiv irreführender Aufwandsindikator. Verworfene
 Ansätze hinterlassen überhaupt keinen Commit — und das sind genau die Stunden, nach
 denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quelle.
 
-| Datum      |   h | Spec/Maßnahme | Was                                                                                                                                                                                                                                                                                                           |
-| ---------- | --: | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-07-29 | 2,0 | D-01          | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt                                                                                                                                                                      |
-| 2026-07-29 | 3,5 | T-01          | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben                                                                                                      |
-| 2026-07-29 | 1,5 | T-03          | Coverage für beide Sprachen eingerichtet (`@vitest/coverage-v8`, `cargo llvm-cov`), Ausgangsmessung genommen; T-07 als neue Maßnahme aufgenommen und Kapazitätsplan fortgeschrieben                                                                                                                           |
-| 2026-07-29 | 3,0 | T-07          | Unit-Tests für `frameScheduler`, `gameState`, `controls` und `playerController` geschrieben; `engine/tests/wasm_tests.rs` vom Stub zum Buffer-Vertragstest ausgebaut                                                                                                                                          |
-| 2026-07-29 | 4,0 | T-04          | Playwright gegen den Preview-Build eingerichtet, fünf Flows geschrieben, dabei den fehlenden Locale-Umzug gefunden und behoben; Kap. 8.1/8.2 ausgeschrieben, 7.1 und 9.2b nachgezogen                                                                                                                         |
-| 2026-07-30 | 1,5 | D-01          | Musterdokumentation Seite für Seite als `documentation/muster-referenz.md` erfasst — Kapitelaufbau, Stilanalyse, Kapitel-Mapping Muster → Bericht, Arbeitsregeln; aus `CLAUDE.md` und Kap. 00 verlinkt                                                                                                        |
-| 2026-07-30 | 1,0 | S-07          | Runden- und Leben-Buchführung aus `index.js` nach `round/roundData.js` ausgelagert, weil `index.js` an der 400-Zeilen-Grenze stand, und unter Vitest abgedeckt; jede Schadensquelle geht jetzt durch ein gemeinsames `registerHit`                                                                            |
-| 2026-07-30 | 1,5 | S-07          | Temporäre Hindernisse als neuen Spec S-07 spezifiziert (`docs/spec-s07-hindernisse.md`) — Kapselgeometrie, Sackgassen-Invariante mit Beweisskizze, Dichte-Rampe, Engine/Frontend-Grenze; Schätzung und Gesamtbudget in `specs-overview.md` neu gerechnet                                                      |
-| 2026-07-30 | 6,5 | S-07          | Temporäre Hindernisse umgesetzt: Kapselgeometrie und Streckenabstände, deterministischer Spawn mit Korridor-Invariante, Dichte-Rampe, Boid-Ausweichen, Spielerkollision samt neuer `tick`-Signatur und fünftem Buffer, Rendering mit Ein-/Ausblenden; Spec nach zwei Korrekturen an der Umsetzung nachgezogen |
-| 2026-07-30 | 0,5 | S-05          | Dash-Reichweite um ~30 % erhöht (`PLAYER_DASH_SPEED_DECAY` 3000 → 2300), Rechenweg im JSDoc korrigiert und einen Test ergänzt, der die Distanz statt nur die Spitzengeschwindigkeit festnagelt                                                                                                                |
-| 2026-07-30 | 1,5 | S-05          | Gruppendash umgesetzt: `select_dash_candidate` → `select_dash_group`, Gruppenbildung um einen Anführer über Tier und Abstand, Dash-Frequenz und Slot-Grenzen neu getunt, Spieler-Dash-Reichweite ein zweites Mal um 50 % erhöht; sieben neue Zusicherungen, Spec S-05a nachgezogen                            |
+| Datum      |   h | Spec/Maßnahme | Was                                                                                                                                                                                                                                                                                                                     |
+| ---------- | --: | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-29 | 2,0 | D-01          | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt                                                                                                                                                                                |
+| 2026-07-29 | 3,5 | T-01          | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben                                                                                                                |
+| 2026-07-29 | 1,5 | T-03          | Coverage für beide Sprachen eingerichtet (`@vitest/coverage-v8`, `cargo llvm-cov`), Ausgangsmessung genommen; T-07 als neue Maßnahme aufgenommen und Kapazitätsplan fortgeschrieben                                                                                                                                     |
+| 2026-07-29 | 3,0 | T-07          | Unit-Tests für `frameScheduler`, `gameState`, `controls` und `playerController` geschrieben; `engine/tests/wasm_tests.rs` vom Stub zum Buffer-Vertragstest ausgebaut                                                                                                                                                    |
+| 2026-07-29 | 4,0 | T-04          | Playwright gegen den Preview-Build eingerichtet, fünf Flows geschrieben, dabei den fehlenden Locale-Umzug gefunden und behoben; Kap. 8.1/8.2 ausgeschrieben, 7.1 und 9.2b nachgezogen                                                                                                                                   |
+| 2026-07-30 | 1,5 | D-01          | Musterdokumentation Seite für Seite als `documentation/muster-referenz.md` erfasst — Kapitelaufbau, Stilanalyse, Kapitel-Mapping Muster → Bericht, Arbeitsregeln; aus `CLAUDE.md` und Kap. 00 verlinkt                                                                                                                  |
+| 2026-07-30 | 1,0 | S-07          | Runden- und Leben-Buchführung aus `index.js` nach `round/roundData.js` ausgelagert, weil `index.js` an der 400-Zeilen-Grenze stand, und unter Vitest abgedeckt; jede Schadensquelle geht jetzt durch ein gemeinsames `registerHit`                                                                                      |
+| 2026-07-30 | 1,5 | S-07          | Temporäre Hindernisse als neuen Spec S-07 spezifiziert (`docs/spec-s07-hindernisse.md`) — Kapselgeometrie, Sackgassen-Invariante mit Beweisskizze, Dichte-Rampe, Engine/Frontend-Grenze; Schätzung und Gesamtbudget in `specs-overview.md` neu gerechnet                                                                |
+| 2026-07-30 | 6,5 | S-07          | Temporäre Hindernisse umgesetzt: Kapselgeometrie und Streckenabstände, deterministischer Spawn mit Korridor-Invariante, Dichte-Rampe, Boid-Ausweichen, Spielerkollision samt neuer `tick`-Signatur und fünftem Buffer, Rendering mit Ein-/Ausblenden; Spec nach zwei Korrekturen an der Umsetzung nachgezogen           |
+| 2026-07-30 | 0,5 | S-05          | Dash-Reichweite um ~30 % erhöht (`PLAYER_DASH_SPEED_DECAY` 3000 → 2300), Rechenweg im JSDoc korrigiert und einen Test ergänzt, der die Distanz statt nur die Spitzengeschwindigkeit festnagelt                                                                                                                          |
+| 2026-07-30 | 1,5 | S-05          | Gruppendash umgesetzt: `select_dash_candidate` → `select_dash_group`, Gruppenbildung um einen Anführer über Tier und Abstand, Dash-Frequenz und Slot-Grenzen neu getunt, Spieler-Dash-Reichweite ein zweites Mal um 50 % erhöht; sieben neue Zusicherungen, Spec S-05a nachgezogen                                      |
+| 2026-07-30 | 1,5 | S-07          | Feststecken in Hindernissen behoben: blockierter Spieler wird jetzt mit Abstand vor die Oberfläche gesetzt statt darauf, Rückstoß über die Normalkomponente, rotes Aufleuchten des getroffenen Hindernisses als siebter Buffer-Wert; `wasm_tests.rs` wegen der 400-Zeilen-Grenze entlang des Hindernis-Vertrags geteilt |
 
 ## Entscheidungen
+
+### 2026-07-30 — Der Spieler wird vor die Oberfläche gesetzt, nicht auf sie
+
+**Gewählt:** Ein blockierter Spieler landet `PLAYER_OBSTACLE_KNOCKBACK_DISTANCE` (8 px)
+**außerhalb** der um seinen Radius aufgeblasenen Kapsel, und zwar auf der Seite, von der er
+kam. Der Abstand ist damit kein Kosmetikwert, sondern die Invariante des Fixes: Solange der
+Spieler nach einer Kollision echten Abstand hat, kann der Test des nächsten Schritts eine
+Bewegung vom Hindernis weg nicht mehr als Berührung lesen. Derselbe Schub liefert
+gleichzeitig den vom Gameplay gewünschten Rückstoß, das Frontend dreht dazu nur noch die
+Normalkomponente der Geschwindigkeit zu 35 % um.
+
+**Verworfen:**
+
+| Alternative                                                                | Grund der Ablehnung                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Epsilon im Kollisionstest (`swept_distance >= radius + player_radius - ε`) | Behandelt das Symptom an der falschen Stelle: Der Test würde toleranter, der Spieler stünde weiter exakt auf der Oberfläche, und die richtige Größe von ε hinge von der Schrittweite ab. Ein sichtbarer Abstand ist prüfbar, eine Toleranz im Vergleich ist nur unauffälliger. |
+| Erste Kontaktstelle entlang der Bewegung analytisch bestimmen (Ray/Kapsel) | Die exakte Lösung, und für dieses Spiel die falsche: quadratische Gleichung plus Fallunterscheidung für die beiden Endkappen, in einem Projekt, dessen erste Regel Lesbarkeit für Rust-Anfänger ist. Der Gewinn wäre ein um wenige Pixel genauerer Stopp-Punkt.                |
+| Kollision nur über den Endpunkt prüfen, dafür ohne Sonderfall              | Genau der Punkttest, gegen den der Streckentest existiert: Ein Dash überspringt inzwischen deutlich mehr als die dünnsten Hindernisse breit sind und wäre wieder durchgetunnelt.                                                                                               |
+
+**Konsequenz:** Die Fallunterscheidung „endete innen / hat durchtunnelt" in
+`resolve_player_movement` entfällt — beide Fälle werden gleich behandelt, weil die Seite der
+_Herkunft_ die Richtung bestimmt und nicht die Lage des Endpunkts. Die Funktion ist damit
+kürzer als vor dem Fix. Der Wert muss deutlich unter `MINIMUM_CORRIDOR_WIDTH` (80 px)
+bleiben, sonst könnte der Schub aus einem Hindernis in das nächste führen; bei 8 px gegen 80
+ist der Abstand zu dieser Grenze so groß, dass er keine eigene Zusicherung braucht.
+
+→ Kap. 4, 5
+
+### 2026-07-30 — Das rote Aufleuchten reist als Zahl im Hindernis-Buffer
+
+**Gewählt:** `Obstacle` bekommt ein `hit_flash_steps`, das bei einem Treffer auf
+`OBSTACLE_HIT_FLASH_STEPS` gesetzt und im normalen Altern mit heruntergezählt wird; der
+Buffer wächst von sechs auf sieben Werte je Hindernis. `resolve_player_movement` bleibt
+lesend und meldet nur den **Index** des getroffenen Hindernisses zurück, markiert wird im
+`wasm_bridge`.
+
+**Verworfen:**
+
+| Alternative                                                      | Grund der Ablehnung                                                                                                                                                                                                          |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flash-Zustand im Frontend halten (Trefferzeit + Position merken) | Das Frontend müsste Hindernisse über Frames hinweg identifizieren, obwohl der Buffer keine IDs trägt und die Reihenfolge sich beim Ablaufen verschiebt. Es wäre eine Zuordnung, die die Engine ohne Zusatzaufwand schon hat. |
+| Eigener Buffer nur für den Flash                                 | Ein sechster Buffer für eine Zahl je Hindernis, gegen die Regel „Schnittstelle minimal halten". `life_fraction` und `dash_phases` zeigen das Muster: ein Renderzustand, eine Zahl, im vorhandenen Buffer.                    |
+| `&mut [Obstacle]` an die Kollisionsauflösung übergeben           | Die Funktion ist ein Geometrietest und ihre Tests leben davon, dass sie nichts verändert. Ein `Option<usize>` im Rückgabewert kostet nichts und lässt das Markieren dort, wo die Feldverwaltung sowieso liegt.               |
+
+**Konsequenz:** Die Markierung muss **vor** `ObstacleField::update` passieren, weil dort
+abgelaufene Hindernisse aus dem `Vec` entfernt werden und der Index danach auf ein anderes
+Hindernis zeigen würde. Ein wiederholter Treffer setzt den Zähler neu, damit ein am
+Hindernis lehnender Spieler ein durchgehendes Leuchten sieht statt eines Flackerns.
+
+→ Kap. 4, 5
 
 ### 2026-07-30 — Der Gruppendash entsteht aus einem Anführer, nicht aus einer eigenen Verbandslogik
 
@@ -515,4 +566,30 @@ den Preis von Produktionscode, der nur für Tests existiert.
   (linke/rechte, obere/untere Hälfte). Zweite Lehre, unbequemer: Gefunden hat den Fehler
   keine der drei Teststufen, sondern ein Blick auf einen Screenshot. Bei einem sichtbaren
   Feature bleibt das ein Arbeitsschritt und keine Bequemlichkeit.
+  → Kap. 4, 8, 10
+
+- **2026-07-30 — Der Bug saß nicht in der Geometrie, sondern in einem Abstand von exakt
+  null.** Im Spiel blieb der Spieler in Hindernissen hängen, am zuverlässigsten mit einem
+  Dash hinein, aber auch beim längeren Hineinsteuern. Die Vermutung lag zuerst bei der
+  Kapselgeometrie oder beim Streckenabstand — beides war korrekt und ist einzeln
+  abgedeckt. Die Ursache war der Rückgabewert: `resolve_player_movement` setzte den
+  blockierten Spieler auf `contact.surface_point`, also auf einen Punkt mit Abstand **genau
+  null** zur aufgeblasenen Oberfläche. Im nächsten Schritt beginnt die geprüfte Strecke
+  damit auf der Oberfläche, ihr Minimalabstand liegt bei `radius + player_radius` — und
+  nach f32-Rundung eben auch knapp darunter. Der Schritt galt also wieder als Kollision,
+  **auch wenn er vom Hindernis weg führte**, und der Zweig für „hat durchtunnelt" zog den
+  Spieler auf die Oberfläche zurück. Position und Geschwindigkeit widersprachen sich
+  daraufhin jeden Schritt: Die Geschwindigkeit zeigte nach außen, die Korrektur überschrieb
+  die Position. Der Dash traf das am härtesten, weil er tief im Hindernis endet und dort
+  garantiert korrigiert wird.
+  Rund 45 min, davon der größte Teil auf die Diagnose; die Behebung sind zwei Zeilen plus
+  eine entfallende Fallunterscheidung.
+  Die Lehre betrifft die **Art** der Zusicherungen, nicht ihre Zahl: Jeder Test zu diesem
+  Code prüfte einen **einzelnen** Aufruf — richtige Position, richtige Normale, kein
+  Durchtunneln. Ein Zustand, aus dem man nicht mehr herauskommt, ist aber nur über **zwei
+  aufeinanderfolgende** Aufrufe sichtbar. Die neuen Zusicherungen sind deshalb bewusst so
+  gebaut: einmal blockieren und im Folgeschritt wegfahren, und 200 Schritte gegen ein
+  Hindernis mit der Zusicherung, dass jeder einzelne davon außerhalb endet. Das ist
+  dieselbe Lücke wie beim leeren Hindernisfeld, nur in der Zeit statt im Raum — dort fehlte
+  die Untergrenze, hier die Folgebewegung.
   → Kap. 4, 8, 10

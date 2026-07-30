@@ -176,23 +176,37 @@ tick(previous_x, previous_y, attempted_x, attempted_y) -> FrameResponse
 
 Die Bewegung wird als **Strecke** gegen die Kapsel geprüft, nicht als Punkt. Das ist
 gleichzeitig der Schutz gegen Durchtunneln bei Dash-Geschwindigkeit, den ein reiner
-Punkttest je nach Hindernisdicke verpassen könnte. Bei Kontakt schiebt die Engine den
-Spieler auf den nächstgelegenen Oberflächenpunkt und meldet die Oberflächennormale zurück.
+Punkttest je nach Hindernisdicke verpassen könnte. Bei Kontakt setzt die Engine den Spieler
+um `PLAYER_OBSTACLE_KNOCKBACK_DISTANCE` **außerhalb** der aufgeblasenen Oberfläche ab, und
+zwar auf der Seite, von der er kam, und meldet die Oberflächennormale zurück.
+
+Beide Hälften davon sind Bedingung dafür, dass man nicht feststecken kann — die erste
+Fassung setzte den Spieler exakt _auf_ die Oberfläche und ließ genau das zu:
+
+- **Auf der Seite, von der er kam**, weil das Ende der Bewegung kein Maßstab ist. Ein Dash
+  endet tief im Hindernis oder ganz dahinter; ein Ausschieben entlang der nächstgelegenen
+  Normale setzte den Spieler dann auf der falschen Seite ab.
+- **Außerhalb statt genau auf der Oberfläche**, weil ein Spieler auf der Oberfläche genau
+  den Abstand hat, den der nächste Test wieder als Berührung liest — auch bei einer
+  Bewegung, die vom Hindernis weg führt, denn die geprüfte Strecke beginnt weiterhin auf
+  der Oberfläche. Die Korrektur zog ihn dann in jedem Schritt zurück.
 
 `FrameResponse` wächst um die korrigierte Spielerposition, ein `obstacle_hit`-Flag, die
 Blockier-Normale und einen fünften Buffer für die Hindernisse:
 
 ```
-[spine_start_x, spine_start_y, spine_end_x, spine_end_y, radius, life_fraction] · n
+[spine_start_x, spine_start_y, spine_end_x, spine_end_y, radius, life_fraction, hit_flash] · n
 ```
 
 `life_fraction` (Restlebensdauer in `(0, 1]`) trägt denselben Gedanken wie `dash_phases`:
 eine Zahl enthält den vollständigen Renderzustand, sodass das Frontend ein neues Hindernis
-einblenden und ein ablaufendes ausblenden kann, ohne einen zweiten Buffer.
+einblenden und ein ablaufendes ausblenden kann, ohne einen zweiten Buffer. `hit_flash`
+(`[0, 1]`) ist dasselbe für das rote Aufleuchten nach einem Treffer: `0` heißt nichts zu
+zeichnen, sonst zählt der Wert über `OBSTACLE_HIT_FLASH_STEPS` Schritte herunter.
 
-Das Frontend entfernt aus seiner Geschwindigkeit die Normalkomponente und behält die
-tangentiale — daraus entsteht das Abgleiten — und beendet den Dash, genau wie es an der
-Weltkante schon geschieht. Der Lebensabzug benutzt denselben Unverwundbarkeits-Gate wie ein
+Das Frontend dreht die Normalkomponente seiner Geschwindigkeit zu einem Bruchteil um
+(`PLAYER_OBSTACLE_BOUNCE`) und behält die tangentiale — daraus entstehen der Rückstoß und
+das Abgleiten — und beendet den Dash, genau wie es an der Weltkante schon geschieht. Der Lebensabzug benutzt denselben Unverwundbarkeits-Gate wie ein
 Boid-Treffer. Ohne ihn verlöre ein Spieler, der sich an ein Hindernis lehnt, drei Leben in
 drei Schritten, also in 50 ms.
 

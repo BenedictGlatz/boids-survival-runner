@@ -1,6 +1,7 @@
 use super::boid::Boid;
 use super::dash::is_dashing;
 use super::obstacle::Obstacle;
+use crate::constants::PLAYER_OBSTACLE_KNOCKBACK_DISTANCE;
 use crate::math::segment::{closest_point_on_segment, distance_between_segments};
 use crate::math::vector::Vec2;
 
@@ -18,18 +19,36 @@ pub struct PlayerResolution {
     pub position: Vec2,
     /// Whether an obstacle was hit and a life should be spent.
     pub blocked: bool,
-    /// The surface normal at the point of contact, so the caller can strip the
-    /// component of its velocity that runs into the obstacle and keep the rest. Zero
-    /// when nothing was hit.
+    /// The surface normal at the point of contact, pointing back at the side the
+    /// player came from, so the caller can bounce its velocity off it. Zero when
+    /// nothing was hit.
     pub surface_normal: Vec2,
+    /// Which obstacle was hit, as an index into the slice that was passed in, so the
+    /// caller can light it up. `None` when nothing was hit.
+    ///
+    /// An index rather than a mutable borrow of the obstacle: this function stays a
+    /// read-only test of the geometry, and marking the hit is the caller's business.
+    pub hit_obstacle: Option<usize>,
 }
 
-/// Tests a player move against the obstacles and slides it along anything it hits.
+/// Tests a player move against the obstacles and pushes it back out of anything it hit.
 ///
 /// The move is treated as the segment from `previous` to `attempted`, not as the end
 /// point alone. That is what keeps a dashing player from crossing a thin obstacle
 /// between two simulation steps: a point test would find open space on both sides and
 /// never notice the obstacle in between.
+///
+/// A blocked player is placed `PLAYER_OBSTACLE_KNOCKBACK_DISTANCE` clear of the
+/// obstacle's inflated surface, on the side they came from. Both halves of that matter:
+///
+/// - **The side they came from**, because the end of the move is no guide. A dash can
+///   finish deep inside the obstacle or all the way through it, and pushing out along
+///   the nearest normal would then shove the player out the far side.
+/// - **Clear of the surface rather than on it**, because a player standing exactly on
+///   the surface is at the distance the next test reads as a touch again — even for a
+///   move leading straight away from the obstacle, whose swept path still starts on the
+///   surface. That correction put the player back every step and is what made it
+///   possible to get stuck in an obstacle.
 pub fn resolve_player_movement(
     obstacles: &[Obstacle],
     previous: Vec2,
@@ -39,10 +58,12 @@ pub fn resolve_player_movement(
     let mut position = attempted;
     let mut blocked = false;
     let mut surface_normal = Vec2::zero();
+    let mut hit_obstacle = None;
 
-    for obstacle in obstacles {
+    for (index, obstacle) in obstacles.iter().enumerate() {
         // The swept path against the obstacle's centre line. Anything closer than both
-        // radii combined means the player went through the obstacle.
+        // radii combined means the player touched or entered the obstacle somewhere
+        // along the way, whether or not the move ended inside it.
         let swept_distance =
             distance_between_segments(previous, position, obstacle.spine_start, obstacle.spine_end);
 
@@ -51,25 +72,16 @@ pub fn resolve_player_movement(
         }
 
         blocked = true;
-        let contact = obstacle.contact_with_point(position, player_radius);
+        hit_obstacle = Some(index);
 
-        if contact.surface_distance < 0.0 {
-            // The ordinary case: the move ended inside the obstacle. Pushing straight
-            // out along the normal is what makes this a slide rather than a stop — only
-            // the part of the move that ran into the surface is taken away, and the
-            // sideways progress along it survives.
-            position = contact.surface_point;
-            surface_normal = contact.outward_normal;
-            continue;
-        }
-
-        // The move ended in open space but the path crossed the obstacle on the way:
-        // the player tunnelled through. Pushing out along the normal here would finish
-        // the job and put them out the far side, so the side they *came from* decides.
+        // The direction the player is pushed back in, decided by where they were before
+        // the move rather than by where it ended.
         let entry = obstacle.contact_with_point(previous, player_radius);
         let spine_point =
             closest_point_on_segment(position, obstacle.spine_start, obstacle.spine_end);
-        position = spine_point.add(entry.outward_normal.scale(obstacle.radius + player_radius));
+        let standoff = obstacle.radius + player_radius + PLAYER_OBSTACLE_KNOCKBACK_DISTANCE;
+
+        position = spine_point.add(entry.outward_normal.scale(standoff));
         surface_normal = entry.outward_normal;
     }
 
@@ -77,6 +89,7 @@ pub fn resolve_player_movement(
         position,
         blocked,
         surface_normal,
+        hit_obstacle,
     }
 }
 
@@ -106,7 +119,7 @@ pub fn push_boids_out_of_obstacles(obstacles: &[Obstacle], boids: &mut [Boid]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::constants::PLAYER_COLLISION_RADIUS;
+    use crate::constants::{PLAYER_COLLISION_RADIUS, PLAYER_OBSTACLE_KNOCKBACK_DISTANCE};
     use crate::simulation::dash::{begin_dash_charge, DashState};
 
     const LIFETIME: u32 = 1800;
@@ -139,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn a_player_moving_into_an_obstacle_is_pushed_onto_its_surface() {
+    fn a_player_moving_into_an_obstacle_is_pushed_clear_of_it() {
         let centre = Vec2::new(300.0, 300.0);
         let into = Vec2::new(290.0, 300.0);
 
@@ -150,10 +163,96 @@ mod tests {
         );
 
         assert!(resolution.blocked);
-        // Exactly one inflated radius out from the centre, on the side it came from.
+        // One inflated radius plus the knockback out from the centre, on the side it
+        // came from. The knockback is what keeps the player off the surface itself.
         let distance = resolution.position.distance_to(centre);
-        assert!((distance - (40.0 + PLAYER_COLLISION_RADIUS)).abs() < 1e-3);
+        let standoff = 40.0 + PLAYER_COLLISION_RADIUS + PLAYER_OBSTACLE_KNOCKBACK_DISTANCE;
+        assert!((distance - standoff).abs() < 1e-3);
         assert!(resolution.position.x < into.x);
+    }
+
+    #[test]
+    fn the_obstacle_that_was_hit_is_reported_by_index() {
+        // What the engine lights up in red, so it has to be the one that was hit and
+        // not merely some obstacle in the world.
+        let obstacles = [
+            Obstacle::circle(Vec2::new(900.0, 900.0), 40.0, LIFETIME),
+            Obstacle::circle(Vec2::new(300.0, 300.0), 40.0, LIFETIME),
+        ];
+
+        let resolution = resolve_player_movement(
+            &obstacles,
+            Vec2::new(200.0, 300.0),
+            Vec2::new(290.0, 300.0),
+            PLAYER_COLLISION_RADIUS,
+        );
+
+        assert_eq!(resolution.hit_obstacle, Some(1));
+    }
+
+    #[test]
+    fn a_move_that_hits_nothing_reports_no_obstacle() {
+        let obstacles = [Obstacle::circle(Vec2::new(300.0, 300.0), 40.0, LIFETIME)];
+
+        let resolution = resolve_player_movement(
+            &obstacles,
+            Vec2::new(800.0, 800.0),
+            Vec2::new(810.0, 800.0),
+            PLAYER_COLLISION_RADIUS,
+        );
+
+        assert_eq!(resolution.hit_obstacle, None);
+    }
+
+    #[test]
+    fn a_blocked_player_can_move_away_again_on_the_very_next_step() {
+        // The stuck bug, as a test. Placing the player exactly on the surface left them
+        // at the distance the next test reads as a touch, so even a move pointing
+        // straight away was corrected back — every step, for as long as they tried.
+        let centre = Vec2::new(300.0, 300.0);
+        let obstacle = Obstacle::circle(centre, 40.0, LIFETIME);
+
+        let blocked = resolve(obstacle, Vec2::new(200.0, 300.0), Vec2::new(290.0, 300.0));
+        let away = Vec2::new(blocked.position.x - 4.0, blocked.position.y);
+        let leaving = resolve(obstacle, blocked.position, away);
+
+        assert!(!leaving.blocked, "leaving an obstacle must not be blocked");
+        assert_eq!(leaving.position, away);
+    }
+
+    #[test]
+    fn steering_into_an_obstacle_for_many_steps_never_ends_up_inside_it() {
+        // The second half of the same bug: holding a direction into an obstacle used to
+        // glue the player to it. Each step has to end outside, no matter how many pass.
+        let centre = Vec2::new(300.0, 300.0);
+        let obstacle = Obstacle::circle(centre, 40.0, LIFETIME);
+        let mut position = Vec2::new(200.0, 300.0);
+
+        for _ in 0..200 {
+            // A step of ordinary walking speed, straight at the centre.
+            let attempted = Vec2::new(position.x + 6.0, position.y);
+            position = resolve(obstacle, position, attempted).position;
+
+            assert!(
+                position.distance_to(centre) > 40.0 + PLAYER_COLLISION_RADIUS,
+                "player ended inside the obstacle at {position:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_dash_straight_into_an_obstacle_leaves_the_player_outside_and_short_of_it() {
+        // A dash covers far more ground in one step than the obstacle is wide, so the
+        // move both enters and leaves it. The player has to end up back on the near
+        // side rather than inside or through.
+        let centre = Vec2::new(300.0, 300.0);
+        let obstacle = Obstacle::circle(centre, 30.0, LIFETIME);
+
+        let resolution = resolve(obstacle, Vec2::new(220.0, 300.0), Vec2::new(380.0, 300.0));
+
+        assert!(resolution.blocked);
+        assert!(resolution.position.x < centre.x);
+        assert!(resolution.position.distance_to(centre) > 30.0 + PLAYER_COLLISION_RADIUS);
     }
 
     #[test]

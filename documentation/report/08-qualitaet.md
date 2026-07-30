@@ -44,7 +44,11 @@ Stelle ungeprüft gelassen, für die es keine Ersatzstufe gibt — und das ist g
 die zweite tragende Invariante des Systems (Kap. 5) und das gewählte Fokus-Thema.
 Geprüft werden dort die Index-Ausrichtung aller vier Buffer, dass `snapshot()` die Welt
 nicht bewegt, die Idempotenz von `set_wave()`, der Sicherheitsabstand neu gespawnter
-Boids, der Wrap nach `resize()` und der Vorzeichen-Vertrag der Dash-Phase.
+Boids, der Wrap nach `resize()` und der Vorzeichen-Vertrag der Dash-Phase. Der
+Hindernis-Buffer und der daran hängende Kollisionsvertrag des Spielers liegen in
+`engine/tests/wasm_obstacle_tests.rs`; geteilt wurde entlang der Naht, die ohnehin
+bestand — dieser Buffer ist der einzige, der _nicht_ index-ausgerichtet zu den
+Boid-Buffern ist — als die gemeinsame Datei die 400-Zeilen-Grenze überschritt.
 
 **Zwei Beobachtungen aus dieser Stufe, die man kennen muss, um die Zahlen in Kap. 9
 nicht als Widerspruch zu lesen.** Erstens: Auf dem Host-Target expandiert

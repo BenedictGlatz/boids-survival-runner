@@ -12,6 +12,14 @@ const OBSTACLE_EDGE_COLOR = 'rgba(148, 163, 184, ALPHA)';
 const OBSTACLE_EDGE_WIDTH = 2;
 
 /**
+ * The red an obstacle flashes in right after the player ran into it. Drawn over the
+ * ordinary colours rather than instead of them, so the flash fades back into the
+ * obstacle's own look as it dies down and needs no second set of shades per obstacle.
+ */
+const OBSTACLE_HIT_FILL_COLOR = 'rgba(220, 38, 38, ALPHA)';
+const OBSTACLE_HIT_EDGE_COLOR = 'rgba(254, 202, 202, ALPHA)';
+
+/**
  * Opacity steps the two obstacle colours are precomputed in.
  *
  * Same reasoning as the boid glow table: an obstacle's opacity changes every frame
@@ -22,6 +30,8 @@ const OBSTACLE_EDGE_WIDTH = 2;
 const FADE_STEPS = 12;
 const OBSTACLE_FILL_COLORS = buildAlphaTable(OBSTACLE_FILL_COLOR, FADE_STEPS);
 const OBSTACLE_EDGE_COLORS = buildAlphaTable(OBSTACLE_EDGE_COLOR, FADE_STEPS);
+const OBSTACLE_HIT_FILL_COLORS = buildAlphaTable(OBSTACLE_HIT_FILL_COLOR, FADE_STEPS);
+const OBSTACLE_HIT_EDGE_COLORS = buildAlphaTable(OBSTACLE_HIT_EDGE_COLOR, FADE_STEPS);
 
 /**
  * Draws every obstacle in the frame.
@@ -51,13 +61,14 @@ export function drawObstacles(ctx, frame) {
     const endY = obstacles[offset + 3];
     const radius = obstacles[offset + 4];
     const lifeFraction = obstacles[offset + 5];
+    const hitFlash = obstacles[offset + 6];
 
     const fade = obstacleFadeLevel(lifeFraction, OBSTACLE_FADE_SHARE);
     if (fade <= 0) {
       continue;
     }
 
-    const shade = Math.min(FADE_STEPS - 1, Math.round(fade * (FADE_STEPS - 1)));
+    const shade = shadeFor(fade);
 
     // The body, as one thick round-capped stroke.
     ctx.strokeStyle = OBSTACLE_FILL_COLORS[shade];
@@ -68,6 +79,24 @@ export function drawObstacles(ctx, frame) {
     // a capsule properly would mean building the path by hand; drawing it inset like
     // this is a pixel or two off and reads identically.
     ctx.strokeStyle = OBSTACLE_EDGE_COLORS[shade];
+    ctx.lineWidth = OBSTACLE_EDGE_WIDTH;
+    strokeSpine(ctx, startX, startY, endX, endY);
+
+    if (hitFlash <= 0) {
+      continue;
+    }
+
+    // The same two strokes again in red, at the flash's own strength: the obstacle the
+    // player just ran into, fading back to its ordinary colour over a few frames. The
+    // obstacle's fade is folded in so one that is disappearing cannot flash at full
+    // opacity.
+    const flashShade = shadeFor(hitFlash * fade);
+
+    ctx.strokeStyle = OBSTACLE_HIT_FILL_COLORS[flashShade];
+    ctx.lineWidth = radius * 2;
+    strokeSpine(ctx, startX, startY, endX, endY);
+
+    ctx.strokeStyle = OBSTACLE_HIT_EDGE_COLORS[flashShade];
     ctx.lineWidth = OBSTACLE_EDGE_WIDTH;
     strokeSpine(ctx, startX, startY, endX, endY);
   }
@@ -92,6 +121,11 @@ function strokeSpine(ctx, startX, startY, endX, endY) {
   }
 
   ctx.stroke();
+}
+
+/** Which precomputed opacity step a level between 0 and 1 rounds to. */
+function shadeFor(level) {
+  return Math.min(FADE_STEPS - 1, Math.max(0, Math.round(level * (FADE_STEPS - 1))));
 }
 
 /** Precomputes one colour string per opacity step from a template. */
