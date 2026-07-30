@@ -10,6 +10,33 @@
  * The world colours at the bottom are mirrored in `src/renderer/canvasRenderer.js`:
  * a canvas cannot read a custom property, so those two values exist twice on purpose. */
 
+/* The two families ship with the game instead of being fetched from a font CDN. The
+   game has to stay installationless and server-free, and that has to include the first
+   start on a machine without a network: a blocked webfont request would drop the whole
+   UI back to a system sans-serif.
+   Both files are the variable latin subset, so one file per family covers weights 400
+   to 700 — 54 kB for both. `font-display: swap` shows the fallback until they arrive,
+   which matters because the menu is the first thing drawn.
+   Licences: OFL-space-grotesk.txt and OFL-jetbrains-mono.txt next to the fonts.
+   The paths are root-absolute because that is how a file under `public/` is addressed;
+   should the game ever be deployed under a sub-path (T-06, GitHub Pages), these two
+   URLs need the base prefix — Vite does not rewrite absolute URLs inside CSS. */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-latin-variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-latin-variable.woff2') format('woff2');
+}
+
 :root {
   /* ---- Neutrals ---- */
   --void: #07080b;

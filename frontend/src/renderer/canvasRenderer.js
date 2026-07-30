@@ -33,7 +33,16 @@ const DASH_BAR_EMPTY_COLOR = 'rgba(248, 250, 252, 0.18)';
 const DASH_BAR_READY_COLOR = PLAYER_COLOR;
 const DASH_BAR_CHARGING_COLOR = 'rgba(56, 189, 248, 0.45)';
 const DASH_BAR_LABEL_COLOR = 'rgba(226, 232, 240, 0.75)';
-const DASH_BAR_LABEL_FONT = '600 11px "Segoe UI", Arial, sans-serif';
+const DASH_BAR_LABEL_FONT = "600 11px 'JetBrains Mono', monospace";
+
+/**
+ * The countdown is the one moment the arena is empty, so it is allowed to be large.
+ *
+ * A canvas cannot read a CSS custom property, which is why the family is spelled out
+ * here as well as in `styles/tokens.css`. Both places name numbers, never a colour —
+ * the colours below carry the same duplication for the same reason.
+ */
+const COUNTDOWN_FONT = "700 96px 'Space Grotesk', sans-serif";
 
 /**
  * How many brightness steps a boid colour is precomputed in, from the plain
@@ -308,7 +317,7 @@ function drawCountdown(ctx, countdownSeconds, width, height) {
   ctx.fillStyle = 'rgba(3, 7, 18, 0.42)';
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#f4f4f5';
-  ctx.font = '700 72px "Segoe UI", Arial, sans-serif';
+  ctx.font = COUNTDOWN_FONT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.shadowColor = 'rgba(56, 189, 248, 0.55)';
