@@ -31,7 +31,8 @@ test.describe('booting the built game', () => {
 
     const menu = page.locator('#menu-overlay');
     await expect(menu).toContainText(STRINGS.menu.title);
-    await expect(page.locator('#btn-start')).toHaveText(STRINGS.menu.play);
+    // Contains rather than equals: the play row also carries its index and its keycap.
+    await expect(page.locator('#btn-start')).toContainText(STRINGS.menu.play);
     await expect(menu).toContainText(STRINGS.settings.targetFps);
     await expect(menu).not.toContainText('menu.');
     await expect(menu).not.toContainText('settings.');

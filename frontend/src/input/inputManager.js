@@ -20,10 +20,10 @@ export class InputManager {
   constructor() {
     this._pressedKeys = new Set();
     this._dashRequested = false;
-    // The dash key is only ours while a round is running. Outside of one the
-    // space bar belongs to the menu: every option is a plain button and the
-    // developer section is a <details>, all of which are activated with Enter or
-    // Space. Swallowing the key there would make the menu unusable by keyboard.
+    // No keyboard input is ours outside a round. The space bar belongs to the menu,
+    // where every row and every option is a plain button activated with Enter or
+    // Space, and the arrow keys belong to the menu list, whose footer promises that
+    // they navigate. Swallowing either there would make the menu unusable by keyboard.
     this._gameplayActive = false;
 
     window.addEventListener('keydown', (event) => {
@@ -32,7 +32,7 @@ export class InputManager {
         return;
       }
 
-      if (!MOVEMENT_KEYS.has(event.code)) return;
+      if (!this._gameplayActive || !MOVEMENT_KEYS.has(event.code)) return;
 
       event.preventDefault();
       this._pressedKeys.add(event.code);
@@ -41,6 +41,8 @@ export class InputManager {
     window.addEventListener('keyup', (event) => {
       if (!MOVEMENT_KEYS.has(event.code)) return;
 
+      // Not gated on the round: a key pressed during a round and released after it
+      // ended has to be forgotten, or it would still count as held next round.
       event.preventDefault();
       this._pressedKeys.delete(event.code);
     });
@@ -51,11 +53,17 @@ export class InputManager {
     });
   }
 
-  /** @param {boolean} active - Whether a round is currently running. */
+  /**
+   * @param {boolean} active - Whether a round is currently running.
+   * @returns {void}
+   */
   setGameplayActive(active) {
     this._gameplayActive = active;
 
     if (!active) {
+      // Both are dropped, so a key still held when the round ends cannot carry into
+      // the menu or into the next round.
+      this._pressedKeys.clear();
       this._dashRequested = false;
     }
   }

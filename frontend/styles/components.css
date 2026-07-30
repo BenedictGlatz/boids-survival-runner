@@ -131,8 +131,11 @@
 }
 
 .segmented > button {
+  /* Grows with its label — "120 (Max)" is wider than "30", and a cell that does not
+     grow lets the text spill over its own background. */
+  flex: 1;
   min-width: 66px;
-  padding: 11px 0;
+  padding: 11px 14px;
   border: 0;
   background: var(--panel-solid);
   color: var(--text-secondary);

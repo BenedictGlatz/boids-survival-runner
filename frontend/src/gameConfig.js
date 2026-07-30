@@ -1,3 +1,10 @@
+/**
+ * Shown in the menu header. Kept in sync with `package.json` by hand — the same kind of
+ * duplication `INITIAL_BOID_COUNT` carries, and for the same reason: reading it from the
+ * package at build time would need a `vite.config.js`, which the project does not have yet.
+ */
+export const APP_VERSION = '0.1.0';
+
 export const INITIAL_BOID_COUNT = 36;
 export const PLAYER_STARTING_LIVES = 3;
 export const HIT_COOLDOWN_MS = 900;

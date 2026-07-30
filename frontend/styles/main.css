@@ -88,15 +88,15 @@ body {
   transform: translateX(-50%);
 }
 
-/* Temporary, together with the .menu-panel family below: centres the old overlay and
-   dims the arena behind it. The Command Deck brings its own grid and its own scrim
-   (.menu-scrim), so this rule goes away with the menu rebuild. */
+/* Temporary, together with the .menu-panel family below: centres the game-over panel,
+   which is the last screen still built the old way. It goes away with the game-over card.
+   The Command Deck sets `display: block` on the overlay itself and brings its own grid
+   and scrim, so these rules do not reach it. */
 #menu-overlay {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(7, 8, 12, 0.78);
 }
 
 .menu-panel {
@@ -118,9 +118,8 @@ body {
   font-weight: 700;
 }
 
-/* The old centred start button and option pills. They live on until `ui/menu.js` is
-   rebuilt into the Command Deck, so that every step in between still renders a usable
-   menu; the Command Deck replaces them with .btn-primary / .menu-row / .segmented. */
+/* The old centred button. It is the game-over screen's restart button and nothing else
+   now, and goes away with the game-over card. */
 .menu-button {
   min-width: 11rem;
   min-height: 3.25rem;
@@ -136,104 +135,6 @@ body {
 
 .menu-button:hover {
   background: var(--player-hover);
-}
-
-.menu-option-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.menu-option-label {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-}
-
-.menu-option-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.menu-option {
-  min-width: 5.5rem;
-  min-height: 2.5rem;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.menu-option.is-selected {
-  border-color: var(--player);
-  background: var(--player);
-  color: var(--player-ink);
-}
-
-.menu-button:focus-visible,
-.menu-option:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px var(--arena),
-    0 0 0 4px var(--player);
-}
-
-/* Scoped to the panel on purpose: `.menu-panel p` above is more specific than a
-   bare `.menu-hint` and would win regardless of source order. */
-.menu-panel .menu-hint {
-  max-width: 22rem;
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-/* Collapsed group of diagnostic settings. Native <details>, so the open state
-   needs no JavaScript. */
-.menu-section {
-  width: 100%;
-  max-width: 24rem;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.menu-section-summary {
-  padding: 0.7rem 1rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  /* The default marker is a bare triangle glued to the text; a list-item box
-     leaves room for the padding above to apply to both. */
-  list-style-position: inside;
-}
-
-.menu-section-summary:hover {
-  color: var(--text);
-}
-
-.menu-section-summary:focus-visible {
-  border-radius: var(--radius);
-  outline: none;
-  box-shadow:
-    0 0 0 2px var(--arena),
-    0 0 0 4px var(--player);
-}
-
-.menu-section-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 0.35rem 1rem 1.1rem;
 }
 
 @media (max-width: 640px) {
@@ -266,9 +167,5 @@ body {
 
   .menu-panel h1 {
     font-size: 2.4rem;
-  }
-
-  .menu-panel .menu-hint {
-    font-size: 0.78rem;
   }
 }

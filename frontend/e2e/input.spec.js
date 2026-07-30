@@ -67,16 +67,42 @@ test.describe('keyboard input', () => {
     await expect(page.locator('#hud-score')).toBeVisible();
   });
 
-  test('keeps the developer disclosure operable from the keyboard', async ({ page }) => {
-    // A native <details> was chosen so Enter and Space work without custom state.
-    // InputManager must not intercept them while the menu is up.
+  test('opens the developer submenu from the keyboard', async ({ page }) => {
+    // The menu rows are real buttons, so Enter and Space work without custom state.
+    // InputManager must not intercept either while the menu is up.
     await openStartMenu(page);
-    const details = page.locator('#menu-overlay details');
 
-    await details.locator('summary').focus();
+    await page.locator('#btn-developer').focus();
     await page.keyboard.press('Enter');
 
-    await expect(details).toHaveAttribute('open', '');
-    await expect(details).toContainText(STRINGS.settings.frameTimeGraph);
+    await expect(page.locator('#menu-overlay')).toContainText(STRINGS.settings.frameTimeGraph);
+  });
+
+  test('walks the menu list with the arrow keys', async ({ page }) => {
+    // The footer of the deck promises that the arrows navigate, so this asserts the
+    // promise: the first row has the focus when the menu opens, down moves one row on,
+    // and up from the first row wraps to the last.
+    await openStartMenu(page);
+    const focusedId = () => page.evaluate(() => document.activeElement?.id);
+
+    expect(await focusedId()).toBe('btn-start');
+
+    await page.keyboard.press('ArrowDown');
+    expect(await focusedId()).toBe('btn-settings');
+
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    expect(await focusedId()).toBe('btn-developer');
+  });
+
+  test('leaves a submenu with Escape', async ({ page }) => {
+    await openStartMenu(page);
+    await page.locator('#btn-settings').click();
+    await expect(page.locator('#btn-menu-back')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+
+    await expect(page.locator('#btn-menu-back')).toHaveCount(0);
+    await expect(page.locator('#btn-start')).toBeVisible();
   });
 });

@@ -189,6 +189,21 @@
   color: var(--player-ink);
 }
 
+/* A submenu's body. It takes the space the title had, so the option groups it holds stand
+   on the deck itself rather than on a panel surface. */
+.menu-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+  max-width: 420px;
+}
+
+.menu-option-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
 /* The swarm canvas from `ui/menuBackdrop.js`. Below the overlay, above the game
    canvas — the game canvas is cleared while the menu is open so this shows through. */
 #menu-backdrop {

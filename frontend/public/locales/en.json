@@ -7,7 +7,18 @@
     "resume": "Resume",
     "gameover": "Game Over",
     "restart": "Restart",
-    "finalScore": "Final Score"
+    "finalScore": "Final Score",
+    "pitch": "A swarm hunts you. The arena fills in. Survive the wave.",
+    "brand": "Swarm Simulation",
+    "tech": "Rust · WASM",
+    "build": "Build",
+    "simSteps": "sim steps / s",
+    "gameSettings": "Game Settings",
+    "controls": "Controls",
+    "move": "Move",
+    "diag": "Diag",
+    "back": "Back",
+    "navHint": "↑↓ Navigate · Space Select · Esc Back"
   },
   "settings": {
     "targetFps": "Target FPS",

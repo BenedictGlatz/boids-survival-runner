@@ -10,11 +10,11 @@
  * Renders one labelled group of choices.
  *
  * The choices are deliberately plain buttons with `aria-pressed` rather than
- * radio inputs or `role="radiogroup"`: InputManager calls preventDefault() on the
- * arrow keys at window level, which would kill native arrow-key navigation and
- * leave a radiogroup broken for keyboard and screen-reader users. Toggle buttons
- * carry no arrow-key expectation and work with Tab plus Enter/Space, none of
- * which the input manager intercepts.
+ * radio inputs or `role="radiogroup"`: the arrow keys belong to the menu list while an
+ * overlay is open and to the player while a round runs, so a radiogroup's native
+ * arrow-key navigation would be fighting for the same keys and end up broken for
+ * keyboard and screen-reader users. Toggle buttons carry no arrow-key expectation and
+ * work with Tab plus Enter/Space.
  * @param {{id: string, label: string, hint?: string,
  *          options: Array<{value: string, label: string, ariaLabel?: string,
  *                          selected: boolean}>}} group - Layout and options to render.
@@ -23,12 +23,12 @@
 export function renderOptionGroup({ id, label, hint, options }) {
   const labelId = `${id}-label`;
   const buttons = options.map(renderOption).join('');
-  const hintMarkup = hint ? `<p class="menu-hint">${hint}</p>` : '';
+  const hintMarkup = hint ? `<p class="hint">${hint}</p>` : '';
 
   return `
     <div class="menu-option-group">
-      <span id="${labelId}" class="menu-option-label">${label}</span>
-      <div id="${id}" class="menu-option-buttons" role="group" aria-labelledby="${labelId}">
+      <span id="${labelId}" class="kicker">${label}</span>
+      <div id="${id}" class="segmented" role="group" aria-labelledby="${labelId}">
         ${buttons}
       </div>
       ${hintMarkup}
@@ -46,10 +46,10 @@ export function bindOptionGroup(id, onSelect) {
   const group = document.getElementById(id);
 
   group.addEventListener('click', (event) => {
-    const clicked = event.target.closest('.menu-option');
+    const clicked = event.target.closest('button');
     if (!clicked) return;
 
-    for (const option of group.querySelectorAll('.menu-option')) {
+    for (const option of group.querySelectorAll('button')) {
       const isSelected = option === clicked;
       option.classList.toggle('is-selected', isSelected);
       option.setAttribute('aria-pressed', String(isSelected));
@@ -62,7 +62,7 @@ export function bindOptionGroup(id, onSelect) {
 function renderOption({ value, label, ariaLabel, selected }) {
   return `
     <button type="button"
-            class="menu-option${selected ? ' is-selected' : ''}"
+            class="${selected ? 'is-selected' : ''}"
             data-option-value="${value}"
             aria-pressed="${selected}"
             aria-label="${ariaLabel ?? label}">${label}</button>

@@ -1,68 +1,78 @@
 import { t } from './i18n.js';
-import { bindOptionGroup, renderOptionGroup } from './optionGroup.js';
-import { FRAME_GRAPH_MODE } from '../gameConfig.js';
+import { bindOptionGroup } from './optionGroup.js';
+import { renderBreadcrumb, renderDeck, renderMenuList, renderTitle } from './menuDeck.js';
+import {
+  FPS_GROUP_ID,
+  FRAME_GRAPH_GROUP_ID,
+  FRAME_GRAPH_MODE_GROUP_ID,
+  FRAME_GRAPH_ON,
+  renderControlsLegend,
+  renderFrameGraphGroup,
+  renderFrameGraphModeGroup,
+  renderPanel,
+  renderTargetFpsGroup,
+} from './menuPanels.js';
+import { bindMenuNavigation, focusFirstRow } from './menuNavigation.js';
 
-const FPS_GROUP_ID = 'fps-options';
-const FRAME_GRAPH_GROUP_ID = 'frame-graph-options';
-const FRAME_GRAPH_MODE_GROUP_ID = 'frame-graph-mode-options';
+/** The trailing markers of the menu rows, spelled out once. */
+const FORWARD_MARKER = '<span class="menu-row__marker" aria-hidden="true">&rarr;</span>';
+const PLAY_KEYCAP = '<span class="key key--on-primary">Space</span>';
 
-/** Raw values of the frametime-graph toggle, as carried in the DOM. */
-const FRAME_GRAPH_ON = 'on';
-const FRAME_GRAPH_OFF = 'off';
+/**
+ * Which part of the menu is on screen. A submenu replaces the left column and leaves the
+ * header, the footer and the panel stack standing, so there is one screen type, not four.
+ */
+const VIEW = Object.freeze({
+  ROOT: 'root',
+  SETTINGS: 'settings',
+  CONTROLS: 'controls',
+  DEVELOPER: 'developer',
+});
 
 /**
  * Start-menu and game-over overlay UI.
  * Mutates the DOM only — no game logic.
  */
 export class Menu {
+  /** @param {HTMLElement} [root] - Overlay container the menu is appended to. */
   constructor(root = document.getElementById('ui-overlay')) {
     this._el = document.createElement('div');
     this._el.id = 'menu-overlay';
     root.appendChild(this._el);
+
+    this._view = VIEW.ROOT;
+    this._settings = null;
+    this._onStart = null;
+
+    // Bound once: the overlay element survives every view change, and the navigation
+    // looks its rows up per keypress.
+    bindMenuNavigation(this._el, { onBack: () => this._goBack() });
   }
 
   /**
+   * Shows the start screen.
+   *
    * Settings arrive as one object rather than as positional arguments, so adding
    * a further setting does not keep widening the signature.
-   * @param {() => void} onStart - Called when the play button is pressed.
+   * @param {() => void} onStart - Called when the play row is activated.
    * @param {{targetFps: {options: number[], selected: number, uncappedValue: number,
    *                      onSelect: (fps: number) => void},
    *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void},
    *          frameGraphMode: {selected: string, onSelect: (mode: string) => void}}} settings -
    *   Current option values and their change handlers.
+   * @returns {void}
    */
   showStart(onStart, settings) {
-    this._el.innerHTML = `
-      <div class="menu-panel">
-        <h1>${t('menu.title')}</h1>
-        ${renderTargetFpsGroup(settings.targetFps)}
-        ${renderDeveloperSection([
-          renderFrameGraphGroup(settings.frameGraph),
-          renderFrameGraphModeGroup(settings.frameGraphMode),
-        ])}
-        <button id="btn-start" class="menu-button">${t('menu.play')}</button>
-      </div>
-    `;
-
-    bindOptionGroup(FPS_GROUP_ID, (value) => {
-      settings.targetFps.onSelect(Number(value));
-    });
-
-    bindOptionGroup(FRAME_GRAPH_GROUP_ID, (value) => {
-      settings.frameGraph.onToggle(value === FRAME_GRAPH_ON);
-    });
-
-    bindOptionGroup(FRAME_GRAPH_MODE_GROUP_ID, (value) => {
-      settings.frameGraphMode.onSelect(value);
-    });
-
-    document.getElementById('btn-start').addEventListener('click', onStart);
-    this._el.style.display = 'flex';
+    this._onStart = onStart;
+    this._settings = settings;
+    this._render(VIEW.ROOT);
+    this._el.style.display = 'block';
   }
 
   /**
    * @param {() => void} onRestart - Called when the restart button is pressed.
    * @param {number} finalScore - Score reached in the round that just ended.
+   * @returns {void}
    */
   showGameOver(onRestart, finalScore) {
     this._el.innerHTML = `
@@ -76,80 +86,142 @@ export class Menu {
     this._el.style.display = 'flex';
   }
 
-  /** Hides whichever overlay (start or game-over) is currently shown. */
+  /**
+   * Hides whichever overlay (start or game-over) is currently shown.
+   * @returns {void}
+   */
   hide() {
     this._el.style.display = 'none';
   }
-}
 
-function renderTargetFpsGroup({ options, selected, uncappedValue }) {
-  return renderOptionGroup({
-    id: FPS_GROUP_ID,
-    label: t('settings.targetFps'),
-    hint: t('settings.fpsHint'),
-    options: options.map((fps) => {
-      // The top option cannot be guaranteed — requestAnimationFrame is capped by
-      // the display refresh rate — so it is labelled as "as fast as possible".
-      const label = fps >= uncappedValue ? `${fps} (${t('settings.fpsUncapped')})` : `${fps}`;
+  // -- views ----------------------------------------------------------------
 
-      return {
-        value: String(fps),
-        label,
-        ariaLabel: `${label} ${t('settings.fpsUnit')}`,
-        selected: fps === selected,
-      };
-    }),
-  });
-}
+  _render(view) {
+    this._view = view;
+    this._el.innerHTML = renderDeck({
+      main: this._renderMain(view),
+      aside: this._renderAside(view),
+    });
 
-function renderFrameGraphGroup({ enabled }) {
-  return renderOptionGroup({
-    id: FRAME_GRAPH_GROUP_ID,
-    label: t('settings.frameTimeGraph'),
-    hint: t('settings.frameTimeGraphHint'),
-    options: [
-      { value: FRAME_GRAPH_OFF, label: t('settings.off'), selected: !enabled },
-      { value: FRAME_GRAPH_ON, label: t('settings.on'), selected: enabled },
-    ],
-  });
-}
+    this._bindRows();
+    this._bindGroups();
+    focusFirstRow(this._el);
+  }
 
-/**
- * Wraps the diagnostic settings in a collapsed disclosure, so the start menu
- * opens on the one setting that affects play instead of on a wall of options.
- *
- * A native `<details>` rather than a scripted toggle: it needs no state of its
- * own and stays keyboard- and screen-reader-operable via Enter/Space, neither of
- * which InputManager intercepts.
- * @param {string[]} groups - Rendered option groups, in display order.
- */
-function renderDeveloperSection(groups) {
-  return `
-    <details class="menu-section">
-      <summary class="menu-section-summary">${t('settings.developerSettings')}</summary>
-      <div class="menu-section-body">
-        ${groups.join('')}
+  _renderMain(view) {
+    if (view === VIEW.ROOT) {
+      return `
+        ${renderTitle()}
+        ${renderMenuList([
+          { id: 'btn-start', label: t('menu.play'), primary: true, marker: PLAY_KEYCAP },
+          { id: 'btn-settings', label: t('menu.gameSettings'), marker: FORWARD_MARKER },
+          { id: 'btn-controls', label: t('menu.controls'), marker: FORWARD_MARKER },
+          {
+            id: 'btn-developer',
+            label: t('settings.developerSettings'),
+            muted: true,
+            marker: `<span class="badge badge--diag">${t('menu.diag')}</span>`,
+          },
+        ])}
+      `;
+    }
+
+    // Breadcrumb and body share one container, so the breadcrumb is as wide as the
+    // content it belongs to rather than as wide as the column.
+    return `
+      <div class="menu-submenu">
+        ${renderBreadcrumb(this._titleFor(view))}
+        ${this._renderSubmenuBody(view)}
       </div>
-    </details>
-  `;
-}
+    `;
+  }
 
-function renderFrameGraphModeGroup({ selected }) {
-  return renderOptionGroup({
-    id: FRAME_GRAPH_MODE_GROUP_ID,
-    label: t('settings.frameTimeGraphMode'),
-    hint: t('settings.frameTimeGraphModeHint'),
-    options: [
-      {
-        value: FRAME_GRAPH_MODE.SEPARATE,
-        label: t('settings.frameGraphSeparate'),
-        selected: selected === FRAME_GRAPH_MODE.SEPARATE,
-      },
-      {
-        value: FRAME_GRAPH_MODE.COMBINED,
-        label: t('settings.frameGraphCombined'),
-        selected: selected === FRAME_GRAPH_MODE.COMBINED,
-      },
-    ],
-  });
+  _renderSubmenuBody(view) {
+    if (view === VIEW.SETTINGS) {
+      return renderTargetFpsGroup(this._settings.targetFps);
+    }
+
+    if (view === VIEW.CONTROLS) {
+      return renderControlsLegend({ heading: false });
+    }
+
+    return `
+      ${renderFrameGraphGroup(this._settings.frameGraph)}
+      ${renderFrameGraphModeGroup(this._settings.frameGraphMode)}
+    `;
+  }
+
+  /**
+   * The panel stack shows what the left column is not showing: a group moved into a
+   * submenu leaves the stack, so its id exists exactly once in the document.
+   */
+  _renderAside(view) {
+    const panels = [];
+
+    if (view !== VIEW.SETTINGS) {
+      panels.push(renderPanel(renderTargetFpsGroup(this._settings.targetFps)));
+    }
+
+    if (view !== VIEW.CONTROLS) {
+      panels.push(renderPanel(renderControlsLegend()));
+    }
+
+    return panels.join('');
+  }
+
+  _titleFor(view) {
+    if (view === VIEW.SETTINGS) return t('menu.gameSettings');
+    if (view === VIEW.CONTROLS) return t('menu.controls');
+
+    return t('settings.developerSettings');
+  }
+
+  // -- wiring ---------------------------------------------------------------
+
+  _bindRows() {
+    this._onClick('btn-start', this._onStart);
+    this._onClick('btn-settings', () => this._render(VIEW.SETTINGS));
+    this._onClick('btn-controls', () => this._render(VIEW.CONTROLS));
+    this._onClick('btn-developer', () => this._render(VIEW.DEVELOPER));
+    this._onClick('btn-menu-back', () => this._goBack());
+  }
+
+  /**
+   * The option groups are rebound after every render, because the markup they live in was
+   * just replaced. Which groups exist depends on the view, hence the presence check.
+   */
+  _bindGroups() {
+    this._bindGroup(FPS_GROUP_ID, (value) => {
+      this._settings.targetFps.onSelect(Number(value));
+    });
+
+    this._bindGroup(FRAME_GRAPH_GROUP_ID, (value) => {
+      this._settings.frameGraph.onToggle(value === FRAME_GRAPH_ON);
+    });
+
+    this._bindGroup(FRAME_GRAPH_MODE_GROUP_ID, (value) => {
+      this._settings.frameGraphMode.onSelect(value);
+    });
+  }
+
+  _bindGroup(id, onSelect) {
+    if (document.getElementById(id)) {
+      bindOptionGroup(id, onSelect);
+    }
+  }
+
+  _onClick(id, handler) {
+    const element = document.getElementById(id);
+
+    if (element && handler) {
+      element.addEventListener('click', handler);
+    }
+  }
+
+  /** Escape and the breadcrumb lead to the same place. On the start screen it is a no-op. */
+  _goBack() {
+    if (this._view !== VIEW.ROOT) {
+      this._render(VIEW.ROOT);
+    }
+  }
 }
