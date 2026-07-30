@@ -134,14 +134,14 @@ impl GameEngine {
             self.dash_phases_buffer.push(dash_render_phase(boid));
         }
 
-        FrameResponse::new(
-            self.flock.len() as u32,
+        FrameResponse {
+            entity_count: self.flock.len() as u32,
             hit_count,
-            self.positions_buffer.clone(),
-            self.velocities_buffer.clone(),
-            self.tiers_buffer.clone(),
-            self.dash_phases_buffer.clone(),
-        )
+            positions: self.positions_buffer.clone(),
+            velocities: self.velocities_buffer.clone(),
+            tiers: self.tiers_buffer.clone(),
+            dash_phases: self.dash_phases_buffer.clone(),
+        }
     }
 }
 

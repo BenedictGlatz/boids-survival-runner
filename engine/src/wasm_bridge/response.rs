@@ -2,34 +2,20 @@ use js_sys::{Float32Array, Uint32Array};
 use wasm_bindgen::prelude::*;
 
 /// The structured response returned to JavaScript after each frame tick.
+///
+/// The fields are crate-visible and the struct is built with a struct literal
+/// rather than a constructor function. A positional constructor was already at six
+/// arguments, and every one of them is a buffer or a count of the same few types —
+/// so a caller that swapped two of them would still compile. Naming each field at
+/// the one place that fills it makes that mistake impossible instead.
 #[wasm_bindgen]
 pub struct FrameResponse {
-    entity_count: u32,
-    hit_count: u32,
-    positions: Vec<f32>,
-    velocities: Vec<f32>,
-    tiers: Vec<u32>,
-    dash_phases: Vec<f32>,
-}
-
-impl FrameResponse {
-    pub(crate) fn new(
-        entity_count: u32,
-        hit_count: u32,
-        positions: Vec<f32>,
-        velocities: Vec<f32>,
-        tiers: Vec<u32>,
-        dash_phases: Vec<f32>,
-    ) -> Self {
-        Self {
-            entity_count,
-            hit_count,
-            positions,
-            velocities,
-            tiers,
-            dash_phases,
-        }
-    }
+    pub(crate) entity_count: u32,
+    pub(crate) hit_count: u32,
+    pub(crate) positions: Vec<f32>,
+    pub(crate) velocities: Vec<f32>,
+    pub(crate) tiers: Vec<u32>,
+    pub(crate) dash_phases: Vec<f32>,
 }
 
 #[wasm_bindgen]
