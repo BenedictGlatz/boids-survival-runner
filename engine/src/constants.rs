@@ -79,17 +79,28 @@ pub const DEFAULT_DASH_COOLDOWN_STEPS: u32 = 300;
 /// Cooldown steps removed per difficulty tier.
 pub const DASH_COOLDOWN_STEPS_PER_TIER_REDUCTION: u32 = 30;
 
-/// How often the flock offers a single new dash slot, in simulation steps.
-/// Together with the concurrency limit below this is what keeps the dashing
-/// group small instead of turning the whole swarm into a wall of lunges.
-pub const DASH_SELECTION_INTERVAL_STEPS: u32 = 40;
+/// How often the flock offers a new dash, in simulation steps. Together with the
+/// concurrency limit below this is what keeps the dashing part of the flock a
+/// readable handful of boids instead of a wall of lunges.
+pub const DASH_SELECTION_INTERVAL_STEPS: u32 = 24;
 
-/// Boids allowed to charge or dash at the same time in a small flock.
-pub const MAX_CONCURRENT_DASHING_BOIDS: usize = 3;
+/// Boids allowed to charge or dash at the same time in a small flock. Has to hold
+/// at least two full groups, or a single group would block every other lunge.
+pub const MAX_CONCURRENT_DASHING_BOIDS: usize = 8;
 
 /// One extra dash slot is unlocked for every this many boids in the flock, so a
 /// dash still happens now and then once the swarm has grown large.
-pub const BOIDS_PER_EXTRA_DASH_SLOT: usize = 60;
+pub const BOIDS_PER_EXTRA_DASH_SLOT: usize = 40;
+
+/// Most boids that may lunge together as one group. A group is what the player
+/// reads as a coordinated push, so it stays small enough to still be dodgeable.
+pub const MAX_DASH_GROUP_SIZE: usize = 4;
+
+/// How close a boid has to be to the boid that was picked first to join its
+/// group. Deliberately below `DEFAULT_PERCEPTION_RADIUS`, so a group is always a
+/// cluster that already flies together rather than boids gathered from across
+/// the screen.
+pub const DASH_GROUP_RADIUS: f32 = 70.0;
 
 /// A boid closer to the player than this leaves no room to dodge, so it is not
 /// offered a dash.

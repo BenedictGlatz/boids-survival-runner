@@ -116,6 +116,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The game loop now runs on a fixed timestep: the simulation always advances 60 logical steps per second and only rendering follows the chosen framerate, so difficulty and player speed no longer depend on the display refresh rate.
 - Start-menu settings are now built from a shared option-group module, so every setting renders and behaves identically instead of repeating the markup and selection logic per option.
 - The player dash now carries about a third further. Only the decay of the raised speed limit changed (3000 to 2300 pixels per second squared), so the dash still starts with exactly the same kick and simply holds its extra speed a little longer — roughly a third of a second instead of a quarter. The dash cooldown is unchanged, which makes the ability noticeably stronger rather than merely different.
+- Boids now lunge in groups rather than strictly one at a time. When the boid picked for a dash has neighbours of the same difficulty tier flying close beside it, up to four of them charge and launch together as one coordinated push; a boid flying alone still dashes by itself, so the group is an upgrade of the existing behaviour rather than a replacement.
+- Boid dashes happen noticeably more often: a dash is offered every 24 simulation steps instead of every 40, and the flock may hold eight boids charging or dashing at once instead of three, with a further slot per 40 boids instead of per 60. The previous tuning made the ability so rare that most rounds barely showed it.
+- The player dash now carries a further 50 % (decay 2300 to 1533 pixels per second squared), which keeps the dash a reliable answer to a group lunge rather than only to a single one. The kick at the start and the cooldown are unchanged.
 
 ### Fixed
 

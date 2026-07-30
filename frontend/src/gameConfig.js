@@ -28,11 +28,11 @@ export const PLAYER_DASH_SPEED = 1100;
  * touching how hard the dash feels at the moment it starts.
  *
  * The surplus travel is the area under the decaying ramp above the normal top
- * speed: (1100 - 360)^2 / (2 * 2300), about 119 pixels on top of the ~53 the
+ * speed: (1100 - 360)^2 / (2 * 1533), about 179 pixels on top of the ~79 the
  * player would have covered at top speed anyway. The ramp lasts
- * (1100 - 360) / 2300, so roughly a third of a second.
+ * (1100 - 360) / 1533, so just under half a second.
  */
-export const PLAYER_DASH_SPEED_DECAY = 2300;
+export const PLAYER_DASH_SPEED_DECAY = 1533;
 
 /** How long the player has to wait before dashing again. */
 export const PLAYER_DASH_COOLDOWN_MS = 1400;

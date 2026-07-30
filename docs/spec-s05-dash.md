@@ -165,7 +165,7 @@ weg. Kein Nachglühen, kein zusätzlicher Abklingcode.
 ### Auswahl — deterministisch, ohne Zufallsgenerator
 
 `Flock` bekommt einen `step_counter`; er ist der komplette Seed.
-`select_dash_candidate` gibt fast immer `None` zurück:
+`select_dash_group` gibt fast immer eine leere Liste zurück:
 
 1. nur wenn `step_counter % DASH_SELECTION_INTERVAL_STEPS == 0`,
 2. nur wenn `count_busy_dashers < allowed_concurrent_dashers(len)`,
@@ -173,12 +173,39 @@ weg. Kein Nachglühen, kein zusätzlicher Abklingcode.
    `find_spawn_position`: `seed = runde*37 + versuch*17`, `index = (seed*97 + 31) % len`,
 4. Kandidat muss `can_dash`, `Idle` und in `[MINIMUM, MAXIMUM]`-Distanz sein.
 
-Gewürfelt wird einmal pro 40 Schritte für den **ganzen** Schwarm, nicht pro Boid pro
+Gewürfelt wird einmal pro 24 Schritte für den **ganzen** Schwarm, nicht pro Boid pro
 Schritt — es gibt also nichts nachzuwürfeln. Wer den Slot bekommt, ist durch
 `begin_dash_charge` sofort nicht mehr `Idle` und für den ganzen Zyklus (bei Tier 2:
 44 + 20 + 240 = 304 Schritte ≈ 5 s) nicht wählbar.
 
-Erwartete Gleichzeitigkeit ≈ 1,6; harte Obergrenze 3 (36 Boids) bis 5 (156 Boids).
+### Gruppen — ein Stoß statt eines Einzelgängers
+
+Der gewürfelte Boid ist nicht der Dasher, sondern der **Anführer** einer Gruppe.
+`collect_group_around` läuft danach einmal in Indexreihenfolge über den Schwarm und
+nimmt jeden Boid auf, der
+
+- denselben `difficulty_tier` wie der Anführer hat,
+- höchstens `DASH_GROUP_RADIUS` (70 px) von ihm entfernt ist und
+- dieselbe Eignungsprüfung wie der Anführer besteht,
+
+bis `MAX_DASH_GROUP_SIZE` (4) oder die Zahl der freien Slots erreicht ist. Findet sich
+niemand, dashe der Anführer allein — der Einzeldash ist also der Randfall der Gruppe
+und kein zweiter Codepfad.
+
+Der Tier-Vergleich trägt zwei Lasten. Sichtbar: vier gleichfarbige Boids lesen sich als
+ein abgestimmter Stoß, ein gemischtes Häufchen als Rauschen. Mechanisch: Boids eines
+Tiers teilen ihre `charge_steps`, die Gruppe pulst also synchron und startet im
+**selben** Simulationsschritt. Ein tierübergreifender Trupp würde gestaffelt losfliegen
+und damit genau die Lesbarkeit verlieren, um die es geht.
+
+`DASH_GROUP_RADIUS` liegt bewusst unter `DEFAULT_PERCEPTION_RADIUS` (85 px): eine Gruppe
+ist ein Verband, der ohnehin schon zusammen fliegt, nicht ein über den Bildschirm
+zusammengesuchtes Kommando.
+
+Die Slot-Grenze ist unverändert die Obergrenze — nicht die Gruppengröße. Bleiben nur
+zwei Slots frei, dashen zwei Boids gemeinsam statt vier.
+
+Erwartete Gleichzeitigkeit ≈ 4; harte Obergrenze 8 (36 Boids) bis 11 (156 Boids).
 
 Die Distanzschranken heißen `..._SELECTION_DISTANCE` und nicht `..._LAUNCH_DISTANCE`,
 weil der Boid während seiner ~44 Charge-Schritte weiter flockt und dabei bis zu ~170
@@ -302,7 +329,11 @@ beim Laden und dort monoton steigend, in [-1,0) beim Dashen.
 `dash_selection.rs` — keine Auswahl zwischen Selektionsrunden · keine Auswahl wenn
 kein Boid dashen darf · zu nahe und zu ferne Boids werden nicht gewählt · keine
 Auswahl bei vollen Slots · ein Boid im Cooldown belegt keinen Slot · größere Schwärme
-dürfen mehr Dasher · ein geeigneter Boid wird in einer Selektionsrunde gewählt.
+dürfen mehr Dasher · ein geeigneter Boid wird in einer Selektionsrunde gewählt ·
+benachbarte Boids desselben Tiers werden als Gruppe gewählt · jeder Boid steht
+höchstens einmal in der Gruppe · ein Boid ohne Nachbarn wird allein gewählt · nur der
+Tier des Anführers tritt der Gruppe bei · die Gruppe bleibt unter der Zahl freier
+Slots · ein nicht-`Idle`-Boid tritt keiner Gruppe bei.
 
 `overlap.rs` — Wrapping hält auch bei einem Sprung über mehr als eine Weltbreite ·
 eine Welt der Größe 0 wird nicht angetastet · die Fallback-Richtung ist immer ein
@@ -345,9 +376,10 @@ die hellsten Spitzen liegen nahe am Absprung, nicht am Anfang.
 - Leertaste ohne Richtung verbraucht den Cooldown nicht; Nachdrücken im Cooldown tut nichts.
 - Dash gegen die Wand stirbt dort, teleportiert nicht.
 - Nach Game Over ist der Dash sofort wieder verfügbar, der Countdown öffnet ohne Nachhol-Schub.
-- Bis Welle 2 pulsiert nichts. Ab Welle 3 pulsieren einzelne Boids zunehmend schneller
-  und heller, stoßen geradlinig zu, lösen sich aus dem Schwarm, werden zurückgezogen.
-  Nie mehr als ~3 gleichzeitig.
+- Bis Welle 2 pulsiert nichts. Ab Welle 3 pulsieren einzelne Boids und kleine Verbände
+  gleichfarbiger Boids zunehmend schneller und heller, stoßen geradlinig zu, lösen sich
+  aus dem Schwarm, werden zurückgezogen. Ein Verband pulst und startet synchron.
+  Nie mehr als ~8 gleichzeitig, nie mehr als 4 pro Stoß.
 - Frametime-Graph in Welle 4–5: die Simulationskurve steigt durch die Dash-Auswahl nicht auffällig.
 
 ## 7) Aufwand

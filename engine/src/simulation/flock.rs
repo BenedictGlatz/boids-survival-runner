@@ -1,6 +1,6 @@
 use super::boid::Boid;
 use super::dash::{advance_dash_state, begin_dash_charge, is_dashing, step_speed_limit};
-use super::dash_selection::select_dash_candidate;
+use super::dash_selection::select_dash_group;
 use super::obstacle::Obstacle;
 use super::obstacle_collision::push_boids_out_of_obstacles;
 use super::overlap::{resolve_boid_overlaps, wrap_position};
@@ -44,10 +44,10 @@ impl Flock {
         // wrapping_add so a very long session cannot overflow the counter.
         self.step_counter = self.step_counter.wrapping_add(1);
 
-        // Hand out at most one new dash before anything moves, so the chosen boid
-        // already pulses in this very step.
-        if let Some(index) = select_dash_candidate(&self.boids, self.step_counter, player_position)
-        {
+        // Hand out at most one new dash before anything moves, so the chosen boids
+        // already pulse in this very step. The selection may return a small group of
+        // neighbouring boids of the same tier, which then charge and launch together.
+        for index in select_dash_group(&self.boids, self.step_counter, player_position) {
             begin_dash_charge(&mut self.boids[index]);
         }
 
@@ -328,6 +328,37 @@ mod tests {
         }
 
         assert!(saw_a_dash);
+    }
+
+    #[test]
+    fn boids_of_one_tier_flying_together_dash_as_a_group() {
+        // The counterpart to the test above: a single lunge is not enough, a tight
+        // cluster of one tier has to produce a push of several boids at once.
+        let mut flock = Flock::new();
+        for index in 0..24 {
+            flock.add(dash_capable_boid(
+                Vec2::new(200.0 + index as f32 * 12.0, 200.0),
+                MAX_BOID_DIFFICULTY_TIER,
+            ));
+        }
+
+        let mut most_boids_dashing_at_once = 0;
+        for _ in 0..1200 {
+            flock.update(Vec2::new(500.0, 500.0), &no_obstacles(), 1000.0, 1000.0);
+
+            let mut dashing_now = 0;
+            for boid in &flock.boids {
+                if boid.dash_state == DashState::Dashing {
+                    dashing_now += 1;
+                }
+            }
+
+            if dashing_now > most_boids_dashing_at_once {
+                most_boids_dashing_at_once = dashing_now;
+            }
+        }
+
+        assert!(most_boids_dashing_at_once > 1);
     }
 
     #[test]
