@@ -5,7 +5,7 @@
  */
 export const APP_VERSION = '0.1.0';
 
-export const INITIAL_BOID_COUNT = 36;
+export const INITIAL_BOID_COUNT = 12;
 export const PLAYER_STARTING_LIVES = 3;
 export const HIT_COOLDOWN_MS = 900;
 export const WAVE_DURATION_SECONDS = 30;
