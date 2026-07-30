@@ -142,6 +142,77 @@ describe('PlayerController.update — movement', () => {
   });
 });
 
+describe('PlayerController.applyObstacleBlock', () => {
+  const FROM_THE_LEFT = { x: -1, y: 0 };
+
+  it('takes the position the engine worked out', () => {
+    // The engine owns the obstacle geometry, so its answer is the authority. Ignoring
+    // it would leave the drawn player and the one the flock chased slowly diverging.
+    const player = makePlayerAtCentre();
+
+    player.applyObstacleBlock({ x: 123, y: 456 }, FROM_THE_LEFT);
+
+    expect(player.position).toEqual({ x: 123, y: 456 });
+  });
+
+  it('removes the velocity running into the surface', () => {
+    const player = makePlayerAtCentre();
+    player.velocity = { x: 200, y: 0 };
+
+    player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
+
+    expect(player.velocity.x).toBeCloseTo(0, 6);
+  });
+
+  it('keeps the velocity running along the surface', () => {
+    // This is the difference between sliding and sticking. Zeroing the whole velocity
+    // would make every obstacle a wall the player has to peel away from by hand.
+    const player = makePlayerAtCentre();
+    player.velocity = { x: 200, y: 150 };
+
+    player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
+
+    expect(player.velocity.x).toBeCloseTo(0, 6);
+    expect(player.velocity.y).toBeCloseTo(150, 6);
+  });
+
+  it('leaves a velocity already pointing away from the surface untouched', () => {
+    // Nothing runs into the obstacle here, so subtracting the projection would
+    // accelerate the player off it instead of leaving them alone.
+    const player = makePlayerAtCentre();
+    player.velocity = { x: -200, y: 0 };
+
+    player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
+
+    expect(player.velocity.x).toBeCloseTo(-200, 6);
+  });
+
+  it('ends a dash that ran into an obstacle', () => {
+    // Same reason the world edge ends one: the raised speed limit would otherwise let
+    // ordinary movement run above the top speed for the rest of the dash window.
+    const player = makePlayerAtCentre();
+    step(player, RIGHT, { dash: true });
+
+    player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
+    step(player, RIGHT);
+
+    expect(speedOf(player)).toBeLessThanOrEqual(PLAYER_MAX_SPEED);
+  });
+
+  it('handles a diagonal surface', () => {
+    // A bar can sit at any angle, so the normal is rarely axis-aligned. The remaining
+    // velocity has to end up perpendicular to it rather than merely smaller.
+    const player = makePlayerAtCentre();
+    const diagonal = { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
+    player.velocity = { x: 100, y: 100 };
+
+    player.applyObstacleBlock({ x: 500, y: 500 }, diagonal);
+
+    const intoTheSurface = player.velocity.x * diagonal.x + player.velocity.y * diagonal.y;
+    expect(intoTheSurface).toBeCloseTo(0, 6);
+  });
+});
+
 describe('PlayerController.update — the dash', () => {
   it('leaves the player far above top speed in the step it starts', () => {
     // The impulse has to survive the speed clamp in its own step. The limit decays

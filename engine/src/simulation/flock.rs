@@ -1,9 +1,11 @@
 use super::boid::Boid;
 use super::dash::{advance_dash_state, begin_dash_charge, is_dashing, step_speed_limit};
 use super::dash_selection::select_dash_candidate;
+use super::obstacle::Obstacle;
+use super::obstacle_collision::push_boids_out_of_obstacles;
 use super::overlap::{resolve_boid_overlaps, wrap_position};
 use super::physics::{aabb_overlap, clamp_force, integrate};
-use super::rules::{alignment, cohesion, seek_target, separation};
+use super::steering::{dash_steering, flocking_steering};
 use crate::constants::PLAYER_COLLISION_RADIUS;
 use crate::math::vector::Vec2;
 
@@ -32,7 +34,13 @@ impl Flock {
     }
 
     // updates the position of all boids based on a snapshot of the previous frame
-    pub fn update(&mut self, player_position: Vec2, world_width: f32, world_height: f32) -> u32 {
+    pub fn update(
+        &mut self,
+        player_position: Vec2,
+        obstacles: &[Obstacle],
+        world_width: f32,
+        world_height: f32,
+    ) -> u32 {
         // wrapping_add so a very long session cannot overflow the counter.
         self.step_counter = self.step_counter.wrapping_add(1);
 
@@ -54,7 +62,7 @@ impl Flock {
             let steering = if is_dashing(boid) {
                 dash_steering(boid, &snapshot)
             } else {
-                flocking_steering(boid, &snapshot, player_position)
+                flocking_steering(boid, &snapshot, player_position, obstacles)
             };
 
             boid.acceleration = clamp_force(boid, steering);
@@ -66,30 +74,13 @@ impl Flock {
 
         resolve_boid_overlaps(&mut self.boids, world_width, world_height);
 
+        // Last, and deliberately after the overlap relaxation: that relaxation moves
+        // boids to unstack them and can push one into an obstacle, so anything the
+        // steering could not keep out has to be corrected here rather than before it.
+        push_boids_out_of_obstacles(obstacles, &mut self.boids);
+
         count_player_hits(&self.boids, player_position)
     }
-}
-
-/// The normal four-rule steering, used whenever a boid is not dashing.
-fn flocking_steering(boid: &Boid, snapshot: &[Boid], player_position: Vec2) -> Vec2 {
-    // Read all steering rules from the same snapshot so every boid reacts to
-    // the previous frame, not to neighbours that were already updated.
-    let separation_force = separation(boid, snapshot).scale(boid.properties.separation_weight);
-    let alignment_force = alignment(boid, snapshot).scale(boid.properties.alignment_weight);
-    let cohesion_force = cohesion(boid, snapshot).scale(boid.properties.cohesion_weight);
-    let target_force = seek_target(boid, player_position).scale(boid.properties.target_seek_weight);
-
-    separation_force
-        .add(alignment_force)
-        .add(cohesion_force)
-        .add(target_force)
-}
-
-/// Steering for a dashing boid: cohesion, alignment and seeking the player are all
-/// switched off, leaving only separation. That is what makes a dasher visibly break
-/// out of the swarm — and why cohesion pulls it back once the dash is over.
-fn dash_steering(boid: &Boid, snapshot: &[Boid]) -> Vec2 {
-    separation(boid, snapshot).scale(boid.properties.separation_weight)
 }
 
 fn count_player_hits(boids: &[Boid], player_position: Vec2) -> u32 {
@@ -113,6 +104,11 @@ mod tests {
     use crate::simulation::boid::BoidProperties;
     use crate::simulation::dash::{dash_properties_for_difficulty_tier, DashState};
     use crate::simulation::dash_selection::{allowed_concurrent_dashers, count_busy_dashers};
+
+    /// No obstacles at all, for the tests that are only about flocking.
+    fn no_obstacles() -> Vec<Obstacle> {
+        Vec::new()
+    }
 
     /// Builds a boid of the given tier that is allowed to dash.
     fn dash_capable_boid(position: Vec2, tier: u32) -> Boid {
@@ -147,7 +143,7 @@ mod tests {
             },
         ));
 
-        let hit_count = flock.update(Vec2::new(55.0, 50.0), 100.0, 100.0);
+        let hit_count = flock.update(Vec2::new(55.0, 50.0), &no_obstacles(), 100.0, 100.0);
 
         assert_eq!(hit_count, 1);
     }
@@ -166,7 +162,7 @@ mod tests {
             },
         ));
 
-        flock.update(Vec2::new(50.0, 50.0), 100.0, 100.0);
+        flock.update(Vec2::new(50.0, 50.0), &no_obstacles(), 100.0, 100.0);
 
         assert_eq!(flock.boids[0].position, Vec2::new(3.0, 40.0));
     }
@@ -189,7 +185,7 @@ mod tests {
             },
         ));
 
-        flock.update(Vec2::new(90.0, 50.0), 100.0, 100.0);
+        flock.update(Vec2::new(90.0, 50.0), &no_obstacles(), 100.0, 100.0);
 
         assert!(flock.boids[0].velocity.x > 0.0);
         assert!(flock.boids[0].position.x > 10.0);
@@ -220,7 +216,7 @@ mod tests {
             stationary_properties,
         ));
 
-        flock.update(Vec2::new(90.0, 90.0), 100.0, 100.0);
+        flock.update(Vec2::new(90.0, 90.0), &no_obstacles(), 100.0, 100.0);
 
         let distance = flock.boids[0].position.distance_to(flock.boids[1].position);
         assert!(distance >= BOID_COLLISION_RADIUS * 2.0);
@@ -243,7 +239,7 @@ mod tests {
         ));
 
         // The player sits far below as well, so seeking would also pull downwards.
-        flock.update(Vec2::new(100.0, 900.0), 1000.0, 1000.0);
+        flock.update(Vec2::new(100.0, 900.0), &no_obstacles(), 1000.0, 1000.0);
 
         assert_eq!(flock.boids[0].velocity.y, 0.0);
         assert!(flock.boids[0].velocity.x > flock.boids[0].properties.max_speed);
@@ -256,7 +252,7 @@ mod tests {
         launch_dash_along(&mut dasher, Vec2::new(1.0, 0.0));
         flock.add(dasher);
 
-        flock.update(Vec2::new(150.0, 150.0), 300.0, 300.0);
+        flock.update(Vec2::new(150.0, 150.0), &no_obstacles(), 300.0, 300.0);
 
         let position = flock.boids[0].position;
         assert!(position.x >= 0.0 && position.x <= 300.0);
@@ -284,7 +280,7 @@ mod tests {
         bystander.properties.max_acceleration = 0.0;
         flock.add(bystander);
 
-        flock.update(Vec2::new(500.0, 900.0), 1000.0, 1000.0);
+        flock.update(Vec2::new(500.0, 900.0), &no_obstacles(), 1000.0, 1000.0);
 
         // The dash runs along x, so any y movement of the dasher came from the
         // relaxation pass.
@@ -304,7 +300,7 @@ mod tests {
 
         let limit = allowed_concurrent_dashers(flock.len());
         for _ in 0..1200 {
-            flock.update(Vec2::new(500.0, 500.0), 1000.0, 1000.0);
+            flock.update(Vec2::new(500.0, 500.0), &no_obstacles(), 1000.0, 1000.0);
             assert!(count_busy_dashers(&flock.boids) <= limit);
         }
     }
@@ -322,7 +318,7 @@ mod tests {
         // Guards against the whole feature silently never firing.
         let mut saw_a_dash = false;
         for _ in 0..1200 {
-            flock.update(Vec2::new(500.0, 500.0), 1000.0, 1000.0);
+            flock.update(Vec2::new(500.0, 500.0), &no_obstacles(), 1000.0, 1000.0);
 
             for boid in &flock.boids {
                 if boid.dash_state == DashState::Dashing {
@@ -332,5 +328,57 @@ mod tests {
         }
 
         assert!(saw_a_dash);
+    }
+
+    #[test]
+    fn boids_steer_around_an_obstacle_instead_of_pressing_into_it() {
+        // The whole feature seen from the outside: a boid chasing a player on the far
+        // side of a bar has to get past it. Steering alone is what has to achieve
+        // that — the push-out is a safety net for obstacles that appear on top of a
+        // boid, and a boid that relied on it would visibly grind along the surface.
+        let bar = Obstacle::new(Vec2::new(500.0, 200.0), Vec2::new(500.0, 600.0), 15.0, 1800);
+        let obstacles = [bar];
+        let mut flock = Flock::new();
+        flock.add(Boid::new(Vec2::new(300.0, 400.0), Vec2::new(3.0, 0.0)));
+
+        let player = Vec2::new(700.0, 400.0);
+        let mut nearest_approach = f32::MAX;
+
+        for _ in 0..240 {
+            flock.update(player, &obstacles, 1000.0, 1000.0);
+
+            let contact = bar.contact_with_point(flock.boids[0].position, 0.0);
+            nearest_approach = nearest_approach.min(contact.surface_distance);
+
+            // Never inside, at any point along the way.
+            assert!(
+                contact.surface_distance >= -1e-3,
+                "a boid ended up {} inside the obstacle",
+                -contact.surface_distance
+            );
+        }
+
+        // It got close enough for the rule to matter, so the test is not passing
+        // simply because the boid never went near the bar.
+        assert!(nearest_approach < 60.0);
+        // And it made it around: past the bar, or at least clear of the line it sat on.
+        let travelled_past = flock.boids[0].position.y < 200.0 || flock.boids[0].position.y > 600.0;
+        assert!(
+            flock.boids[0].position.x > 515.0 || travelled_past,
+            "the boid never got past the obstacle"
+        );
+    }
+
+    #[test]
+    fn a_boid_caught_inside_a_new_obstacle_is_freed() {
+        // An obstacle can appear on top of a boid, and steering cannot undo that.
+        let obstacles = [Obstacle::circle(Vec2::new(500.0, 500.0), 60.0, 1800)];
+        let mut flock = Flock::new();
+        flock.add(Boid::new(Vec2::new(505.0, 500.0), Vec2::new(1.0, 0.0)));
+
+        flock.update(Vec2::new(100.0, 100.0), &obstacles, 1000.0, 1000.0);
+
+        let contact = obstacles[0].contact_with_point(flock.boids[0].position, 0.0);
+        assert!(contact.surface_distance >= -1e-3);
     }
 }

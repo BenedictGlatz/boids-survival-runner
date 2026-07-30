@@ -93,9 +93,11 @@ export default [
     },
   },
 
-  // End-to-end tests. Same JSDoc exemption as the unit tests, but they also run in
-  // Node rather than the browser: the spec drives Playwright from the outside, and
-  // only code inside page.evaluate() reaches the page's own globals.
+  // End-to-end tests. Same JSDoc exemption as the unit tests, but the environment is
+  // both: the spec itself drives Playwright from Node, while the callbacks it hands to
+  // page.evaluate() are serialised and run inside the page, where `document` and
+  // `window` are the real thing. Declaring only the Node globals rejects a spec that
+  // reads anything off the canvas, which is the only way to assert on what was drawn.
   //
   // The glob covers `e2e/**/*.js`, not only `*.spec.js`, so the shared helpers in
   // e2e/support/ are exempt too. Restricting it to spec files repeats the T-01
@@ -106,7 +108,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      globals: { ...globals.node },
+      globals: { ...globals.node, ...globals.browser },
     },
     rules: {
       'jsdoc/require-jsdoc': 'off',

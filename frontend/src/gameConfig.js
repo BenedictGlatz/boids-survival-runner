@@ -37,6 +37,30 @@ export const PLAYER_DASH_SPEED_DECAY = 2300;
 /** How long the player has to wait before dashing again. */
 export const PLAYER_DASH_COOLDOWN_MS = 1400;
 
+// ---------------------------------------------------------------------------
+// Temporary obstacles
+//
+// The obstacles themselves live entirely in the engine — their shape, placement and
+// lifetime are simulation, not presentation. What is left here is only what the
+// renderer needs to decode and draw them.
+// ---------------------------------------------------------------------------
+
+/**
+ * Values per obstacle in the engine's obstacle buffer:
+ * `[spineStartX, spineStartY, spineEndX, spineEndY, radius, lifeFraction]`.
+ *
+ * Duplicated in `engine/src/wasm_bridge/mod.rs` and asserted on by the WASM boundary
+ * tests, the same way `INITIAL_BOID_COUNT` is duplicated — keep the two in sync.
+ */
+export const OBSTACLE_STRIDE = 6;
+
+/**
+ * Share of an obstacle's life spent fading in when it appears, and again fading out
+ * before it goes. It has to be long enough to read as a warning rather than a pop,
+ * and short enough that the obstacle is solid for most of its time on screen.
+ */
+export const OBSTACLE_FADE_SHARE = 0.06;
+
 // The Rust engine advances exactly one fixed step per tick() call and does not
 // scale by delta time, so the simulation must run at a constant rate no matter
 // how often the canvas is redrawn.

@@ -38,6 +38,27 @@ impl Vec2 {
         self.x * other.x + self.y * other.y
     }
 
+    /// The 2D cross product, which is a single number rather than a vector.
+    ///
+    /// Its sign says which side of `self` the other vector lies on, and it is zero
+    /// exactly when the two are parallel. That is what the segment intersection test
+    /// needs, and it is the length of the 3D cross product of the same two vectors
+    /// laid flat in the plane.
+    pub fn cross(self, other: Self) -> f32 {
+        self.x * other.y - self.y * other.x
+    }
+
+    /// Turns the vector a quarter turn to the left, keeping its length.
+    ///
+    /// The result is perpendicular to the original, which is how an obstacle's
+    /// surface normal is turned into the tangent a boid slides along.
+    pub fn perp(self) -> Self {
+        Self {
+            x: -self.y,
+            y: self.x,
+        }
+    }
+
     pub fn scale(self, factor: f32) -> Self {
         Self {
             x: self.x * factor,
@@ -100,5 +121,34 @@ mod tests {
         let v = Vec2::new(10.0, 0.0);
         let limited = v.limit(5.0);
         assert!((limited.length() - 5.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn cross_is_zero_for_parallel_vectors() {
+        // The segment intersection test reads this zero as "these two lines never
+        // cross", so a non-zero result for parallel input would report a phantom hit.
+        let right = Vec2::new(3.0, 0.0);
+        let also_right = Vec2::new(7.0, 0.0);
+        let left = Vec2::new(-2.0, 0.0);
+
+        assert_eq!(right.cross(also_right), 0.0);
+        assert_eq!(right.cross(left), 0.0);
+    }
+
+    #[test]
+    fn cross_changes_sign_with_the_side_the_other_vector_is_on() {
+        let right = Vec2::new(1.0, 0.0);
+
+        assert!(right.cross(Vec2::new(0.0, 1.0)) > 0.0);
+        assert!(right.cross(Vec2::new(0.0, -1.0)) < 0.0);
+    }
+
+    #[test]
+    fn perp_is_orthogonal_and_keeps_the_length() {
+        let v = Vec2::new(3.0, 4.0);
+        let turned = v.perp();
+
+        assert_eq!(v.dot(turned), 0.0);
+        assert!((turned.length() - v.length()).abs() < 1e-5);
     }
 }

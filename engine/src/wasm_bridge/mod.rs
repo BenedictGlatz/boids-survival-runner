@@ -3,21 +3,29 @@ pub mod response;
 use self::response::FrameResponse;
 use crate::constants::{
     DEFAULT_ALIGNMENT_WEIGHT, DEFAULT_COHESION_WEIGHT, DEFAULT_MAX_ACCELERATION, DEFAULT_MAX_SPEED,
-    DEFAULT_PERCEPTION_RADIUS, DEFAULT_SEPARATION_WEIGHT, DEFAULT_TARGET_SEEK_WEIGHT,
-    INITIAL_BOID_COUNT, MAX_BOID_DIFFICULTY_TIER, WAVE_BOID_INCREMENT,
+    DEFAULT_OBSTACLE_AVOID_WEIGHT, DEFAULT_PERCEPTION_RADIUS, DEFAULT_SEPARATION_WEIGHT,
+    DEFAULT_TARGET_SEEK_WEIGHT, INITIAL_BOID_COUNT, MAX_BOID_DIFFICULTY_TIER,
+    PLAYER_COLLISION_RADIUS, WAVE_BOID_INCREMENT,
 };
 use crate::math::vector::Vec2;
 use crate::simulation::boid::{Boid, BoidProperties};
 use crate::simulation::dash::{dash_properties_for_difficulty_tier, dash_render_phase};
 use crate::simulation::flock::Flock;
+use crate::simulation::obstacle_collision::resolve_player_movement;
+use crate::simulation::obstacle_field::ObstacleField;
 use wasm_bindgen::prelude::*;
 
 const GOLDEN_ANGLE: f32 = 2.399_963_1;
+
+/// Values per obstacle in the obstacle buffer. Kept in step with the frontend's
+/// OBSTACLE_STRIDE, and asserted on in the WASM boundary tests.
+const OBSTACLE_STRIDE: usize = 6;
 
 /// Browser-facing simulation engine.
 #[wasm_bindgen]
 pub struct GameEngine {
     flock: Flock,
+    obstacle_field: ObstacleField,
     world_width: f32,
     world_height: f32,
     initial_boid_count: u32,
@@ -26,6 +34,7 @@ pub struct GameEngine {
     velocities_buffer: Vec<f32>,
     tiers_buffer: Vec<u32>,
     dash_phases_buffer: Vec<f32>,
+    obstacles_buffer: Vec<f32>,
 }
 
 #[wasm_bindgen]
@@ -56,6 +65,7 @@ impl GameEngine {
 
         Self {
             flock,
+            obstacle_field: ObstacleField::new(),
             world_width,
             world_height,
             initial_boid_count: spawn_count,
@@ -64,17 +74,62 @@ impl GameEngine {
             velocities_buffer: Vec::with_capacity(spawn_count as usize * 2),
             tiers_buffer: Vec::with_capacity(spawn_count as usize),
             dash_phases_buffer: Vec::with_capacity(spawn_count as usize),
+            obstacles_buffer: Vec::new(),
         }
     }
 
     /// Updates the simulation by one frame and returns render data for JavaScript.
-    pub fn tick(&mut self, player_x: f32, player_y: f32) -> FrameResponse {
-        let player_position = Vec2::new(player_x, player_y);
-        let hit_count = self
-            .flock
-            .update(player_position, self.world_width, self.world_height);
+    ///
+    /// The player moved from the previous position to the attempted one during this
+    /// step. Both are needed because an obstacle may have been in the way: the engine
+    /// tests the whole move rather than only where it ended, corrects it if it ran
+    /// into something, and reports the surface normal so the caller can slide along
+    /// the obstacle instead of stopping dead.
+    pub fn tick(
+        &mut self,
+        previous_x: f32,
+        previous_y: f32,
+        attempted_x: f32,
+        attempted_y: f32,
+    ) -> FrameResponse {
+        let previous = Vec2::new(previous_x, previous_y);
+        let attempted = Vec2::new(attempted_x, attempted_y);
 
-        self.build_frame_response(hit_count)
+        // Resolved before anything else moves, so the flock steers against and is
+        // tested against the position the player really ends up in.
+        let resolution = resolve_player_movement(
+            &self.obstacle_field.obstacles,
+            previous,
+            attempted,
+            PLAYER_COLLISION_RADIUS,
+        );
+        let player_position = resolution.position;
+
+        // Obstacles age and spawn before the flock steps, so a boid never steers
+        // against an obstacle that has already gone.
+        self.obstacle_field.update(
+            self.flock.step_counter,
+            self.current_wave,
+            player_position,
+            self.world_width,
+            self.world_height,
+        );
+
+        let hit_count = self.flock.update(
+            player_position,
+            &self.obstacle_field.obstacles,
+            self.world_width,
+            self.world_height,
+        );
+
+        let mut response = self.build_frame_response(hit_count);
+        response.player_x = player_position.x;
+        response.player_y = player_position.y;
+        response.obstacle_hit = resolution.blocked;
+        response.block_normal_x = resolution.surface_normal.x;
+        response.block_normal_y = resolution.surface_normal.y;
+
+        response
     }
 
     /// Returns render data for the current frame without advancing the simulation.
@@ -100,6 +155,13 @@ impl GameEngine {
     pub fn resize(&mut self, width: u32, height: u32) {
         self.world_width = width.max(1) as f32;
         self.world_height = height.max(1) as f32;
+
+        // A window that shrank can leave an obstacle outside the world or pressed
+        // against a new edge, and an obstacle against a wall is the one arrangement
+        // that could pocket the player in. Those obstacles disappear rather than being
+        // moved, which keeps the guarantee unconditional at the cost of a visible pop.
+        self.obstacle_field
+            .drop_obstacles_outside(self.world_width, self.world_height);
     }
 }
 
@@ -124,6 +186,12 @@ impl GameEngine {
         self.velocities_buffer.clear();
         self.tiers_buffer.clear();
         self.dash_phases_buffer.clear();
+        self.obstacles_buffer.clear();
+        // Unlike the boid buffers this one cannot be sized once at construction: the
+        // obstacle count changes as they come and go. Reserving here keeps it from
+        // regrowing on the frames where a new obstacle appears.
+        self.obstacles_buffer
+            .reserve(self.obstacle_field.len() * OBSTACLE_STRIDE);
 
         for boid in &self.flock.boids {
             self.positions_buffer.push(boid.position.x);
@@ -134,6 +202,18 @@ impl GameEngine {
             self.dash_phases_buffer.push(dash_render_phase(boid));
         }
 
+        // OBSTACLE_STRIDE values each, in this order. There is no shape flag: a
+        // circular obstacle has both spine points in the same place, which the
+        // frontend draws as a round line cap without a branch of its own.
+        for obstacle in &self.obstacle_field.obstacles {
+            self.obstacles_buffer.push(obstacle.spine_start.x);
+            self.obstacles_buffer.push(obstacle.spine_start.y);
+            self.obstacles_buffer.push(obstacle.spine_end.x);
+            self.obstacles_buffer.push(obstacle.spine_end.y);
+            self.obstacles_buffer.push(obstacle.radius);
+            self.obstacles_buffer.push(obstacle.life_fraction());
+        }
+
         FrameResponse {
             entity_count: self.flock.len() as u32,
             hit_count,
@@ -141,6 +221,15 @@ impl GameEngine {
             velocities: self.velocities_buffer.clone(),
             tiers: self.tiers_buffer.clone(),
             dash_phases: self.dash_phases_buffer.clone(),
+            obstacle_count: self.obstacle_field.len() as u32,
+            obstacles: self.obstacles_buffer.clone(),
+            // Filled in by tick(). A snapshot moves nobody, so there is nothing to
+            // correct and nothing to report.
+            player_x: 0.0,
+            player_y: 0.0,
+            obstacle_hit: false,
+            block_normal_x: 0.0,
+            block_normal_y: 0.0,
         }
     }
 }
@@ -180,6 +269,10 @@ fn properties_for_difficulty_tier(difficulty_tier: u32) -> BoidProperties {
         alignment_weight: DEFAULT_ALIGNMENT_WEIGHT,
         cohesion_weight: DEFAULT_COHESION_WEIGHT,
         target_seek_weight: DEFAULT_TARGET_SEEK_WEIGHT + tier * 0.045,
+        // Flat across all tiers on purpose. Avoiding an obstacle is competence, not
+        // difficulty — a later boid that were worse at it would look broken rather
+        // than harder. The difficulty ramp for obstacles sits in their density.
+        obstacle_avoid_weight: DEFAULT_OBSTACLE_AVOID_WEIGHT,
         dash: dash_properties_for_difficulty_tier(difficulty_tier),
     }
 }

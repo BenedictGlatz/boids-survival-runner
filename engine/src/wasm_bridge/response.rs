@@ -16,6 +16,13 @@ pub struct FrameResponse {
     pub(crate) velocities: Vec<f32>,
     pub(crate) tiers: Vec<u32>,
     pub(crate) dash_phases: Vec<f32>,
+    pub(crate) obstacle_count: u32,
+    pub(crate) obstacles: Vec<f32>,
+    pub(crate) player_x: f32,
+    pub(crate) player_y: f32,
+    pub(crate) obstacle_hit: bool,
+    pub(crate) block_normal_x: f32,
+    pub(crate) block_normal_y: f32,
 }
 
 #[wasm_bindgen]
@@ -62,5 +69,61 @@ impl FrameResponse {
     /// `-1` and `0` means the boid is dashing and how much of the dash is left.
     pub fn dash_phases(&self) -> Float32Array {
         Float32Array::from(self.dash_phases.as_slice())
+    }
+
+    /// Number of obstacles packed into the obstacles buffer.
+    #[wasm_bindgen(getter)]
+    pub fn obstacle_count(&self) -> u32 {
+        self.obstacle_count
+    }
+
+    /// Returns the obstacles as a flat buffer of six values each:
+    /// `[spine_start_x, spine_start_y, spine_end_x, spine_end_y, radius, life_fraction]`.
+    ///
+    /// An obstacle is a capsule — a centre line swept by a circle of that radius —
+    /// and a circular obstacle is the one whose two spine points coincide. There is
+    /// deliberately no shape field: drawing a zero-length line with a round cap
+    /// produces the circle, so both shapes are one drawing call rather than two.
+    ///
+    /// `life_fraction` counts down from `1.0` to `0.0` over the obstacle's lifetime,
+    /// which is what the renderer fades it in and out by. Like `dash_phases` it packs
+    /// a whole render state into one number so no second buffer has to cross.
+    pub fn obstacles(&self) -> Float32Array {
+        Float32Array::from(self.obstacles.as_slice())
+    }
+
+    /// The player's position after the engine resolved the move against the
+    /// obstacles. Equal to the attempted position unless something was in the way.
+    #[wasm_bindgen(getter)]
+    pub fn player_x(&self) -> f32 {
+        self.player_x
+    }
+
+    /// The player's resolved y position. See `player_x`.
+    #[wasm_bindgen(getter)]
+    pub fn player_y(&self) -> f32 {
+        self.player_y
+    }
+
+    /// Whether the player ran into an obstacle during this step and should lose a life.
+    #[wasm_bindgen(getter)]
+    pub fn obstacle_hit(&self) -> bool {
+        self.obstacle_hit
+    }
+
+    /// The x component of the surface normal at the point of contact.
+    ///
+    /// Zero when nothing was hit. The caller removes the part of its velocity that
+    /// points along this normal and keeps the rest, which is what turns a collision
+    /// into a slide along the obstacle rather than a full stop.
+    #[wasm_bindgen(getter)]
+    pub fn block_normal_x(&self) -> f32 {
+        self.block_normal_x
+    }
+
+    /// The y component of the contact surface normal. See `block_normal_x`.
+    #[wasm_bindgen(getter)]
+    pub fn block_normal_y(&self) -> f32 {
+        self.block_normal_y
     }
 }

@@ -105,6 +105,38 @@ export class PlayerController {
     }
   }
 
+  /**
+   * Accepts the engine's correction after the player ran into an obstacle.
+   *
+   * The engine owns the obstacle geometry and has already worked out where the player
+   * actually ends up; all that is left here is the velocity. The component pointing
+   * into the surface is removed and the one running along it is kept, so the player
+   * slides along the obstacle instead of stopping dead — the same feel as the world
+   * edge, where `clampToBounds` zeroes one axis and leaves the other.
+   *
+   * A dash ends here too, for the reason it ends at a wall: leaving the raised speed
+   * limit in place would let ordinary movement run above the top speed for the rest of
+   * the dash window.
+   * @param {{x: number, y: number}} position - The corrected position from the engine.
+   * @param {{x: number, y: number}} surfaceNormal - Unit normal at the point of contact.
+   * @returns {void}
+   */
+  applyObstacleBlock(position, surfaceNormal) {
+    this.position.x = position.x;
+    this.position.y = position.y;
+
+    // How much of the velocity runs into the surface. Positive would mean the player
+    // is already moving away from it, in which case there is nothing to take away.
+    const intoTheSurface = this.velocity.x * surfaceNormal.x + this.velocity.y * surfaceNormal.y;
+
+    if (intoTheSurface < 0) {
+      this.velocity.x -= surfaceNormal.x * intoTheSurface;
+      this.velocity.y -= surfaceNormal.y * intoTheSurface;
+    }
+
+    this._speedLimit = PLAYER_MAX_SPEED;
+  }
+
   /** @returns {{x: number, y: number}} A copy of the current position. */
   getPosition() {
     return {

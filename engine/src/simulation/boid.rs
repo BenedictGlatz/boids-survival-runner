@@ -1,7 +1,8 @@
 use super::dash::{DashProperties, DashState};
 use crate::constants::{
     DEFAULT_ALIGNMENT_WEIGHT, DEFAULT_COHESION_WEIGHT, DEFAULT_MAX_ACCELERATION, DEFAULT_MAX_SPEED,
-    DEFAULT_PERCEPTION_RADIUS, DEFAULT_SEPARATION_WEIGHT, DEFAULT_TARGET_SEEK_WEIGHT,
+    DEFAULT_OBSTACLE_AVOID_WEIGHT, DEFAULT_PERCEPTION_RADIUS, DEFAULT_SEPARATION_WEIGHT,
+    DEFAULT_TARGET_SEEK_WEIGHT,
 };
 use crate::math::vector::Vec2;
 
@@ -18,6 +19,10 @@ pub struct BoidProperties {
     pub alignment_weight: f32,
     pub cohesion_weight: f32,
     pub target_seek_weight: f32,
+    /// How hard this boid steers around obstacles. On the boid rather than global
+    /// because it is a per-boid tuning value like every other weight here, even
+    /// though all variants currently share the default.
+    pub obstacle_avoid_weight: f32,
     /// Dash tuning, grouped in its own struct so all five values stay together.
     pub dash: DashProperties,
 }
@@ -32,6 +37,7 @@ impl Default for BoidProperties {
             alignment_weight: DEFAULT_ALIGNMENT_WEIGHT,
             cohesion_weight: DEFAULT_COHESION_WEIGHT,
             target_seek_weight: DEFAULT_TARGET_SEEK_WEIGHT,
+            obstacle_avoid_weight: DEFAULT_OBSTACLE_AVOID_WEIGHT,
             dash: DashProperties::default(),
         }
     }

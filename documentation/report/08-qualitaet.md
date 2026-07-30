@@ -119,13 +119,14 @@ Antwort auf die Frage, was diese Stufe zusätzlich leistet, statt sie behaupten 
 müssen. Als Regressionswächter prüft `boot.spec.js` seitdem beides: dass kein Request
 fehlschlägt und dass die Menütexte echte Wörter statt Schlüsseln sind.
 
-| Flow               | Zweck                                                                                                             | Dauer |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------- | ----: |
-| `boot.spec.js`     | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt | < 1 s |
-| `round.spec.js`    | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                    | ~ 5 s |
-| `input.spec.js`    | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                      | ~ 5 s |
-| `settings.spec.js` | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                              | ~ 4 s |
-| `gameover.spec.js` | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                            | ~ 8 s |
+| Flow                | Zweck                                                                                                             | Dauer |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- | ----: |
+| `boot.spec.js`      | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt | < 1 s |
+| `round.spec.js`     | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                    | ~ 5 s |
+| `input.spec.js`     | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                      | ~ 5 s |
+| `settings.spec.js`  | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                              | ~ 4 s |
+| `gameover.spec.js`  | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                            | ~ 8 s |
+| `obstacles.spec.js` | Hindernisse werden in der Runde gezeichnet, außerhalb nicht; Runde übersteht Erscheinen und Ablauf ohne Fehler    | ~ 8 s |
 
 Drei bewusste Begrenzungen, jeweils mit ihrem Grund:
 
@@ -143,8 +144,24 @@ Drei bewusste Begrenzungen, jeweils mit ihrem Grund:
   Ungleichheits-Zusicherung wäre unabhängig von der Eingabe immer erfüllt. Ein
   Golden Image umgekehrt wäre bei einer laufenden Simulation dauerhaft instabil. Die
   Zeichen-Arithmetik ist stattdessen als Unit-Test isoliert (`renderer/dashPulse.js`,
-  `player/dashCooldown.js`, `ui/frameGraphScale.js`) — das ist der Grund, aus dem
-  diese Module überhaupt aus ihren Renderern herausgezogen wurden.
+  `player/dashCooldown.js`, `ui/frameGraphScale.js`, `renderer/obstacleFade.js`) — das
+  ist der Grund, aus dem diese Module überhaupt aus ihren Renderern herausgezogen
+  wurden.
+
+Die eine Ausnahme von der letzten Begrenzung ist `obstacles.spec.js`, und sie ist keine
+Aufweichung der Regel, sondern deren Kehrseite. Der Spec vergleicht kein Bild, sondern
+stellt eine einzige Inhaltsfrage: existiert irgendwo auf dem Canvas eine größere Fläche
+in der Hindernisfarbe. Das ist gegen die laufende Simulation stabil, weil die Boids klein
+und rot und der Spieler cyan ist, und es ist die einzige Möglichkeit, die Kette
+Engine-Buffer → Bridge → Renderer als Ganzes zu prüfen. Die Alternative wäre eine
+Debug-Schnittstelle nur für den Test gewesen — Produktionscode, dessen einziger Zweck es
+ist, getestet zu werden.
+
+Ein weiterer Nachtrag zur Zeichen-Arithmetik: `renderer/obstacleLayer.js` ist die erste
+Zeichenroutine mit einem eigenen Unit-Test, obwohl sie das Canvas berührt. Sie
+dekodiert einen flachen Buffer, und eine falsche Schrittweite darin würde jedes
+Hindernis an der falschen Stelle zeichnen, ohne irgendetwas zum Fehlschlagen zu bringen.
+Ein aufzeichnender Kontext-Stub genügt dafür und braucht keinen Browser.
 
 Was E2E dagegen als Einziges prüfen kann und hier auch prüft, ist das **Eigentum an
 der Tastatur** — die eine Eingabe-Eigenschaft, die eine Entwurfsentscheidung und keine

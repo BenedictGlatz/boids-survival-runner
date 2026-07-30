@@ -38,32 +38,45 @@ export function resizeEngine(width, height) {
 
 /**
  * Advances the simulation by exactly one fixed step.
- * @param {{x: number, y: number}} playerPosition - Current player position.
- * @returns {{entityCount: number, hitCount: number, hit: boolean, positions: Float32Array,
- *   velocities: Float32Array, tiers: Uint32Array, dashPhases: Float32Array}} The new frame.
+ *
+ * Both player positions are passed because the engine owns the obstacles and
+ * therefore resolves the move against them: it needs the whole path to tell a player
+ * who walked into an obstacle from one who was already standing in it, and to catch a
+ * dash fast enough to cross a thin obstacle between two steps. The returned frame
+ * carries the corrected position, so the caller has to use `frame.playerPosition`
+ * rather than what it asked for.
+ * @param {{x: number, y: number}} previousPosition - Where the player was before this step.
+ * @param {{x: number, y: number}} attemptedPosition - Where the player tried to move to.
+ * @returns {object} The new frame, including the resolved player position.
  */
-export function tick(playerPosition) {
+export function tick(previousPosition, attemptedPosition) {
   if (!engine) {
     throw new Error('Engine has not been initialised.');
   }
 
-  const response = engine.tick(playerPosition.x, playerPosition.y);
+  const response = engine.tick(
+    previousPosition.x,
+    previousPosition.y,
+    attemptedPosition.x,
+    attemptedPosition.y,
+  );
 
-  return normalizeFrameResponse(response);
+  return normalizeFrameResponse(response, attemptedPosition);
 }
 
 /**
  * Reads the current flock state without advancing the simulation, for rendering
  * a frame during a pause (e.g. countdown) when no `tick()` is due.
- * @returns {{entityCount: number, hitCount: number, hit: boolean, positions: Float32Array,
- *   velocities: Float32Array, tiers: Uint32Array, dashPhases: Float32Array}} The current frame.
+ * @returns {object} The current frame.
  */
 export function snapshot() {
   if (!engine) {
     throw new Error('Engine has not been initialised.');
   }
 
-  return normalizeFrameResponse(engine.snapshot());
+  // A snapshot moves nobody, so there is no move to resolve and no position to
+  // report back. Callers already know where the player is in that case.
+  return normalizeFrameResponse(engine.snapshot(), null);
 }
 
 /**
@@ -77,7 +90,7 @@ export function setWave(wave, playerPosition) {
   engine.set_wave(wave, playerPosition.x, playerPosition.y);
 }
 
-function normalizeFrameResponse(response) {
+function normalizeFrameResponse(response, attemptedPosition) {
   return {
     entityCount: response.entity_count,
     hitCount: response.hit_count,
@@ -86,5 +99,14 @@ function normalizeFrameResponse(response) {
     velocities: response.velocities(),
     tiers: response.tiers(),
     dashPhases: response.dash_phases(),
+    obstacleCount: response.obstacle_count,
+    obstacles: response.obstacles(),
+    obstacleHit: response.obstacle_hit,
+    // Falls back to the attempted position for a snapshot, which resolves nothing, so
+    // callers never have to check which kind of frame they are holding.
+    playerPosition: attemptedPosition
+      ? { x: response.player_x, y: response.player_y }
+      : attemptedPosition,
+    blockNormal: { x: response.block_normal_x, y: response.block_normal_y },
   };
 }

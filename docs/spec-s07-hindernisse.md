@@ -56,8 +56,8 @@ Bedingungen gelten:
 
 1. Oberflächenabstand zu jedem bestehenden Hindernis ≥ `MINIMUM_CORRIDOR_WIDTH`.
 2. Abstand zu jeder der vier Weltkanten ≥ `MINIMUM_CORRIDOR_WIDTH`.
-3. Abstand zur Spielerposition ≥ `safe_spawn_distance(world)` — dieselbe Funktion, die
-   schon die Boid-Spawns vom Spieler weghält.
+3. Oberflächenabstand zum Spieler (um dessen Kollisionsradius aufgeblasen) ≥
+   `MINIMUM_CORRIDOR_WIDTH`.
 4. Der Radius ist so groß, dass die um den Spielerradius aufgeblasene Kapsel breiter ist
    als die weiteste Strecke, die der Spieler in einem Simulationsschritt zurücklegt
    (Dash: 1100 px/s ÷ 60 ≈ 18,3 px).
@@ -82,6 +82,14 @@ ist: findet der Spawn nach seinen Versuchen keinen zulässigen Platz, erscheint 
 Runde kein Hindernis. Bei kleinen Fenstern und hoher Welle ist die Zahl gleichzeitig
 sichtbarer Hindernisse daher faktisch durch die Fläche begrenzt, nicht durch die Rampe.
 
+Bedingung 3 verlangt bewusst nur einen Korridor und **nicht** die viel größere
+`safe_spawn_distance`, die den Boid-Spawn vom Spieler weghält. Ein Boid wird weit
+entfernt eingesetzt, weil es sofort zu jagen beginnt; ein Hindernis bewegt sich nie und
+schuldet dem Spieler daher nur Platz zum Ausweichen. Mit der Boid-Distanz entstünde um
+den Spieler eine Sperrscheibe von fast Arenabreite — nahezu jeder Kandidat würde
+abgelehnt und die Welt bliebe leer. Das war in der Umsetzung auch genau der Fall,
+bevor die Bedingung auf den Korridor umgestellt wurde.
+
 **Sonderfälle:**
 
 - _Der Spieler steht auf dem Wunschplatz_ → Bedingung 3 lehnt ab.
@@ -97,6 +105,17 @@ Versuchszähler wird über feste Multiplikatoren ein Seed gebildet, aus dem Form
 Ausrichtung und Größe abgeleitet werden — jede über einen eigenen Multiplikator, damit sie
 nicht miteinander korrelieren. Dieselbe Runde erzeugt damit immer dasselbe Hindernis, was
 die Reproduzierbarkeit der Simulation erhält.
+
+Die Multiplikatoren sind dabei **große** Primzahlen, nicht die kleinen, mit denen die
+Dash-Auswahl auskommt, und das ist keine Kosmetik: bleibt das Produkt für die ersten
+Seeds unter dem Modulus, ist der Rest das Produkt selbst — die frühen Spawn-Runden
+landen alle in derselben Ecke der Welt und werden ausnahmslos wegen zu geringen
+Randabstands abgelehnt. Ein Multiplikator weit über dem Modulus lässt den Rest schon bei
+Seed 1 mehrfach überlaufen und verteilt die Kandidaten damit über die ganze Fläche.
+
+Da der Schrittzähler beim Rundenstart bei null steht und null ein Vielfaches jedes
+Intervalls ist, fällt die erste Spawn-Runde direkt auf den ersten Simulationsschritt: die
+Welt ist nie leer, wenn der Countdown endet.
 
 Alle Dauern zählen in **Simulationsschritten**, nie in Millisekunden. Bei 60 Schritten pro
 Sekunde sind die geforderten 30 s Lebensdauer genau 1800 Schritte.

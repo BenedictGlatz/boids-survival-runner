@@ -70,6 +70,9 @@ const emptyFrame = {
   velocities: new Float32Array(),
   tiers: new Uint32Array(),
   dashPhases: new Float32Array(),
+  obstacleCount: 0,
+  obstacles: new Float32Array(),
+  obstacleHit: false,
 };
 
 async function bootstrap() {
@@ -226,10 +229,15 @@ function runSimulationStep() {
     registerDash(gameData);
   }
 
+  // Captured before the player integrates: the engine tests the whole move against
+  // the obstacles, not just where it ended, which is what catches a dash fast enough
+  // to cross a thin obstacle inside a single step.
+  const previousPosition = player.getPosition();
+
   // The player has to move inside the same fixed step as the flock: its
   // position is an input to tick() and to the engine's collision test, so
   // integrating it per rendered frame would desync the two.
-  const playerPosition = player.update(
+  const attemptedPosition = player.update(
     { direction: controls.direction, dash: dashing },
     SIMULATION_STEP_SECONDS,
     {
@@ -240,15 +248,23 @@ function runSimulationStep() {
 
   // Runs per step so newly spawned boids exist before this step's tick(), and
   // so setWave sees the current player position for safe-spawn placement.
-  updateWaveProgression(playerPosition);
+  updateWaveProgression(attemptedPosition);
 
-  const frame = tick(playerPosition);
+  const frame = tick(previousPosition, attemptedPosition);
   gameData.currentFrame = frame;
   gameData.entityCount = frame.entityCount;
 
-  // Every step's hit count is consumed here. Reading only the last frame of a
-  // multi-step frame would silently drop a hit from an earlier step.
-  if (frame.hitCount > 0) {
+  // The engine may have pushed the player back out of an obstacle. Taking its answer
+  // is what keeps the position the renderer draws and the one the flock steered
+  // against from drifting apart over a run.
+  if (frame.obstacleHit) {
+    player.applyObstacleBlock(frame.playerPosition, frame.blockNormal);
+  }
+
+  // Every step's hits are consumed here, and both sources share one entry point so
+  // they share the invulnerability window. Reading only the last frame of a multi-step
+  // frame would silently drop a hit from an earlier step.
+  if (frame.hitCount > 0 || frame.obstacleHit) {
     registerHit(gameData);
   }
 }

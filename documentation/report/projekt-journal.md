@@ -39,19 +39,114 @@ die Zeit zwischen Commits ein aktiv irreführender Aufwandsindikator. Verworfene
 Ansätze hinterlassen überhaupt keinen Commit — und das sind genau die Stunden, nach
 denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quelle.
 
-| Datum      |   h | Spec/Maßnahme | Was                                                                                                                                                                                                                                                      |
-| ---------- | --: | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-07-29 | 2,0 | D-01          | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt                                                                                                                 |
-| 2026-07-29 | 3,5 | T-01          | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben                                                 |
-| 2026-07-29 | 1,5 | T-03          | Coverage für beide Sprachen eingerichtet (`@vitest/coverage-v8`, `cargo llvm-cov`), Ausgangsmessung genommen; T-07 als neue Maßnahme aufgenommen und Kapazitätsplan fortgeschrieben                                                                      |
-| 2026-07-29 | 3,0 | T-07          | Unit-Tests für `frameScheduler`, `gameState`, `controls` und `playerController` geschrieben; `engine/tests/wasm_tests.rs` vom Stub zum Buffer-Vertragstest ausgebaut                                                                                     |
-| 2026-07-29 | 4,0 | T-04          | Playwright gegen den Preview-Build eingerichtet, fünf Flows geschrieben, dabei den fehlenden Locale-Umzug gefunden und behoben; Kap. 8.1/8.2 ausgeschrieben, 7.1 und 9.2b nachgezogen                                                                    |
-| 2026-07-30 | 1,5 | D-01          | Musterdokumentation Seite für Seite als `documentation/muster-referenz.md` erfasst — Kapitelaufbau, Stilanalyse, Kapitel-Mapping Muster → Bericht, Arbeitsregeln; aus `CLAUDE.md` und Kap. 00 verlinkt                                                   |
-| 2026-07-30 | 1,0 | S-07          | Runden- und Leben-Buchführung aus `index.js` nach `round/roundData.js` ausgelagert, weil `index.js` an der 400-Zeilen-Grenze stand, und unter Vitest abgedeckt; jede Schadensquelle geht jetzt durch ein gemeinsames `registerHit`                       |
-| 2026-07-30 | 1,5 | S-07          | Temporäre Hindernisse als neuen Spec S-07 spezifiziert (`docs/spec-s07-hindernisse.md`) — Kapselgeometrie, Sackgassen-Invariante mit Beweisskizze, Dichte-Rampe, Engine/Frontend-Grenze; Schätzung und Gesamtbudget in `specs-overview.md` neu gerechnet |
-| 2026-07-30 | 0,5 | S-05          | Dash-Reichweite um ~30 % erhöht (`PLAYER_DASH_SPEED_DECAY` 3000 → 2300), Rechenweg im JSDoc korrigiert und einen Test ergänzt, der die Distanz statt nur die Spitzengeschwindigkeit festnagelt                                                           |
+| Datum      |   h | Spec/Maßnahme | Was                                                                                                                                                                                                                                                                                                           |
+| ---------- | --: | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-29 | 2,0 | D-01          | Anforderungskatalog und Musterdokumentation ausgewertet, Kapitelstruktur und begleitendes Doku-Ritual entworfen, Berichtsgerüst angelegt                                                                                                                                                                      |
+| 2026-07-29 | 3,5 | T-01          | ESLint-Flat-Config mit JSDoc-Enforcement und Prettier eingerichtet, JSDoc in acht Dateien nachgerüstet (Schwerpunkt `playerController.js`, `engine-bridge.js`), Kap. 7.1/7.3/7.4/7.5 und 8.4 geschrieben                                                                                                      |
+| 2026-07-29 | 1,5 | T-03          | Coverage für beide Sprachen eingerichtet (`@vitest/coverage-v8`, `cargo llvm-cov`), Ausgangsmessung genommen; T-07 als neue Maßnahme aufgenommen und Kapazitätsplan fortgeschrieben                                                                                                                           |
+| 2026-07-29 | 3,0 | T-07          | Unit-Tests für `frameScheduler`, `gameState`, `controls` und `playerController` geschrieben; `engine/tests/wasm_tests.rs` vom Stub zum Buffer-Vertragstest ausgebaut                                                                                                                                          |
+| 2026-07-29 | 4,0 | T-04          | Playwright gegen den Preview-Build eingerichtet, fünf Flows geschrieben, dabei den fehlenden Locale-Umzug gefunden und behoben; Kap. 8.1/8.2 ausgeschrieben, 7.1 und 9.2b nachgezogen                                                                                                                         |
+| 2026-07-30 | 1,5 | D-01          | Musterdokumentation Seite für Seite als `documentation/muster-referenz.md` erfasst — Kapitelaufbau, Stilanalyse, Kapitel-Mapping Muster → Bericht, Arbeitsregeln; aus `CLAUDE.md` und Kap. 00 verlinkt                                                                                                        |
+| 2026-07-30 | 1,0 | S-07          | Runden- und Leben-Buchführung aus `index.js` nach `round/roundData.js` ausgelagert, weil `index.js` an der 400-Zeilen-Grenze stand, und unter Vitest abgedeckt; jede Schadensquelle geht jetzt durch ein gemeinsames `registerHit`                                                                            |
+| 2026-07-30 | 1,5 | S-07          | Temporäre Hindernisse als neuen Spec S-07 spezifiziert (`docs/spec-s07-hindernisse.md`) — Kapselgeometrie, Sackgassen-Invariante mit Beweisskizze, Dichte-Rampe, Engine/Frontend-Grenze; Schätzung und Gesamtbudget in `specs-overview.md` neu gerechnet                                                      |
+| 2026-07-30 | 6,5 | S-07          | Temporäre Hindernisse umgesetzt: Kapselgeometrie und Streckenabstände, deterministischer Spawn mit Korridor-Invariante, Dichte-Rampe, Boid-Ausweichen, Spielerkollision samt neuer `tick`-Signatur und fünftem Buffer, Rendering mit Ein-/Ausblenden; Spec nach zwei Korrekturen an der Umsetzung nachgezogen |
+| 2026-07-30 | 0,5 | S-05          | Dash-Reichweite um ~30 % erhöht (`PLAYER_DASH_SPEED_DECAY` 3000 → 2300), Rechenweg im JSDoc korrigiert und einen Test ergänzt, der die Distanz statt nur die Spitzengeschwindigkeit festnagelt                                                                                                                |
 
 ## Entscheidungen
+
+### 2026-07-30 — Ein Hindernis ist eine Kapsel, kein Aufzählungstyp mit zwei Formen
+
+**Gewählt:** `Obstacle { spine_start, spine_end, radius }` — eine Mittellinie, überstrichen
+von einem Kreis. Ein kreisförmiges Hindernis ist die entartete Kapsel, deren Mittellinie
+die Länge null hat. Beide geforderten Formen entstehen damit beim Spawn, nicht im
+Typsystem.
+
+**Verworfen:**
+
+| Alternative                               | Grund der Ablehnung                                                                                                                                                                                                         |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enum ObstacleKind { Circle, Segment }`   | Zwei Distanzfunktionen, zwei Kollisionstests und zwei Zeichenpfade, die auseinanderlaufen können. Genau die Sorte Duplikat, bei der ein Fehler nur in einer der beiden Formen auftritt und deshalb lange unentdeckt bleibt. |
+| Nur Kreise, Striche als Kette von Kreisen | Vielfache Kollisionsprüfungen pro Strich, und die Overlap-Regel zwischen Hindernissen wäre nicht mehr formulierbar, weil ein „Hindernis" dann kein einzelnes Objekt mehr ist.                                               |
+
+**Konsequenz:** `closest_point_on_segment` liefert für eine Nulllängen-Strecke ihren
+Startpunkt, womit der Kreisfall ohne Verzweigung aus derselben Formel fällt. Im Frontend
+zeichnet ein runder Linienabschluss auf einer Nulllängen-Linie exakt einen Kreis, also
+kommt der Renderbuffer ohne Formkennzeichen aus und das Frontend ohne Fallunterscheidung.
+Preis: Ein einzelner Punkt auf der Mittellinie hat keine definierte Normale und braucht
+eine Ersatzrichtung — dieselbe Krücke, die die Overlap-Relaxation schon benutzt.
+
+→ Kap. 4, 5
+
+### 2026-07-30 — Sackgassenfreiheit konstruktiv erzwingen statt zur Laufzeit prüfen
+
+**Gewählt:** Ein Spawn-Kandidat wird nur angenommen, wenn er zu jedem bestehenden
+Hindernis, zu jeder der vier Weltkanten und zum Spieler mindestens
+`MINIMUM_CORRIDOR_WIDTH` Oberflächenabstand hält. Aufgeblasen um den Spielerradius ist
+damit jedes Hindernis eine konvexe Insel echt im Inneren der Arena, die keine andere und
+keine Wand berührt — und um eine solche Insel kann man immer herumlaufen. Ein Einschluss
+bräuchte zwei sich berührende Hindernisse oder eines an einer Wand; beides ist
+ausgeschlossen. Die Ungleichung, auf der das ruht, wird zur Übersetzungszeit geprüft
+(`const _: () = assert!(...)`), nicht in einem Test.
+
+**Verworfen:**
+
+| Alternative                                        | Grund der Ablehnung                                                                                                                                                                                                                        |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Erreichbarkeitssuche (Flood Fill) nach jedem Spawn | Kosten pro Spawn im Gitterraster der ganzen Arena, und die Aussage wäre nur so gut wie die Gitterauflösung. Vor allem aber wäre sie nicht mehr _beweisbar_, sondern nur noch gemessen — für einen Bericht die deutlich schwächere Aussage. |
+| Hindernisse nur an festen Rasterplätzen zulassen   | Löst das Problem, nimmt aber die freie Platzierung und damit den Reiz. Außerdem verschiebt es die Invariante in eine Tabelle, in der man sie nicht mehr nachlesen kann.                                                                    |
+| Den Spieler bei Einschluss einfach durchlassen     | Behebt das Symptom, hebelt aber die Kollision auf und ist im Bericht nicht als Eigenschaft formulierbar.                                                                                                                                   |
+
+**Konsequenz:** Die Dichte ist ein **Ziel**, die Invariante ist **hart**. Findet der
+Spawn in seinen Versuchen keinen zulässigen Platz, erscheint in dieser Runde kein
+Hindernis — bei kleinen Fenstern und hoher Welle begrenzt daher die Fläche die Zahl
+gleichzeitig sichtbarer Hindernisse, nicht die Rampe. Der zugehörige Test prüft deshalb
+nicht die exakte Sollzahl, sondern dass die Welt sich merklich füllt; die Sollzahl zu
+verlangen hieße zu behaupten, der Platz gehe nie aus. Ein verkleinertes Fenster löscht
+jedes Hindernis, das die Regel gegen die neuen Grenzen bricht.
+
+→ Kap. 4
+
+### 2026-07-30 — Hindernisse leben in der Engine, nicht im Frontend
+
+**Gewählt:** `GameEngine` besitzt Geometrie, Spawn, Lebensdauer, Boid-Ausweichen und die
+Auflösung der Spielerbewegung. Das Frontend zeichnet und zieht ein Leben ab. `tick`
+bekommt dafür die vorige **und** die versuchte Spielerposition und liefert die korrigierte
+Position, ein Trefferflag und die Oberflächennormale zurück; ein fünfter, flacher Buffer
+transportiert die Hindernisse zum Zeichnen.
+
+**Verworfen:** Die Hindernisse im Frontend zu halten und ihre Geometrie pro Tick in die
+Engine zu schicken, damit die Boids ausweichen können. Das hätte dieselbe Geometrie auf
+beiden Seiten der Sprachgrenze gebraucht — und damit zwei Kollisionstests, die sich
+unterscheiden können, obwohl Spieler und Boids gegen dasselbe Hindernis prüfen müssen.
+Zudem verbietet die Projektinvariante Simulationsmathematik im Frontend.
+
+**Konsequenz:** Der Buffer-Vertrag wächst zum ersten Mal seit seiner Einführung, und
+`tick` ist nicht mehr symmetrisch — der Aufrufer muss die zurückgegebene Position
+benutzen statt der, die er angefragt hat. Weil die Bewegung als **Strecke** und nicht als
+Endpunkt geprüft wird, kann auch ein Dash nicht mehr zwischen zwei Schritten durch ein
+dünnes Hindernis tunneln. Im Frontend bleibt nur das Abziehen einer Vektorkomponente
+(`applyObstacleBlock`), was das Abgleiten erzeugt.
+
+→ Kap. 4, 5
+
+### 2026-07-30 — Eigene Dichte-Stufe für Hindernisse bis 8 statt der Boid-Stufe bis 4
+
+**Gewählt:** `MAX_OBSTACLE_DENSITY_TIER = 8`, unabhängig von
+`MAX_BOID_DIFFICULTY_TIER = 4`. Das Ausweichgewicht der Boids bleibt dagegen über alle
+Stufen konstant.
+
+**Verworfen:** Die bestehende Boid-Stufe mitzubenutzen. Sie ist ab Welle 5 am Anschlag,
+die Anforderung an die Hindernisse lautet aber „über das Spiel hinweg steigend" — die
+Dichte hätte also nach knapp zweieinhalb Minuten aufgehört zu wachsen. Ebenfalls
+verworfen: das Ausweichgewicht mit der Stufe zu erhöhen. Ausweichen ist Kompetenz, nicht
+Schwierigkeit; ein späterer Boid, der schlechter ausweicht, sieht kaputt aus und nicht
+schwerer. Die Schwierigkeit steckt in der Dichte.
+
+**Konsequenz:** Zwei Rampen mit unterschiedlicher Länge im selben Projekt, was ohne
+Begründung wie ein Versehen aussieht — daher dieser Block und der Kommentar an der
+Konstante.
+
+→ Kap. 4
 
 ### 2026-07-30 — Dash-Reichweite über den Abbau, nicht über die Antrittsgeschwindigkeit
 
@@ -362,3 +457,32 @@ den Preis von Produktionscode, der nur für Tests existiert.
   E2E-Test geschrieben war. Das ist zugleich das beste Argument für die Existenz der
   E2E-Stufe im Bericht — belegt statt behauptet.
   → Kap. 5, 8, 10
+
+- **2026-07-30 — 129 grüne Rust-Tests, und im Spiel war kein einziges Hindernis zu
+  sehen.** Nach der Umsetzung von S-07 war alles grün: Geometrie, Ablauf,
+  Korridor-Invariante, Buffer-Vertrag im Browser. Ein Blick auf das laufende Spiel
+  zeigte eine leere Arena. Zwei unabhängige Ursachen, beide vom gleichen Typ — eine
+  Zusicherung, die nur eine **Obergrenze** prüfte.
+  Erstens die Streuung des Spawns: Der Seed wurde nach dem Muster der Dash-Auswahl
+  gebildet, `(seed * 53 + 47) % 1000`. Bei kleinen Multiplikatoren bleibt das Produkt
+  für die ersten Seeds unter dem Modulus, der Rest ist dann das Produkt selbst — alle
+  frühen Spawn-Runden landeten am oberen Rand der Welt und wurden ausnahmslos wegen zu
+  geringen Randabstands abgelehnt. Die Dash-Auswahl verträgt das, weil sie einen
+  Boid-Index modulo Flockgröße zieht und dort auch eine schlechte Streuung immer
+  _irgendeinen_ gültigen Boid trifft; die Hindernis-Platzierung hat eine
+  Ablehnungsbedingung und fällt damit auf die Nase. Zweitens die
+  Spieler-Abstandsregel: Sie war von der Boid-Regel übernommen und verlangte
+  `safe_spawn_distance` (~340 px) — in einem 1600×900-Fenster eine Sperrscheibe von fast
+  Arenabreite. Für ein Objekt, das sich nie bewegt, ist ein Korridor die richtige
+  Größe; die Boid-Distanz existiert, weil ein Boid sofort zu jagen beginnt.
+  Rund 70 min, davon der größte Teil auf die Diagnose.
+  Die eigentliche Lehre betrifft nicht die Streuung, sondern die **Form der
+  Zusicherung**: `field.len() <= allowed` war erfüllt, `keine zwei Hindernisse zu nah`
+  war erfüllt, `keines am Rand` war erfüllt — eine leere Welt erfüllt jede
+  Obergrenze und jede Ausschlussregel, die man formulieren kann. Was fehlte, war die
+  Untergrenze: _füllt sich die Welt überhaupt_. Seitdem stehen neben jeder
+  Obergrenzen-Zusicherung dieses Features auch eine Untergrenze und eine Streuungsprüfung
+  (linke/rechte, obere/untere Hälfte). Zweite Lehre, unbequemer: Gefunden hat den Fehler
+  keine der drei Teststufen, sondern ein Blick auf einen Screenshot. Bei einem sichtbaren
+  Feature bleibt das ein Arbeitsschritt und keine Bequemlichkeit.
+  → Kap. 4, 8, 10

@@ -98,3 +98,110 @@ pub const MINIMUM_DASH_SELECTION_DISTANCE: f32 = 160.0;
 /// A boid further from the player than this would run out of dash before
 /// arriving, so it is not offered one either.
 pub const MAXIMUM_DASH_SELECTION_DISTANCE: f32 = 340.0;
+
+// ---------------------------------------------------------------------------
+// Temporary obstacles
+//
+// An obstacle is a capsule: a centre line of two points plus a radius. A circular
+// obstacle is the capsule whose centre line has zero length, which is why there is
+// no separate set of constants for the two shapes.
+//
+// Durations here count in simulation steps for the same reason as the dash ones:
+// tick() advances exactly one fixed step and never scales by delta time.
+// ---------------------------------------------------------------------------
+
+/// How long an obstacle stays in the world (30 seconds at 60 steps per second).
+pub const DEFAULT_OBSTACLE_LIFETIME_STEPS: u32 = 1800;
+
+/// The narrowest gap ever left between two obstacles, and between an obstacle and
+/// a world edge.
+///
+/// **This constant is what makes a dead end impossible.** Inflating every obstacle
+/// by the player's radius turns it into a convex island the player cannot enter. As
+/// long as this value stays above twice `PLAYER_COLLISION_RADIUS`, no two inflated
+/// islands can touch and none can touch a wall, so every one of them can be walked
+/// around and the free space stays in one piece. At roughly three player diameters
+/// the remaining gap also reads as a lane rather than a slot.
+pub const MINIMUM_CORRIDOR_WIDTH: f32 = 96.0;
+
+// Checked at compile time rather than in a test, because the whole no-dead-end
+// argument rests on this one inequality: a corridor narrower than the player would be
+// a gap the guarantee promises but the player cannot use. A build that broke it should
+// not produce a binary at all.
+const _: () = assert!(MINIMUM_CORRIDOR_WIDTH > 2.0 * PLAYER_COLLISION_RADIUS);
+
+/// Smallest radius an obstacle may be given.
+///
+/// Inflated by the player's radius the capsule has to stay wider than the furthest
+/// the player can travel in one simulation step — a dash covers about 18 pixels —
+/// or a fast enough player could pass clean through it between two steps.
+pub const MINIMUM_OBSTACLE_RADIUS: f32 = 12.0;
+
+/// Highest tier the obstacle density ramp reaches. Deliberately further than
+/// `MAX_BOID_DIFFICULTY_TIER`: the boid variants are at their limit from wave five
+/// on, while the obstacles are meant to keep getting denser well beyond that.
+pub const MAX_OBSTACLE_DENSITY_TIER: u32 = 8;
+
+/// Steps between two attempts to place a new obstacle, in the first wave.
+pub const DEFAULT_OBSTACLE_SPAWN_INTERVAL_STEPS: u32 = 540;
+
+/// Steps removed from the spawn interval per density tier.
+pub const OBSTACLE_SPAWN_INTERVAL_STEPS_PER_TIER_REDUCTION: u32 = 45;
+
+/// Shortest spawn interval ever used (~3 seconds).
+pub const MINIMUM_OBSTACLE_SPAWN_INTERVAL_STEPS: u32 = 180;
+
+/// Obstacles allowed in the world at the same time in the first wave.
+pub const DEFAULT_MAX_CONCURRENT_OBSTACLES: usize = 2;
+
+/// Additional simultaneous obstacles unlocked per density tier.
+pub const MAX_CONCURRENT_OBSTACLES_PER_TIER_BONUS: usize = 1;
+
+/// Hard ceiling on simultaneous obstacles, whatever the wave.
+pub const MAXIMUM_CONCURRENT_OBSTACLES: usize = 8;
+
+/// Placements tried per spawn round before the round is given up on.
+///
+/// The corridor rule is absolute and the density is only a target: if none of these
+/// attempts finds a legal spot, no obstacle appears this round.
+pub const OBSTACLE_SPAWN_ATTEMPTS: u64 = 12;
+
+/// Every nth candidate is a circle; the rest are bars.
+pub const OBSTACLE_CIRCLE_EVERY_NTH: u64 = 3;
+
+/// Distinct orientations a bar-shaped obstacle can be given. Eight steps across a
+/// half turn are easier to read in the code than a continuous angle and are
+/// visually indistinguishable from one.
+pub const OBSTACLE_ORIENTATION_COUNT: u64 = 8;
+
+/// Smallest radius of a circular obstacle.
+pub const MINIMUM_OBSTACLE_CIRCLE_RADIUS: f32 = 34.0;
+
+/// Range of radii above the minimum a circular obstacle can take.
+pub const OBSTACLE_CIRCLE_RADIUS_RANGE: f32 = 46.0;
+
+/// Half the thickness of a bar-shaped obstacle.
+pub const OBSTACLE_BAR_RADIUS: f32 = 13.0;
+
+/// Shortest centre line a bar-shaped obstacle can have.
+pub const MINIMUM_OBSTACLE_BAR_LENGTH: f32 = 120.0;
+
+/// Range of lengths above the minimum a bar-shaped obstacle can take.
+pub const OBSTACLE_BAR_LENGTH_RANGE: f32 = 200.0;
+
+/// Default weight applied to the obstacle avoidance steering rule.
+///
+/// It has to outweigh seeking the player: a boid that values the chase higher than
+/// the wall in front of it presses against that wall instead of going round.
+pub const DEFAULT_OBSTACLE_AVOID_WEIGHT: f32 = 1.6;
+
+/// Share of a boid's perception radius at which it starts avoiding an obstacle.
+pub const OBSTACLE_LOOK_AHEAD_SHARE: f32 = 0.9;
+
+/// How strongly the escape direction is bent along the obstacle surface rather
+/// than straight away from it.
+///
+/// Zero would push a boid back the way it came, which stalls it in front of the
+/// obstacle instead of taking it past. Above one the sideways pull dominates and
+/// the boid sweeps around the surface, which is what reads as flying round it.
+pub const OBSTACLE_TANGENT_SHARE: f32 = 1.25;

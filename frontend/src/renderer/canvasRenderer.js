@@ -6,6 +6,7 @@ import {
 } from '../gameConfig.js';
 import { t } from '../ui/i18n.js';
 import { dashGlowLevel, dashPulseScale } from './dashPulse.js';
+import { drawObstacles } from './obstacleLayer.js';
 
 const BACKGROUND_COLOR = '#111318';
 const GRID_COLOR = 'rgba(255, 255, 255, 0.07)';
@@ -101,6 +102,9 @@ export class CanvasRenderer {
 
     drawBackground(ctx, this._width, this._height);
     drawGrid(ctx, this._width, this._height);
+    // Under the boids and the player, so an obstacle reads as terrain they move over
+    // rather than as something in front of them.
+    drawObstacles(ctx, frame);
     drawBoids(ctx, frame);
     drawPlayer(ctx, playerPosition, renderState.playerInvulnerable === true);
     drawPlayerHealth(ctx, playerPosition, renderState, this._width, this._height);
