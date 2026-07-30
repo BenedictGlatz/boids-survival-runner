@@ -61,6 +61,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   reconstructed later: hours actually spent per session, technical decisions with their rejected
   alternatives, and challenges. It is now a mandatory per-change step, so the report grows alongside
   the code instead of being written at the end.
+- `documentation/muster-referenz.md`, a written-out reference of the professor's sample report: its
+  chapter structure and the detail depth of each chapter, an analysis of the writing style and the
+  argument patterns that earned it its grade, the mapping from its chapters onto ours, and the rules
+  that follow for writing this report. The PDF's text layer is incomplete, so the Markdown file — not
+  the PDF — is the working source; `CLAUDE.md` and `documentation/report/00-index.md` point to it.
 - Prompt logs under `ai/` now carry a `topic` and a `use` field, classifying each prompt by subject
   area and by what became of the answer. All existing entries were classified.
 - `npm run docs:ki-verzeichnis` generates the report's AI index from `ai/*.json`, grouped by subject

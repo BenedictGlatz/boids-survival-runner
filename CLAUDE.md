@@ -276,6 +276,15 @@ This project is developed by university students learning Rust and WebAssembly.
    Never record anything a command can regenerate (LOC, test counts, script lists) — those belong
    in `documentation/report/09-quellcode-uebersicht.md` as the command that produces them.
 
+   Before writing or revising any chapter under `documentation/report/`, read
+   `documentation/muster-referenz.md` first. It is a transcript and analysis of the professor's
+   sample report (`documentation/Prüfungsleistung_Muster.pdf`) — chapter-by-chapter structure,
+   the writing style the report has to match, the mapping from the sample's chapters onto ours,
+   and the house rules that follow from it (German, impersonal, present tense, no claim without a
+   reason, negative findings stated plainly, numbers interpreted rather than just printed, tables
+   and code listings moved to the appendix and referenced by number). The PDFs themselves are
+   image-heavy and only partly machine-readable; the Markdown file is the working source.
+
    The university report is written _alongside_ development, not afterwards. Structure chapters
    (01–06) are composed in a few sittings; only chapters 07, 08 and 12 grow per commit. What every
    commit owes is **facts**, not prose. See `documentation/report/00-index.md`.

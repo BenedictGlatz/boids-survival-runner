@@ -46,8 +46,37 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-07-29 | 1,5 | T-03          | Coverage für beide Sprachen eingerichtet (`@vitest/coverage-v8`, `cargo llvm-cov`), Ausgangsmessung genommen; T-07 als neue Maßnahme aufgenommen und Kapazitätsplan fortgeschrieben                      |
 | 2026-07-29 | 3,0 | T-07          | Unit-Tests für `frameScheduler`, `gameState`, `controls` und `playerController` geschrieben; `engine/tests/wasm_tests.rs` vom Stub zum Buffer-Vertragstest ausgebaut                                     |
 | 2026-07-29 | 4,0 | T-04          | Playwright gegen den Preview-Build eingerichtet, fünf Flows geschrieben, dabei den fehlenden Locale-Umzug gefunden und behoben; Kap. 8.1/8.2 ausgeschrieben, 7.1 und 9.2b nachgezogen                    |
+| 2026-07-30 | 1,5 | D-01          | Musterdokumentation Seite für Seite als `documentation/muster-referenz.md` erfasst — Kapitelaufbau, Stilanalyse, Kapitel-Mapping Muster → Bericht, Arbeitsregeln; aus `CLAUDE.md` und Kap. 00 verlinkt   |
 
 ## Entscheidungen
+
+### 2026-07-30 — Musterdokumentation als Markdown-Referenz statt als PDF-Quelle
+
+**Gewählt:** Der Inhalt der Musterdokumentation liegt aufbereitet in
+`documentation/muster-referenz.md` — Kapitelaufbau mit Detailtiefe, eine Stilanalyse
+(Sprachebene, Fettdruck-/Kursiv-Konvention, Argumentationsmuster), das Kapitel-Mapping
+Muster → eigener Bericht und elf Arbeitsregeln fürs Schreiben. `CLAUDE.md` und
+[00-index.md](00-index.md) verweisen darauf; das PDF bleibt als Original daneben liegen.
+
+**Verworfen:**
+
+| Alternative                                     | Grund der Ablehnung                                                                                                                                                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Das PDF pro Sitzung neu auslesen                | Der Textlayer ist unvollständig; Tabellen, Formeln und das KI-Verzeichnis kamen nur teilweise durch. Die Auswertung wäre bei jeder Sitzung anders ausgefallen — genau die Instabilität, die ein Vorbild nicht haben darf. |
+| Nur eine Stil-Checkliste ohne Inhaltstranskript | Ohne den konkreten Aufbau je Kapitel fehlt der Maßstab für die Detailtiefe. Dass Kap. 3 zehn Seiten hat und Kap. 2 eine einzige, ist die eigentliche Information.                                                         |
+| Die Regeln direkt in `CLAUDE.md` schreiben      | `CLAUDE.md` steuert die Entwicklung und wird in jeder Sitzung geladen. Eine mehrseitige Stilanalyse gehört dorthin, wo der Bericht entsteht; in `CLAUDE.md` steht nur der Verweis.                                        |
+
+**Konsequenz:** Der Bericht hat ab jetzt einen prüfbaren Maßstab statt einer
+Erinnerung. Zwei Punkte aus der Analyse wirken unmittelbar auf die Kapitelplanung: Das
+Muster lagert fast die Hälfte seines Umfangs (15 von 38 Inhaltsseiten) in den Anhang
+aus — das Seitenbudget in Kap. 00 ist damit weniger eng als angenommen, sofern Tabellen
+und Listings konsequent nach [11-anhang.md](11-anhang.md) wandern. Und das Muster
+benennt seine Schwächen offen (fehlender Formatter, kein Production Build, 12,67 %
+Gesamt-Coverage) und ordnet sie ein, statt sie zu verschweigen; das ist bei sehr guter
+Bewertung erkennbar kein Versehen und rechtfertigt die hier ohnehin nötige Erklärung
+der Coverage-Zahlen.
+
+→ Kap. 8, 9, 10, 11
 
 ### 2026-07-29 — Dokumentation begleitend statt nachgelagert
 

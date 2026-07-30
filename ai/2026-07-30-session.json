@@ -1,0 +1,8 @@
+[
+  {
+    "model": "claude-opus-5",
+    "prompt": "Ich möchte dir dabei helfen den Inhalt der beiden PDFs im Ordner documentation zu verstehen, damit du mir besser helfen kannst. Du konntest bisher nicht alle Informationen aus den PDFs extrahieren, ich werde dir daher jetzt zunächst Bilder von allen Seiten der Datei Prüfungsleistungen_Muster schicken dessen Inhalt du bitte im selben Ordner für dich als Referenz aufschreibst. Bilder kannst du dir selbst beschreiben, es geht darum dass DU den Inhalt später noch verstehst um damit im Workflow arbeiten zu können. Falls es ein Limit gibt wie viele Bilder man hochladen kann werde ich sie dir in mehreren Chargen schicken.\n\nIch habe dir absichtlich nicht das ganze KI Verzeichnis und nicht alle Abbildungen geschickt, diese sind für dein Gesamtverständnis nicht wichtig.\n\nEs geht darum dass du mir später beim schreiben des Reports helfen kannst und dafür ist es wichtig dass du meinen Schreibstil und den Aufbau des vorherigen Reports (der eine sehr gute Note erhalten hat) kennst. Fachlich geht es natürlich um ein anderes Projekt, aber die Anforderungen an den Report sind quasi gleich und auch der Schreibstil soll am Ende ähnlich sein.\n\nBitte speichere also sowohl den Inhalt für dich sauber lesbar ab und mache dir an einem sinnvollen Ort Notizen darüber wie du dich in diesem Projekt verhalten solltest um mir dabei zu helfen letztendlich einen solchen Report zu schreiben.",
+    "topic": "prozess-doku",
+    "use": "impl"
+  }
+]

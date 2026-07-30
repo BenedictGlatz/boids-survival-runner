@@ -18,6 +18,12 @@ nicht Prosa in Kapitel geschrieben.
 Ein Kapitel pro Datei, numerisches Präfix = Berichtsreihenfolge, ASCII-Slugs
 (`qualitaet` statt `qualität`) gegen Encoding-Probleme unter Windows.
 
+**Vor dem Schreiben eines Kapitels:** [../muster-referenz.md](../muster-referenz.md)
+lesen. Dort steht die Musterdokumentation des Professors aufbereitet — Aufbau,
+Detailtiefe und Schreibstil pro Kapitel, das Kapitel-Mapping Muster → hier, und die
+Stilregeln, die dieser Bericht einhalten muss. Das PDF selbst ist als Bildvorlage nur
+eingeschränkt lesbar; die Markdown-Fassung ist die Arbeitsgrundlage.
+
 ## Fortschritt
 
 Status: `Gerüst` (nur Überschriften) → `Entwurf` (Inhalt steht, Sprache rau) →
