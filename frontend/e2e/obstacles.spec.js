@@ -9,9 +9,16 @@ import { openStartMenu, startRound, watchForBrowserProblems } from './support/ga
  * a single question instead: does a large slate shape exist anywhere on the canvas. The
  * boids are small and red, the player is cyan, so nothing else comes near this colour.
  */
-const OBSTACLE_BODY = { r: 71, g: 85, b: 105 };
+const OBSTACLE_BODY = { r: 42, g: 49, b: 63 };
 const COLOR_TOLERANCE = 16;
-/** Far more than stray anti-aliasing, far less than the smallest obstacle's area. */
+/**
+ * Far more than stray anti-aliasing, far less than the area a body colour can cover.
+ *
+ * Only part of an obstacle is left in the plain body colour: the hatching draws red
+ * diagonals over it, and the darkened core takes the middle out, so what remains is the
+ * band along the rim between the stripes. For the thinnest obstacle in the first wave
+ * that is still several times this threshold.
+ */
 const ENOUGH_PIXELS = 400;
 
 /**
