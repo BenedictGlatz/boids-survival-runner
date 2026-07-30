@@ -3,7 +3,19 @@ import { Renderer } from './renderer/renderer.js';
 import { InputManager } from './input/inputManager.js';
 import { buildControls } from './input/controls.js';
 import { PlayerController } from './player/playerController.js';
-import { dashCooldownProgress, isDashReady } from './player/dashCooldown.js';
+import {
+  advanceClock,
+  beginRound as beginRoundData,
+  countdownSecondsLeft,
+  createRoundData,
+  dueWaveNumber,
+  isPlayerDashReady,
+  isPlayerDead,
+  isPlayerInvulnerable,
+  playerDashCooldownProgress,
+  registerDash,
+  registerHit,
+} from './round/roundData.js';
 import { GameState, STATE } from './gameState.js';
 import { Hud } from './ui/hud.js';
 import { Menu } from './ui/menu.js';
@@ -16,17 +28,12 @@ import {
   DEFAULT_FRAME_GRAPH_MODE,
   DEFAULT_TARGET_FPS,
   FRAME_GRAPH_SAMPLE_COUNT,
-  HIT_COOLDOWN_MS,
   MAX_SIMULATION_STEPS_PER_FRAME,
-  PLAYER_DASH_COOLDOWN_MS,
-  PLAYER_STARTING_LIVES,
   RENDER_INTERVAL_TOLERANCE_MS,
   SIMULATION_STEP_MS,
   SIMULATION_STEP_SECONDS,
-  START_COUNTDOWN_SECONDS,
   TARGET_FPS_OPTIONS,
   UNCAPPED_TARGET_FPS,
-  WAVE_DURATION_SECONDS,
 } from './gameConfig.js';
 
 let renderer;
@@ -128,7 +135,7 @@ async function startGame() {
 
   player.reset(playerStartPosition.x, playerStartPosition.y);
   await initEngine(window.innerWidth, window.innerHeight, playerStartPosition);
-  resetGameData(performance.now(), snapshot());
+  gameData = createRoundData(performance.now(), snapshot());
   state.transition(STATE.PLAYING);
   // Claims the space bar for the dash. Outside a round it has to stay with the
   // menu, where every button and the developer section are activated with it.
@@ -147,30 +154,6 @@ async function startGame() {
 
 async function restartGame() {
   await startGame();
-}
-
-function resetGameData(startedAt, initialFrame) {
-  gameData = {
-    score: 0,
-    lives: PLAYER_STARTING_LIVES,
-    maxLives: PLAYER_STARTING_LIVES,
-    timerSeconds: 0,
-    wave: 1,
-    // Seeded from the initial snapshot so the HUD shows the real boid count
-    // while the countdown runs and no simulation step has happened yet.
-    entityCount: initialFrame.entityCount,
-    // Authoritative game clock: advanced by the fixed simulation step, not by
-    // wall time, so backgrounding the tab cannot hand out free score.
-    simulationTimeMs: 0,
-    lastHitAtSimulationMs: -HIT_COOLDOWN_MS,
-    // Seeded a whole cooldown into the past, so the dash is ready on frame one.
-    lastDashAtSimulationMs: -PLAYER_DASH_COOLDOWN_MS,
-    // The countdown runs before the simulation starts, so it stays on wall
-    // time — three seconds should be three real seconds.
-    countdownEndsAt: startedAt + START_COUNTDOWN_SECONDS * 1000,
-    roundActive: false,
-    currentFrame: initialFrame,
-  };
 }
 
 function loop(timestamp) {
@@ -223,7 +206,7 @@ function advanceSimulation(timestamp) {
   for (let step = 0; step < steps; step += 1) {
     runSimulationStep();
 
-    if (gameData.lives <= 0) {
+    if (isPlayerDead(gameData)) {
       scheduler.discardPendingTime();
       endRound();
       return;
@@ -232,17 +215,15 @@ function advanceSimulation(timestamp) {
 }
 
 function runSimulationStep() {
-  gameData.simulationTimeMs += SIMULATION_STEP_MS;
-  gameData.timerSeconds = gameData.simulationTimeMs / 1000;
-  gameData.score = Math.floor(gameData.timerSeconds);
+  advanceClock(gameData);
 
   // Read once per step: the dash request is a latch, so consuming it here is what
   // keeps one key press from firing a dash in every step of a multi-step frame.
   const controls = buildControls(input);
-  const dashing = controls.dashRequested && isPlayerDashReady();
+  const dashing = controls.dashRequested && isPlayerDashReady(gameData);
 
   if (dashing) {
-    gameData.lastDashAtSimulationMs = gameData.simulationTimeMs;
+    registerDash(gameData);
   }
 
   // The player has to move inside the same fixed step as the flock: its
@@ -267,30 +248,9 @@ function runSimulationStep() {
 
   // Every step's hit count is consumed here. Reading only the last frame of a
   // multi-step frame would silently drop a hit from an earlier step.
-  if (frame.hitCount > 0 && !isPlayerInvulnerable()) {
-    gameData.lives -= 1;
-    gameData.lastHitAtSimulationMs = gameData.simulationTimeMs;
+  if (frame.hitCount > 0) {
+    registerHit(gameData);
   }
-}
-
-function isPlayerInvulnerable() {
-  return gameData.simulationTimeMs - gameData.lastHitAtSimulationMs < HIT_COOLDOWN_MS;
-}
-
-function isPlayerDashReady() {
-  return isDashReady(
-    gameData.simulationTimeMs,
-    gameData.lastDashAtSimulationMs,
-    PLAYER_DASH_COOLDOWN_MS,
-  );
-}
-
-function playerDashCooldownProgress() {
-  return dashCooldownProgress(
-    gameData.simulationTimeMs,
-    gameData.lastDashAtSimulationMs,
-    PLAYER_DASH_COOLDOWN_MS,
-  );
 }
 
 function renderCurrentState(timestamp) {
@@ -303,16 +263,16 @@ function renderCurrentState(timestamp) {
 
   if (gameData.roundActive) {
     renderer.drawFrame(gameData.currentFrame, playerPosition, {
-      playerInvulnerable: isPlayerInvulnerable(),
+      playerInvulnerable: isPlayerInvulnerable(gameData),
       lives: gameData.lives,
       maxLives: gameData.maxLives,
-      dashCooldownProgress: playerDashCooldownProgress(),
+      dashCooldownProgress: playerDashCooldownProgress(gameData),
     });
   } else {
     renderer.drawFrame(gameData.currentFrame, playerPosition, {
       lives: gameData.lives,
       maxLives: gameData.maxLives,
-      countdownSeconds: Math.ceil((gameData.countdownEndsAt - timestamp) / 1000),
+      countdownSeconds: countdownSecondsLeft(gameData, timestamp),
       playerInvulnerable: true,
       dashCooldownProgress: 1,
     });
@@ -328,12 +288,7 @@ function advanceCountdown(timestamp) {
 }
 
 function beginRound() {
-  gameData.roundActive = true;
-  gameData.simulationTimeMs = 0;
-  gameData.lastHitAtSimulationMs = -HIT_COOLDOWN_MS;
-  // Re-seeded along with the clock it is measured against: leaving the old value
-  // in place would compare a timestamp to a clock that just jumped back to zero.
-  gameData.lastDashAtSimulationMs = -PLAYER_DASH_COOLDOWN_MS;
+  beginRoundData(gameData);
   scheduler.discardPendingTime();
 }
 
@@ -349,7 +304,7 @@ function endRound() {
 }
 
 function updateWaveProgression(playerPosition) {
-  const nextWave = Math.floor(gameData.timerSeconds / WAVE_DURATION_SECONDS) + 1;
+  const nextWave = dueWaveNumber(gameData);
 
   if (nextWave <= gameData.wave) {
     return;

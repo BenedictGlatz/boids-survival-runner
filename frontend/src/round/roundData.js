@@ -1,0 +1,162 @@
+import { dashCooldownProgress, isDashReady } from '../player/dashCooldown.js';
+import {
+  HIT_COOLDOWN_MS,
+  PLAYER_DASH_COOLDOWN_MS,
+  PLAYER_STARTING_LIVES,
+  SIMULATION_STEP_MS,
+  START_COUNTDOWN_SECONDS,
+  WAVE_DURATION_SECONDS,
+} from '../gameConfig.js';
+
+// The bookkeeping of a single round, kept apart from index.js so it can be tested
+// without a browser. Everything here reads the simulation clock rather than wall
+// time, which is why none of it takes a timestamp except the countdown.
+
+/**
+ * Creates the state of a fresh round.
+ * @param {number} startedAt - Wall-clock time the countdown starts at, in milliseconds.
+ * @param {{entityCount: number}} initialFrame - Engine snapshot taken before the first step.
+ * @returns {object} The round state every other function in this module operates on.
+ */
+export function createRoundData(startedAt, initialFrame) {
+  return {
+    score: 0,
+    lives: PLAYER_STARTING_LIVES,
+    maxLives: PLAYER_STARTING_LIVES,
+    timerSeconds: 0,
+    wave: 1,
+    // Seeded from the initial snapshot so the HUD shows the real boid count
+    // while the countdown runs and no simulation step has happened yet.
+    entityCount: initialFrame.entityCount,
+    // Authoritative game clock: advanced by the fixed simulation step, not by
+    // wall time, so backgrounding the tab cannot hand out free score.
+    simulationTimeMs: 0,
+    lastHitAtSimulationMs: -HIT_COOLDOWN_MS,
+    // Seeded a whole cooldown into the past, so the dash is ready on frame one.
+    lastDashAtSimulationMs: -PLAYER_DASH_COOLDOWN_MS,
+    // The countdown runs before the simulation starts, so it stays on wall
+    // time — three seconds should be three real seconds.
+    countdownEndsAt: startedAt + START_COUNTDOWN_SECONDS * 1000,
+    roundActive: false,
+    currentFrame: initialFrame,
+  };
+}
+
+/**
+ * Starts the round the countdown was waiting for.
+ *
+ * The simulation clock jumps back to zero here, so every timestamp measured
+ * against it has to be re-seeded in the same place. Leaving an old value behind
+ * would compare it to a clock that just restarted.
+ * @param {object} roundData - The round state to start.
+ * @returns {void}
+ */
+export function beginRound(roundData) {
+  roundData.roundActive = true;
+  roundData.simulationTimeMs = 0;
+  roundData.lastHitAtSimulationMs = -HIT_COOLDOWN_MS;
+  roundData.lastDashAtSimulationMs = -PLAYER_DASH_COOLDOWN_MS;
+}
+
+/**
+ * Advances the simulation clock by one fixed step and derives the timer and score from it.
+ * @param {object} roundData - The round state to advance.
+ * @returns {void}
+ */
+export function advanceClock(roundData) {
+  roundData.simulationTimeMs += SIMULATION_STEP_MS;
+  roundData.timerSeconds = roundData.simulationTimeMs / 1000;
+  roundData.score = Math.floor(roundData.timerSeconds);
+}
+
+/**
+ * Whether the player is currently in the grace period after taking a hit.
+ * @param {object} roundData - The round state to inspect.
+ * @returns {boolean} True while no further hit may be counted.
+ */
+export function isPlayerInvulnerable(roundData) {
+  return roundData.simulationTimeMs - roundData.lastHitAtSimulationMs < HIT_COOLDOWN_MS;
+}
+
+/**
+ * Spends one life unless the player is still invulnerable.
+ *
+ * Every source of damage goes through this one function on purpose. Sharing the
+ * grace period is what keeps a player who is leaning against something from
+ * losing every life within a handful of steps.
+ * @param {object} roundData - The round state to charge the hit to.
+ * @returns {boolean} True if a life was actually spent.
+ */
+export function registerHit(roundData) {
+  if (isPlayerInvulnerable(roundData)) {
+    return false;
+  }
+
+  roundData.lives -= 1;
+  roundData.lastHitAtSimulationMs = roundData.simulationTimeMs;
+
+  return true;
+}
+
+/**
+ * Whether the round is over because the player ran out of lives.
+ * @param {object} roundData - The round state to inspect.
+ * @returns {boolean} True once no lives are left.
+ */
+export function isPlayerDead(roundData) {
+  return roundData.lives <= 0;
+}
+
+/**
+ * Whether the dash cooldown has elapsed.
+ * @param {object} roundData - The round state to inspect.
+ * @returns {boolean} True if a dash may start on this step.
+ */
+export function isPlayerDashReady(roundData) {
+  return isDashReady(
+    roundData.simulationTimeMs,
+    roundData.lastDashAtSimulationMs,
+    PLAYER_DASH_COOLDOWN_MS,
+  );
+}
+
+/**
+ * Records that a dash started on this step, which restarts its cooldown.
+ * @param {object} roundData - The round state to record the dash in.
+ * @returns {void}
+ */
+export function registerDash(roundData) {
+  roundData.lastDashAtSimulationMs = roundData.simulationTimeMs;
+}
+
+/**
+ * How far the dash cooldown has recharged, for the bar the renderer draws.
+ * @param {object} roundData - The round state to inspect.
+ * @returns {number} Progress between 0 and 1, where 1 means ready.
+ */
+export function playerDashCooldownProgress(roundData) {
+  return dashCooldownProgress(
+    roundData.simulationTimeMs,
+    roundData.lastDashAtSimulationMs,
+    PLAYER_DASH_COOLDOWN_MS,
+  );
+}
+
+/**
+ * The wave the elapsed round time calls for, which may be the current one.
+ * @param {object} roundData - The round state to inspect.
+ * @returns {number} The wave number, counting from 1.
+ */
+export function dueWaveNumber(roundData) {
+  return Math.floor(roundData.timerSeconds / WAVE_DURATION_SECONDS) + 1;
+}
+
+/**
+ * Whole seconds left on the start countdown, rounded up for display.
+ * @param {object} roundData - The round state to inspect.
+ * @param {number} timestamp - Current wall-clock time in milliseconds.
+ * @returns {number} Seconds still to show.
+ */
+export function countdownSecondsLeft(roundData, timestamp) {
+  return Math.ceil((roundData.countdownEndsAt - timestamp) / 1000);
+}
