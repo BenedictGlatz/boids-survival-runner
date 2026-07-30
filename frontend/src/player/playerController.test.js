@@ -185,6 +185,35 @@ describe('PlayerController.update — the dash', () => {
     expect(speedOf(player)).toBeLessThan(speedRightAfterTheDash);
   });
 
+  it('carries the player the surplus distance the ramp promises', () => {
+    // This is the assertion that pins the dash *distance* rather than its speed.
+    // The surplus over plain top-speed movement is the area under the decaying
+    // ramp, so it is written out from the constants instead of as a fixed number:
+    // retuning the dash moves both sides together, but a change that breaks the
+    // relationship between the two constants and the travelled distance fails.
+    const player = makePlayerAtCentre();
+    const startX = player.position.x;
+
+    // Long enough for the raised limit to reach PLAYER_MAX_SPEED again.
+    const rampSteps = Math.ceil(
+      (PLAYER_DASH_SPEED - PLAYER_MAX_SPEED) / (PLAYER_DASH_SPEED_DECAY * STEP_SECONDS),
+    );
+    step(player, RIGHT, { dash: true });
+    for (let i = 1; i < rampSteps; i += 1) {
+      step(player, RIGHT);
+    }
+
+    const travelled = player.position.x - startX;
+    const atTopSpeed = PLAYER_MAX_SPEED * rampSteps * STEP_SECONDS;
+    const surplus = (PLAYER_DASH_SPEED - PLAYER_MAX_SPEED) ** 2 / (2 * PLAYER_DASH_SPEED_DECAY);
+
+    // Stepping in 1/60 s slices sums the ramp as a staircase, which always falls a
+    // little short of the continuous integral — so this brackets the surplus rather
+    // than pretending to match it exactly.
+    expect(travelled - atTopSpeed).toBeGreaterThan(surplus * 0.9);
+    expect(travelled - atTopSpeed).toBeLessThan(surplus * 1.05);
+  });
+
   it('settles back at the normal top speed', () => {
     const player = makePlayerAtCentre();
     step(player, RIGHT, { dash: true });

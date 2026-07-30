@@ -110,6 +110,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Frontend Vite scripts now build the Rust/WASM package into an ignored frontend import folder before dev/build runs.
 - The game loop now runs on a fixed timestep: the simulation always advances 60 logical steps per second and only rendering follows the chosen framerate, so difficulty and player speed no longer depend on the display refresh rate.
 - Start-menu settings are now built from a shared option-group module, so every setting renders and behaves identically instead of repeating the markup and selection logic per option.
+- The player dash now carries about a third further. Only the decay of the raised speed limit changed (3000 to 2300 pixels per second squared), so the dash still starts with exactly the same kick and simply holds its extra speed a little longer — roughly a third of a second instead of a quarter. The dash cooldown is unchanged, which makes the ability noticeably stronger rather than merely different.
 
 ### Fixed
 
