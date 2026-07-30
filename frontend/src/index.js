@@ -20,6 +20,7 @@ import { readRecords, recordRound } from './round/roundRecords.js';
 import { GameState, STATE } from './gameState.js';
 import { Hud } from './ui/hud.js';
 import { Menu } from './ui/menu.js';
+import { MenuBackdrop } from './ui/menuBackdrop.js';
 import { FrameTimeGraph } from './ui/frameTimeGraph.js';
 import { loadLocale } from './ui/i18n.js';
 import { FrameScheduler } from './loop/frameScheduler.js';
@@ -43,6 +44,7 @@ let player;
 let state;
 let hud;
 let menu;
+let menuBackdrop;
 let frameTimeGraph;
 let canvas;
 let gameData;
@@ -63,19 +65,6 @@ const scheduler = new FrameScheduler(
 // keeping it always on means the graph shows real history the moment it is shown.
 const frameMetrics = new FrameMetrics(FRAME_GRAPH_SAMPLE_COUNT);
 
-const emptyFrame = {
-  entityCount: 0,
-  hitCount: 0,
-  hit: false,
-  positions: new Float32Array(),
-  velocities: new Float32Array(),
-  tiers: new Uint32Array(),
-  dashPhases: new Float32Array(),
-  obstacleCount: 0,
-  obstacles: new Float32Array(),
-  obstacleHit: false,
-};
-
 async function bootstrap() {
   await loadLocale('en');
 
@@ -90,6 +79,7 @@ async function bootstrap() {
   // order, and the menu overlay has to stay on top of the graph.
   frameTimeGraph = new FrameTimeGraph();
   menu = new Menu();
+  menuBackdrop = new MenuBackdrop();
 
   window.addEventListener('resize', handleResize);
   handleResize();
@@ -102,6 +92,10 @@ async function bootstrap() {
 }
 
 function showStartMenu() {
+  // The swarm behind the deck. It only runs while the menu is up — nobody watches a
+  // decoration during a round, and it would compete with the simulation for frames.
+  menuBackdrop.start();
+
   // Back to the menu state, so the renderer stops drawing the frozen frame of the round
   // that just ended: that picture belongs to the game-over card, not to the start screen.
   state.transition(STATE.MENU);
@@ -155,6 +149,7 @@ async function startGame() {
   // menu, where every button and the developer section are activated with it.
   input.setGameplayActive(true);
   menu.hide();
+  menuBackdrop.stop();
   hud.show();
 
   // Dropped so the graph opens on this round's frames instead of the idle menu
@@ -292,8 +287,11 @@ function renderCurrentState(timestamp) {
     return;
   }
 
+  // On the menu the game canvas only gets out of the way: the swarm behind the deck comes
+  // from `ui/menuBackdrop.js`, on a canvas further back, and drawing an opaque arena
+  // background here would hide it.
   if (!state.is(STATE.PLAYING)) {
-    renderer.drawFrame(emptyFrame, player.getPosition());
+    renderer.clear();
     return;
   }
 

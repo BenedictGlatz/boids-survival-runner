@@ -20,6 +20,14 @@ export class Renderer {
   }
 
   /**
+   * Leaves the canvas transparent, so whatever sits behind it shows through.
+   * @returns {void}
+   */
+  clear() {
+    this._impl.clear();
+  }
+
+  /**
    * @param {number} width - CSS pixels.
    * @param {number} height - CSS pixels.
    */

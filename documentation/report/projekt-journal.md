@@ -60,8 +60,34 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-07-30 | 1,0 | S-03          | HUD von vier gerahmten Panels auf Kicker+Wert umgebaut, Wellen-Schiene unter dem Timer aus dem vorhandenen Timerwert, Dash-Bar vom Canvas ins DOM verlegt; zwei E2E-Zusicherungen auf die getrennten Label-/Wert-Elemente gezogen, gesamte Playwright-Suite gegen den Preview-Build grün                                                     |
 | 2026-07-30 | 2,5 | S-03          | Hauptmenü als „Command Deck" neu gebaut: `menu.js` als Orchestrator plus `menuDeck.js`, `menuPanels.js` und `menuNavigation.js`, Untermenüs statt `<details>`, Tastaturnavigation mit Pfeilen/Escape und Bewegungstasten nur noch während einer Runde; vier E2E-Tests umgeschrieben, drei neue für die Tastatur                              |
 | 2026-07-30 | 1,5 | S-06          | Highscore-Persistenz als `round/roundRecords.js` mit hereingegebenem Storage und 15 Zusicherungen (defekte Einträge, verweigerter Zugriff), Personal-Best-Panel und Game-Over-Karte gebaut, hinter der Karte bleibt der eingefrorene letzte Frame stehen                                                                                     |
+| 2026-07-30 | 0,5 | S-03          | Schwarm-Backdrop hinter dem Menü eingebaut (eigener Canvas, reine Präsentation) und den Renderer im Menüzustand vom Zeichnen aufs Leeren umgestellt, damit er durchscheint                                                                                                                                                                   |
 
 ## Entscheidungen
+
+### 2026-07-30 — Der Menü-Schwarm ist eine Attrappe auf eigenem Canvas
+
+**Gewählt:** `ui/menuBackdrop.js` zeichnet 72 Boids, die mit Sinus-Winkelrauschen driften
+und an den Kanten wrappen — keine Steering-Regeln, keine Kollision, keine Engine. Es ist
+Dekoration und behauptet nichts anderes. Der eigene Canvas liegt unter dem Overlay und
+hinter `#game-canvas`; damit das durchscheint, zeichnet der Renderer im Menü nicht mehr
+`emptyFrame`, sondern **leert** nur (`renderer.clear()`).
+
+**Verworfen:**
+
+| Alternative                                           | Grund der Ablehnung                                                                                                                                                                                                                                 |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Die echte Engine im Menü ohne Spieler laufen lassen   | Sähe besser aus und kostet: WASM müsste vor dem ersten Menübild geladen sein, die Wellenlogik liefe ohne Spieler weiter, und ein Menü, das man offen liegen lässt, würde Wellen hochzählen. Für einen Hintergrund ist das der falsche Preis.        |
+| Boids-Regeln im Frontend nachbauen                    | Direkter Bruch der Projektinvariante „das Frontend enthält keine Simulationsmathematik". Driften ist keine Simulation, Separation/Alignment/Cohesion wären eine — und dann gäbe es zwei Schwarmimplementierungen, von denen eine nie getestet wird. |
+| Auf `#game-canvas` mitzeichnen                        | Der Canvas gehört dem Renderer. Ein geteilter Canvas müsste beim Rundenstart aufgeräumt werden, und die Zuständigkeit „wer hat dieses Pixel gemalt" wäre nicht mehr beantwortbar.                                                                   |
+| `#game-canvas` im Menü per `display: none` ausblenden | Kürzer als ein `clear()`, aber `boot.spec.js` prüft (zu Recht), dass der Canvas nach dem Start sichtbar ist. Ein leerer sichtbarer Canvas ist ohnehin die ehrlichere Beschreibung des Zustands: Er ist da, er hat nur nichts zu zeigen.             |
+
+**Konsequenz:** `emptyFrame` in `index.js` ist damit überflüssig geworden und entfernt —
+den einzigen Grund für seine Existenz (ein Frame, das nichts enthält, damit der Renderer
+im Menü etwas zu zeichnen hat) gibt es nicht mehr. Der Backdrop nutzt denselben
+Integer-Hash wie der Rest des Projekts, damit auch hier keine `rand`-Abhängigkeit
+hereinkommt und der Hintergrund bei gleicher Fenstergröße gleich aussieht.
+
+→ Kap. 5, 7
 
 ### 2026-07-30 — Der Speicherzugriff wird hereingegeben, nicht importiert
 

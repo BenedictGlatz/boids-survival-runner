@@ -114,6 +114,17 @@ export class CanvasRenderer {
   }
 
   /**
+   * Wipes the canvas without painting the arena background over it.
+   *
+   * The menu needs this: its swarm backdrop is a canvas of its own, further back, and an
+   * opaque arena background drawn here would hide it completely.
+   * @returns {void}
+   */
+  clear() {
+    this._ctx.clearRect(0, 0, this._width, this._height);
+  }
+
+  /**
    * @param {number} width - CSS pixels.
    * @param {number} height - CSS pixels.
    */
