@@ -1,0 +1,793 @@
+/* SIGNAL — Designsystem-Tokens für Boids Survival Runner.
+   Einbinden vor styles/main.css. Werte sind kanonisch; die Regeln stehen in
+   design-system.md, das Menü-Markup in menu-markup.html. */
+
+:root {
+  /* ---- Neutrals ---- */
+  --void: #07080b;
+  --arena: #0b0d12;
+  --surface: #12161e;
+  --raised: #1a1f2a;
+  --obstacle-body: #2a313f;
+
+  --panel-bg: rgba(18, 22, 30, 0.82);
+  --panel-solid: #12161e;
+
+  /* ---- Text ---- */
+  --text: #f2f4f8;
+  --text-secondary: rgba(242, 244, 248, 0.56);
+  --text-label: rgba(242, 244, 248, 0.42);
+  --text-faint: rgba(242, 244, 248, 0.3);
+  --text-disabled: rgba(242, 244, 248, 0.24);
+
+  /* ---- Lines ---- */
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --line-hairline: rgba(255, 255, 255, 0.07); /* für gap:1px-Trenner */
+
+  /* ---- Semantic ---- */
+  --player: #38bdf8;
+  --player-hover: #7dd3fc;
+  --player-ink: #04121c; /* Text auf Cyan */
+  --danger: #f03a5f;
+  --danger-edge: rgba(240, 90, 110, 0.92);
+  --warning: #fbbf24;
+  --health: #22c55e;
+  --world: #94a3b8;
+
+  --glow-player: 0 0 40px rgba(56, 189, 248, 0.28);
+  --glow-dash: 0 0 12px rgba(56, 189, 248, 0.7);
+  --text-shadow-hud: 0 2px 12px rgba(0, 0, 0, 0.9);
+
+  /* ---- Type ---- */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ---- Form ---- */
+  --radius: 2px;
+  --radius-key: 3px;
+  --radius-pill: 999px;
+  --cut: 12px; /* Corner-Cut der Primäraktion */
+
+  /* ---- Space (4er-Raster) ---- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 22px;
+  --s6: 28px;
+  --s7: 40px;
+  --s8: 56px;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 320ms;
+
+  /* ---- Welt (in canvasRenderer.js gespiegelt) ---- */
+  --grid-line: rgba(255, 255, 255, 0.05);
+  --grid-line-major: rgba(255, 255, 255, 0.085);
+}
+
+html,
+body {
+  background: var(--arena);
+  color: var(--text);
+  font-family: var(--font-display);
+}
+
+a {
+  color: var(--player);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--player-hover);
+}
+
+/* ================================================================== *
+ * Bausteine
+ * ================================================================== */
+
+/* Wiederkehrendes Struktur-Element: Kleinstlabel über jeder Gruppe und jedem Wert. */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+.kicker--faint {
+  color: var(--text-faint);
+}
+
+.kicker--tight {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+
+.hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--text-faint);
+  text-wrap: pretty;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  padding: var(--s5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-bg);
+  backdrop-filter: blur(8px);
+}
+
+.panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.panel__foot {
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--s1);
+  border-top: 1px solid var(--line-hairline);
+}
+
+.panel__foot-value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+}
+
+/* Primäraktion. Der Corner-Cut ist das Markenmotiv und gehört NUR hierhin. */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  padding: 18px 30px;
+  border: 0;
+  background: var(--player);
+  color: var(--player-ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.btn-primary:hover {
+  background: var(--player-hover);
+}
+
+.btn-ghost {
+  padding: 13px 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--text);
+}
+
+/* Ein Fokusring für alles Fokussierbare — das Menü bleibt vollständig per Tastatur
+   bedienbar, so wie es die bisherigen Outline-Regeln in main.css schon sicherstellten. */
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible,
+.menu-row:focus-visible,
+.segmented > button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--arena),
+    0 0 0 4px var(--player);
+}
+
+/* Segmented control — ersetzt .menu-option-buttons.
+   Die 1px-Trenner entstehen aus gap auf gefärbtem Container, nicht aus Borders. */
+.segmented {
+  display: flex;
+  gap: 1px;
+  padding: 1px;
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.segmented > button {
+  min-width: 66px;
+  padding: 11px 0;
+  border: 0;
+  background: var(--panel-solid);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.segmented > button:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.segmented > button.is-selected {
+  background: var(--player);
+  color: var(--player-ink);
+}
+
+/* Keycap */
+.key {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 var(--s2);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-key);
+  background: var(--raised);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(242, 244, 248, 0.82);
+}
+
+/* Cyan umrandet, weil SPACE die Fähigkeit ist und nicht die Bewegung. */
+.key--ability {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--player);
+  letter-spacing: 0.1em;
+}
+
+.key--wide {
+  min-width: 99px;
+}
+
+/* Keycap auf der Cyan-Fläche der Primärzeile. */
+.key--on-primary {
+  height: auto;
+  padding: 5px 9px;
+  border: 1px solid rgba(4, 18, 28, 0.35);
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 30px);
+  grid-template-rows: 30px 30px;
+  gap: 3px;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.legend__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.badge--diag {
+  padding: 3px 7px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--warning);
+}
+
+/* Statzeile: 1px-Trenner via gap auf gefärbtem Container. */
+.stat-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 1px;
+  background: var(--line-hairline);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: var(--s3) 0 2px var(--s3);
+  background: var(--panel-solid);
+}
+
+.stat:first-child {
+  padding-left: 0;
+}
+
+.stat__value {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-hero {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+}
+
+.score-hero__value {
+  font-family: var(--font-mono);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--player);
+}
+
+.score-hero__unit {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+/* Statusleuchte im Menü-Header — das einzige Dauer-Loop im UI. */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--player);
+  animation: status-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ================================================================== *
+ * Hauptmenü — „Command Deck"
+ * ================================================================== */
+
+#menu-overlay {
+  position: fixed;
+  inset: 0;
+  color: var(--text);
+  pointer-events: auto;
+}
+
+/* Verdunkelt den Schwarm hinter der Textseite und öffnet nach rechts. */
+.menu-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 90% at 22% 45%,
+    rgba(11, 13, 18, 0.93) 0%,
+    rgba(11, 13, 18, 0.82) 42%,
+    rgba(11, 13, 18, 0.5) 100%
+  );
+}
+
+.menu-deck {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  grid-template-rows: auto 1fr auto;
+  padding: 44px 48px;
+}
+
+.menu-deck__bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.menu-deck__bar--foot {
+  padding-top: 18px;
+  padding-bottom: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.menu-deck__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+.menu-deck__sep {
+  color: var(--text-disabled);
+}
+
+.menu-deck__main {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 34px;
+  padding-right: 64px;
+}
+
+.menu-deck__aside {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s4);
+}
+
+.menu-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.menu-title__text {
+  margin: 0;
+  font-size: 82px;
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.menu-title__text em {
+  font-style: normal;
+  color: var(--player);
+}
+
+.menu-title__pitch {
+  max-width: 380px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 420px;
+}
+
+/* Ein weiterer Menüpunkt ist eine weitere Zeile — kein Redesign. */
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 15px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--line-hairline);
+  background: transparent;
+  color: rgba(242, 244, 248, 0.82);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.menu-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.menu-row--muted {
+  color: var(--text-secondary);
+}
+
+.menu-row__index {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+}
+
+.menu-row__label {
+  flex: 1;
+}
+
+.menu-row__marker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.menu-row--primary {
+  padding: 16px 20px;
+  border-bottom: 0;
+  background: var(--player);
+  color: var(--player-ink);
+  font-size: 22px;
+  font-weight: 700;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+}
+
+.menu-row--primary .menu-row__index {
+  color: rgba(4, 18, 28, 0.55);
+}
+
+.menu-row--primary:hover {
+  background: var(--player-hover);
+  color: var(--player-ink);
+}
+
+/* Schwarm-Canvas aus menuBackdrop.js. */
+#menu-backdrop {
+  position: fixed;
+  inset: 0;
+  display: block;
+  z-index: 0;
+}
+
+/* ================================================================== *
+ * HUD — rahmenlos. Ersetzt .hud-panel.
+ * ================================================================== */
+
+.hud-stat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.hud-stat__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(242, 244, 248, 0.38);
+}
+
+.hud-stat__value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-shadow: var(--text-shadow-hud);
+}
+
+.hud-stat--timer .hud-stat__value {
+  font-size: 34px;
+}
+
+.hud-stat--score .hud-stat__value {
+  font-size: 30px;
+  color: var(--player);
+}
+
+.hud-stat--boids .hud-stat__value {
+  color: var(--danger);
+}
+
+.hud-stat--right {
+  align-items: flex-end;
+}
+
+.hud-stat--center {
+  align-items: center;
+}
+
+/* Wellen-Fortschritt unter dem Timer: timerSeconds / WAVE_DURATION_SECONDS. */
+.wave-track {
+  width: 132px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.wave-track__fill {
+  height: 2px;
+  background: var(--player);
+}
+
+/* Dash-Bar. Glow trägt die Information „bereit", nicht Dekoration. */
+.dash-bar {
+  width: 200px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.dash-bar__fill {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(56, 189, 248, 0.45);
+  transition: width var(--dur-fast) linear;
+}
+
+.dash-bar--ready .dash-bar__fill {
+  background: var(--player);
+  box-shadow: var(--glow-dash);
+}
+
+.dash-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(242, 244, 248, 0.44);
+}
+
+.dash-bar--ready + .dash-label {
+  color: rgba(56, 189, 248, 0.85);
+}
+
+/* ================================================================== *
+ * Game Over
+ * ================================================================== */
+
+.gameover-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+  width: 424px;
+  padding: 34px;
+  border: 1px solid rgba(240, 58, 95, 0.28);
+  border-radius: var(--radius);
+  background: rgba(18, 22, 30, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+/* Die einzige 2px-Linie im System — sie markiert genau die eine Niederlage. */
+.gameover-card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  left: -1px;
+  height: 2px;
+  background: var(--danger);
+}
+
+.gameover-card__kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--danger);
+}
+
+.gameover-card__title {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.gameover-card__score {
+  font-family: var(--font-mono);
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot {
+    animation: none;
+  }
+
+  .btn-primary,
+  .btn-ghost,
+  .menu-row,
+  .segmented > button,
+  .dash-bar__fill {
+    transition: none;
+  }
+}
+
+/* ================================================================== *
+ * Kleine Fenster
+ * ================================================================== */
+
+@media (max-width: 1100px) {
+  .menu-deck {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    overflow-y: auto;
+  }
+
+  .menu-deck__main {
+    padding-right: 0;
+  }
+
+  .menu-deck__aside {
+    grid-column: 1;
+  }
+
+  .menu-title__text {
+    font-size: 54px;
+  }
+}
+
+@media (max-width: 640px) {
+  .menu-deck {
+    padding: 24px;
+  }
+
+  .menu-title__text {
+    font-size: 38px;
+  }
+
+  .menu-row {
+    font-size: 15px;
+  }
+
+  .menu-row--primary {
+    font-size: 19px;
+  }
+
+  .hud-stat__value {
+    font-size: 20px;
+  }
+
+  .hud-stat--timer .hud-stat__value {
+    font-size: 26px;
+  }
+
+  .hud-stat--score .hud-stat__value {
+    font-size: 22px;
+  }
+}
