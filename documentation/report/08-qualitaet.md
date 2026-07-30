@@ -123,14 +123,15 @@ Antwort auf die Frage, was diese Stufe zusätzlich leistet, statt sie behaupten 
 müssen. Als Regressionswächter prüft `boot.spec.js` seitdem beides: dass kein Request
 fehlschlägt und dass die Menütexte echte Wörter statt Schlüsseln sind.
 
-| Flow                | Zweck                                                                                                             | Dauer |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------- | ----: |
-| `boot.spec.js`      | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt | < 1 s |
-| `round.spec.js`     | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                    | ~ 5 s |
-| `input.spec.js`     | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                      | ~ 5 s |
-| `settings.spec.js`  | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                              | ~ 4 s |
-| `gameover.spec.js`  | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                            | ~ 8 s |
-| `obstacles.spec.js` | Hindernisse werden in der Runde gezeichnet, außerhalb nicht; Runde übersteht Erscheinen und Ablauf ohne Fehler    | ~ 8 s |
+| Flow                | Zweck                                                                                                              | Dauer |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------ | ----: |
+| `boot.spec.js`      | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt  | < 1 s |
+| `round.spec.js`     | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                     | ~ 5 s |
+| `input.spec.js`     | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                       | ~ 5 s |
+| `settings.spec.js`  | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                               | ~ 4 s |
+| `gameover.spec.js`  | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                             | ~ 8 s |
+| `obstacles.spec.js` | Hindernisse werden in der Runde gezeichnet, außerhalb nicht; Runde übersteht Erscheinen und Ablauf ohne Fehler     | ~ 8 s |
+| `letterbox.spec.js` | Weltkante ist sichtbar; ein Resize verändert die Welt nicht; ein Fenster kleiner als die Welt übersteht eine Runde | ~ 5 s |
 
 Drei bewusste Begrenzungen, jeweils mit ihrem Grund:
 

@@ -79,8 +79,10 @@ sich damit als Gasse, nicht als Schlitz.
 
 Der Preis dieser Konstruktion ist, dass die Dichte ein **Ziel** und die Invariante **hart**
 ist: findet der Spawn nach seinen Versuchen keinen zulässigen Platz, erscheint in dieser
-Runde kein Hindernis. Bei kleinen Fenstern und hoher Welle ist die Zahl gleichzeitig
-sichtbarer Hindernisse daher faktisch durch die Fläche begrenzt, nicht durch die Rampe.
+Runde kein Hindernis. In einer kleinen Welt und bei hoher Welle ist die Zahl gleichzeitig
+sichtbarer Hindernisse daher faktisch durch die Fläche begrenzt, nicht durch die Rampe. Für
+das Spiel selbst ist das inzwischen theoretisch — die Welt ist fest 1920×1080 groß —, für
+die Engine bleibt es die Eigenschaft, die bei jeder übergebenen Weltgröße gilt.
 
 Bedingung 3 verlangt bewusst nur einen Korridor und **nicht** die viel größere
 `safe_spawn_distance`, die den Boid-Spawn vom Spieler weghält. Ein Boid wird weit
@@ -94,8 +96,11 @@ bevor die Bedingung auf den Korridor umgestellt wurde.
 
 - _Der Spieler steht auf dem Wunschplatz_ → Bedingung 3 lehnt ab.
 - _`resize()` verkleinert die Welt_ → jedes Hindernis, das die Invariante gegen die neuen
-  Grenzen nicht mehr erfüllt, wird entfernt. Sichtbar ist das als Verschwinden einzelner
-  Hindernisse beim Fensterresize; die Garantie gilt dafür ohne Ausnahme.
+  Grenzen nicht mehr erfüllt, wird entfernt; die Garantie gilt dafür ohne Ausnahme. Im Spiel
+  ist dieser Fall inzwischen nicht mehr erreichbar: die Welt hat eine feste logische Größe,
+  die der Renderer ins Fenster einpasst, sodass ein Fensterresize die Simulation nicht mehr
+  berührt. `GameEngine::resize()` bleibt als Engine-API bestehen und trägt die Zusicherung
+  weiter, weil die Weltgrenzen der Engine gehören und nicht dem Browser.
 
 ## 4) Spawn, Lebensdauer und Dichte-Rampe
 
@@ -257,7 +262,8 @@ drei Schritten, also in 50 ms.
 - Mit Dash in ein Hindernis: kein Durchtunneln, der Dash endet dort.
 - Der Schwarm kurvt durch ein Hindernisfeld, ohne dass ein Boid klebt oder feststeckt.
 - Ab Welle 6 merklich mehr und häufiger Hindernisse.
-- Fenster stark verkleinern: keine Hindernisse außerhalb der Welt, keine an einer Kante.
+- Welt stark verkleinern (nur über `GameEngine::resize()` erreichbar, nicht mehr über das
+  Fenster): keine Hindernisse außerhalb der Welt, keine an einer Kante.
 
 ## 8) Aufwand
 

@@ -158,7 +158,16 @@ impl GameEngine {
         }
     }
 
-    /// Updates the simulation bounds after the browser viewport changes size.
+    /// Sets new simulation bounds and drops the obstacles the smaller world can no longer
+    /// hold.
+    ///
+    /// The game does not call this any more: the world is a fixed logical size and the
+    /// frontend letterboxes it into the window, so resizing the browser never changes the
+    /// simulation. The method stays regardless, because the world bounds belong to the
+    /// engine rather than to the browser — a caller that wants a different arena (a test, a
+    /// future level size) needs a way to say so, and the guarantee that shrinking the world
+    /// cannot pocket the player in is asserted on here and nowhere else. Do not remove it
+    /// as dead code.
     pub fn resize(&mut self, width: u32, height: u32) {
         self.world_width = width.max(1) as f32;
         self.world_height = height.max(1) as f32;

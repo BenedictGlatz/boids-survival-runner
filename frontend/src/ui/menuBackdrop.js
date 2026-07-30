@@ -258,8 +258,12 @@ function strokeLattice(ctx, width, height, size, color) {
 
 /**
  * The same dart silhouette the game draws. The heading unit vectors are the rotation
- * matrix themselves, so the arrow is built directly in world coordinates — a `ctx.rotate()`
- * per boid would touch the device-pixel-ratio transform.
+ * matrix themselves, so the arrow is built directly in backdrop coordinates — a
+ * `ctx.rotate()` per boid would touch the transform set up in `_resize()`.
+ *
+ * Unlike the game renderer, this canvas has no world and is deliberately *not*
+ * letterboxed: it is decoration that fills the window behind the Command Deck, and void
+ * bars behind the menu would be a regression rather than a boundary cue.
  */
 function drawArrow(ctx, x, y, headingX, headingY, color) {
   const corners = [

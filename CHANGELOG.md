@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- The edge of the world is now visible: the area outside it is drawn a shade darker than the arena floor, the grid stops at the boundary, and a hairline marks it. Boids wrap around that edge and always have, but it used to coincide with the screen edge and was therefore impossible to see.
 - Initial project structure with separate `engine` (Rust/WASM) and `frontend` (JavaScript) directories.
 - Skeleton modules for engine: `math`, `simulation`, `wasm_bridge`.
 - Skeleton modules for frontend: `renderer`, `input`, `ui`.
@@ -107,6 +108,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- The game world is now a fixed 1920×1080 arena instead of being whatever the browser window happens to be. It is scaled to fit the window without distortion and centred, so the whole world stays visible on any screen and a window that is not 16:9 shows a darker margin on two sides. The consequence is the point of the change: how much arena a player gets, how far new boids spawn from them, and how dense the obstacles feel no longer depend on the monitor, so a 4K display fits exactly as many boids side by side as a Full HD one does and two scores are finally comparable. Resizing the window now only rescales the picture — it no longer moves boids, drops obstacles, or shoves the player.
 - Rebalanced the opening difficulty: a round now starts with 12 boids instead of 36, each wave adds 6 instead of 12, and boids perceive their neighbours within 70 pixels instead of 85, so the early swarm is looser and the ramp is gentler.
 - The frametime graph's vertical axis now follows the selected target framerate instead of the measured load. The dashed line always marks the frame budget of that framerate (16.67 ms at 60 FPS) and sits halfway up the plot, so the free half above it shows by how much a frame missed its budget. The axis therefore holds still for a whole round: the same curve height always means the same cost.
 - The frametime graph now draws continuous curves instead of stacked bars, in the style of an external frametime monitor: a thin line over a tinted area, scrolling in from the left while the history fills up.

@@ -5,6 +5,39 @@
  */
 export const APP_VERSION = '0.1.0';
 
+// ---------------------------------------------------------------------------
+// The game world
+// ---------------------------------------------------------------------------
+
+/**
+ * The logical game world, in world units. Fixed on purpose: it used to be
+ * `window.innerWidth × window.innerHeight`, which let the monitor decide how much arena a
+ * player got. A 4K screen saw more than four times the world a laptop did, and because the
+ * engine derives its safe spawn distance from the shorter world edge while the obstacle
+ * count is fixed, no balance value meant the same thing on two machines and no two scores
+ * were comparable.
+ *
+ * One world unit is still one pixel at a render scale of 1, so every length in this file
+ * and in `engine/src/constants.rs` keeps the meaning it was tuned with. 16:9 because that
+ * is what the overwhelming majority of displays are, so the letterbox margins the renderer
+ * falls back to are usually zero pixels wide.
+ *
+ * Deliberately *not* mirrored into `engine/src/constants.rs`: the engine receives its world
+ * size through `GameEngine::new()`, so this is a caller-supplied bound rather than a tuning
+ * default, and a second copy would be a second hand-sync obligation like the one
+ * `INITIAL_BOID_COUNT` already carries.
+ */
+export const WORLD_WIDTH = 1920;
+export const WORLD_HEIGHT = 1080;
+
+/**
+ * The same two numbers as the bounds object `playerController.update()` expects. Built once
+ * and frozen because that call happens on every simulation step, and building a fresh
+ * object sixty times a second is the kind of hot-path allocation the coding standards rule
+ * out.
+ */
+export const WORLD_BOUNDS = Object.freeze({ width: WORLD_WIDTH, height: WORLD_HEIGHT });
+
 export const INITIAL_BOID_COUNT = 12;
 export const PLAYER_STARTING_LIVES = 3;
 export const HIT_COOLDOWN_MS = 900;

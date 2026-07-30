@@ -16,10 +16,15 @@ const COLOR_TOLERANCE = 16;
  *
  * Only part of an obstacle is left in the plain body colour: the hatching draws red
  * diagonals over it, and the darkened core takes the middle out, so what remains is the
- * band along the rim between the stripes. For the thinnest obstacle in the first wave
- * that is still several times this threshold.
+ * band along the rim between the stripes.
+ *
+ * The render scale is a factor in this number now that the world is a fixed 1920x1080
+ * letterboxed into the window: at this suite's 1280x720 viewport everything is drawn at
+ * 0.667, so an obstacle covers 0.44 of the pixels it used to. Measured against the preview
+ * build, a first-wave round paints about 630 such pixels and the menu paints exactly none,
+ * which is the gap this threshold sits in.
  */
-const ENOUGH_PIXELS = 400;
+const ENOUGH_PIXELS = 250;
 
 /**
  * Time for a new obstacle to finish fading in, plus slack.

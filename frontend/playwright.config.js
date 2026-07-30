@@ -38,9 +38,13 @@ export default defineConfig({
 
   use: {
     baseURL: BASE_URL,
-    // A fixed viewport is a correctness requirement, not a preference: the world
-    // size is window.innerWidth/innerHeight, so the whole simulation — spawn
-    // distances included — depends on it.
+    // A fixed viewport is still a correctness requirement, though no longer for the
+    // reason it once was. The world is a fixed size and no longer derived from the
+    // window, so the simulation does not depend on this at all any more — but the
+    // viewport does set the render scale (0.667 here, since the world is 1920x1080),
+    // and obstacles.spec.js counts the pixels of a drawn obstacle. A varying viewport
+    // would vary that count. letterbox.spec.js overrides it on purpose, because at
+    // exactly 16:9 there are no margins for it to look at.
     viewport: { width: 1280, height: 720 },
     trace: 'on-first-retry',
     video: 'retain-on-failure',

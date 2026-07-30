@@ -13,8 +13,10 @@ test.describe('booting the built game', () => {
   });
 
   test('sizes the canvas to the window', async ({ page }) => {
-    // The canvas is the whole game surface and the world size is derived from the
-    // window, so a canvas of the wrong size is a simulation bug, not a visual one.
+    // The world no longer follows the window — it is a fixed size that the renderer
+    // letterboxes *inside* this canvas. What the assertion guards now is that the canvas
+    // itself still spans the whole viewport, because it is the reference surface the HUD
+    // and every CSS overlay position themselves against (`position: fixed; inset: 0`).
     await openStartMenu(page);
 
     const canvas = await page.locator('#game-canvas').boundingBox();

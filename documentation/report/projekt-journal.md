@@ -63,7 +63,51 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-07-30 | 0,5 | S-03          | Schwarm-Backdrop hinter dem Menü eingebaut (eigener Canvas, reine Präsentation) und den Renderer im Menüzustand vom Zeichnen aufs Leeren umgestellt, damit er durchscheint                                                                                                                                                                   |
 | 2026-07-30 | 0,5 | S-02          | Balance-Werte nachgezogen: Startschwarm 36 → 12, Wellenzuwachs 12 → 6, Wahrnehmungsradius 85 → 70; dabei die Doppelführung von `INITIAL_BOID_COUNT` in `gameConfig.js` und die dritte Kopie im E2E-Test mitgeändert                                                                                                                          |
 
+| 2026-07-30 | 2,5 | S-03 | Weltgröße von der Monitorauflösung entkoppelt: feste logische Welt 1920×1080, Contain-Fit im Renderer über das neue Modul `renderer/worldTransform.js` samt acht Unit-Tests, Arena-Zeichnung nach `renderer/arenaLayer.js` ausgelagert, sichtbare Weltkante, `resizeEngine` aus dem Frontend entfernt; neuer E2E-Flow `letterbox.spec.js` und Pixelsonde in `obstacles.spec.js` gegen den neuen Renderscale nachgemessen |
+
 ## Entscheidungen
+
+### 2026-07-30 — Die Spielwelt hat eine feste Größe, das Fenster skaliert sie nur
+
+**Gewählt:** Die Welt ist konstant `WORLD_WIDTH × WORLD_HEIGHT` = 1920 × 1080 Welteinheiten
+(`gameConfig.js`). Der Renderer passt sie verzerrungsfrei ins Fenster ein — `scale`
+= min(Fensterbreite/1920, Fensterhöhe/1080), zentriert, überschüssiger Platz wird Rand
+(_contain fit_). Die Arithmetik dafür sitzt in `renderer/worldTransform.js`, importfrei und
+damit unter Vitest prüfbar, genau wie `dashPulse.js` und `ui/frameGraphScale.js`. Angewandt
+wird sie als **eine** `setTransform`: Welt → CSS-Pixel und CSS- → Gerätepixel sind beide
+affin, ihre Komposition ist `setTransform(dpr·scale, 0, 0, dpr·scale, dpr·offsetX,
+dpr·offsetY)`. `handleResize()` berührt nur noch Renderer und Frametime-Graph; ein
+Fensterresize ist rein optisch.
+
+**Verworfen:**
+
+| Alternative                                                       | Grund der Ablehnung                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Welt = Fenster (Status quo)                                       | Der Monitor entscheidet über die Spielfläche. Ein 4K-Bildschirm sah mehr als die vierfache Welt eines Laptops, bekam über die kürzere Weltkante eine andere `safe_spawn_distance` und bei fixer Hindernisanzahl eine andere Dichte. Kein Balancewert bedeutet zweimal dasselbe, kein Score ist vergleichbar. |
+| Welt = Fenster, dafür alle Simulationskonstanten mitskalieren     | Jede Länge in `constants.rs` und `gameConfig.js` müsste einen Skalenfaktor tragen, inklusive der Per-Boid-Werte in `BoidProperties`. Widerspricht „`constants.rs` hält Defaults" und macht Tuning unmöglich, weil kein Wert mehr für sich lesbar ist.                                                        |
+| Cover-Fit: Welt füllt das Fenster, der Überstand wird beschnitten | Die Welt ist ein Torus, alles betritt die Arena **über eine Kante**. Ein beschnittener Rand verdeckt genau das Band, aus dem die nächste Bedrohung kommt — kein Optikkompromiss, sondern unfair.                                                                                                             |
+| Mindest-Renderscale bzw. Clipping bei kleinen Fenstern            | Dieselbe Begründung wie Cover-Fit in kleinerer Verkleidung. Eine vollständig sichtbare kleine Welt ist einer normal großen, abgeschnittenen vorzuziehen.                                                                                                                                                     |
+| Kamera, die dem Spieler folgt (Welt größer als das Fenster)       | Der größte Umbau: verlangt Sichtbarkeitslogik und eine Minimap, damit niemand von etwas getroffen wird, das er nie sehen konnte. Nicht im Budget von S-03 und ohne Not.                                                                                                                                      |
+| Skalierung in jede Zeichenhilfe hineinrechnen                     | Jede Koordinate und jede `lineWidth` müsste multipliziert werden — fehleranfällig an dutzenden Stellen, und es bricht die `lineWidth`-Zusicherungen in `obstacleLayer.test.js`, die in Welteinheiten prüfen. Ein Kontext-Transform erledigt es an einer Stelle und lässt die Zeichenmodule unverändert.      |
+| Das Canvas-Element verkleinern statt darin zu letterboxen         | Das Element ist die Bezugsfläche für HUD und CSS-Overlays (`position: fixed; inset: 0`). Ein geschrumpftes Canvas hätte Overlay-Positionierung, `main.css` und die E2E-Zusicherung „Canvas füllt das Fenster" gleichzeitig angefasst.                                                                        |
+| `WORLD_WIDTH`/`WORLD_HEIGHT` zusätzlich in `constants.rs`         | Eine zweite Handsynchronisationspflicht wie bei `INITIAL_BOID_COUNT`, ohne Gewinn: die Engine bekommt die Weltgröße über `GameEngine::new()` übergeben, und die Rust-Tests benutzen ohnehin eigene Größen (1000×800, 1600×900).                                                                              |
+| `GameEngine::resize()` als toten Code entfernen                   | Die Weltgrenzen gehören der Engine, nicht dem Browser. Die Methode trägt die einzige Zusicherung, dass eine schrumpfende Welt den Spieler nicht einsperrt (`obstacle_field.rs`, `wasm_tests.rs`). Stattdessen ist ihr Doc-Kommentar erweitert, damit sie nicht bei der nächsten Aufräumrunde fällt.          |
+| Transparente Ränder statt in `--void` gemalter                    | `body` trägt `var(--arena)` — dieselbe Farbe wie der Arenaboden. Ein transparenter Rand wäre optisch nicht vom Spielfeld zu unterscheiden und die Weltkante bliebe genauso unsichtbar wie vorher.                                                                                                            |
+| Grid auf 60/300 umstellen, damit es 1920 × 1080 exakt teilt       | Rein kosmetisch, verändert aber die etablierte Arena-Optik. Die angeschnittene letzte Reihe deckt die Weltkantenlinie ab.                                                                                                                                                                                    |
+
+**Konsequenz:** Der Ablehnungsgrund vom 2026-07-29 für einen variablen Playwright-Viewport
+(„die Weltgröße ist `window.innerWidth/Height`") gilt nicht mehr. Die 1280 × 720 bleiben
+trotzdem fest, nur aus einem anderen Grund: der Viewport setzt jetzt den Renderscale
+(0,667), und `obstacles.spec.js` zählt gezeichnete Pixel. Deren Schwelle ist deshalb von 400
+auf 250 gesenkt — gemessen wurden am Preview-Build 628 Pixel in der Runde und 0 im Menü,
+vorher lagen dort rund 1400. `letterbox.spec.js` überschreibt den Viewport bewusst auf
+1400 × 720, weil bei exakt 16:9 keine Ränder existieren und ein Letterbox-Test dort nichts
+zusichern würde. Die Balance ist in diesem Schritt **nicht** angefasst: der Sinn der festen
+Welt ist, dass Werte endlich eindeutig sind, also gehört die erste Messung dahinter und
+nicht hinein. `ui/menuBackdrop.js` bleibt absichtlich fenstergroß — es ist Dekoration ohne
+Welt, und Void-Balken hinter dem Command Deck wären eine Regression, keine Kantenmarkierung.
+
+→ Kap. 3, 4, 8
 
 ### 2026-07-30 — Der Menü-Schwarm ist eine Attrappe auf eigenem Canvas
 

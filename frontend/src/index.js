@@ -1,4 +1,4 @@
-import { initEngine, resizeEngine, setWave, snapshot, tick } from './engine-bridge.js';
+import { initEngine, setWave, snapshot, tick } from './engine-bridge.js';
 import { Renderer } from './renderer/renderer.js';
 import { InputManager } from './input/inputManager.js';
 import { buildControls } from './input/controls.js';
@@ -36,6 +36,9 @@ import {
   SIMULATION_STEP_SECONDS,
   TARGET_FPS_OPTIONS,
   UNCAPPED_TARGET_FPS,
+  WORLD_BOUNDS,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
 } from './gameConfig.js';
 
 let renderer;
@@ -72,7 +75,7 @@ async function bootstrap() {
   renderer = new Renderer(canvas);
   input = new InputManager();
   player = new PlayerController();
-  player.reset(window.innerWidth * 0.5, window.innerHeight * 0.5);
+  player.reset(WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.5);
   state = new GameState();
   hud = new Hud();
   // Created before the menu on purpose: stacking inside #ui-overlay follows DOM
@@ -137,12 +140,12 @@ function menuSettings() {
 
 async function startGame() {
   const playerStartPosition = {
-    x: window.innerWidth * 0.5,
-    y: window.innerHeight * 0.5,
+    x: WORLD_WIDTH * 0.5,
+    y: WORLD_HEIGHT * 0.5,
   };
 
   player.reset(playerStartPosition.x, playerStartPosition.y);
-  await initEngine(window.innerWidth, window.innerHeight, playerStartPosition);
+  await initEngine(WORLD_WIDTH, WORLD_HEIGHT, playerStartPosition);
   gameData = createRoundData(performance.now(), snapshot());
   state.transition(STATE.PLAYING);
   // Claims the space bar for the dash. Outside a round it has to stay with the
@@ -246,10 +249,7 @@ function runSimulationStep() {
   const attemptedPosition = player.update(
     { direction: controls.direction, dash: dashing },
     SIMULATION_STEP_SECONDS,
-    {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    },
+    WORLD_BOUNDS,
   );
 
   // Runs per step so newly spawned boids exist before this step's tick(), and
@@ -367,19 +367,17 @@ function updateWaveProgression(playerPosition) {
   setWave(gameData.wave, playerPosition);
 }
 
+/**
+ * Only the picture reacts to a resize, never the simulation: the world is a fixed
+ * WORLD_WIDTH × WORLD_HEIGHT and the renderer scales it into whatever the window happens
+ * to be. Nothing here may touch the engine or the player — that a resize can no longer
+ * move anything in the world is the whole point of the fixed world size.
+ */
 function handleResize() {
   renderer.resize(window.innerWidth, window.innerHeight);
-  resizeEngine(window.innerWidth, window.innerHeight);
   // Its size is fixed, but a window moved to another monitor can change the
   // device pixel ratio, which would leave the graph blurry.
   frameTimeGraph.resize();
-
-  if (player) {
-    player.clampToBounds({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-  }
 }
 
 bootstrap();

@@ -3,26 +3,13 @@ import {
   BOID_VISUAL_LENGTH,
   BOID_VISUAL_WIDTH,
   PLAYER_VISUAL_RADIUS,
+  WORLD_HEIGHT,
+  WORLD_WIDTH,
 } from '../gameConfig.js';
+import { drawArena, drawLetterboxMargins, drawWorldEdge } from './arenaLayer.js';
 import { dashGlowLevel, dashPulseScale } from './dashPulse.js';
 import { drawObstacles } from './obstacleLayer.js';
-
-/**
- * The arena's own colours, mirrored from `styles/tokens.css` — a canvas cannot read a
- * CSS custom property, so these values exist in both places on purpose. Whoever changes
- * one changes the other; the token file carries the same note.
- */
-const BACKGROUND_COLOR = '#0b0d12';
-const GRID_COLOR = 'rgba(255, 255, 255, 0.05)';
-const GRID_SIZE = 56;
-
-/**
- * Every fifth grid line is drawn brighter. Two steps instead of one give the arena a
- * sense of scale and place without the grid as a whole getting lighter: the previous
- * single-level grid sat between these two values and read flat.
- */
-const GRID_MAJOR_SIZE = GRID_SIZE * 5;
-const GRID_MAJOR_COLOR = 'rgba(255, 255, 255, 0.085)';
+import { fitWorldToCanvas } from './worldTransform.js';
 
 const BOID_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.22)';
 const BOID_OUTLINE_WIDTH = 1.5;
@@ -53,6 +40,8 @@ const HEALTH_BAR_WIDTH = 52;
 const HEALTH_BAR_HEIGHT = 7;
 const HEALTH_BAR_GAP = 3;
 const HEALTH_BAR_OFFSET = 10;
+/** How close to a world edge the bar may get before it is held back. */
+const HEALTH_BAR_EDGE_MARGIN = 4;
 const HEALTH_BAR_BACKDROP_COLOR = 'rgba(7, 8, 11, 0.72)';
 /** Green is reserved for life and used nowhere else in the whole interface. */
 const HEALTH_SEGMENT_COLOR = '#22c55e';
@@ -102,6 +91,10 @@ const DEFAULT_HEADING_Y = 0;
 /**
  * Canvas 2D renderer implementation.
  * Responsible only for drawing — no simulation logic.
+ *
+ * The world is a fixed `WORLD_WIDTH × WORLD_HEIGHT` and no longer follows the window, so
+ * this class carries the one transform that maps it onto the canvas. Every draw helper
+ * below therefore keeps handing over plain world coordinates, exactly as before.
  */
 export class CanvasRenderer {
   /** @param {HTMLCanvasElement} canvas */
@@ -110,6 +103,8 @@ export class CanvasRenderer {
     this._ctx = canvas.getContext('2d');
     this._width = 0;
     this._height = 0;
+    this._pixelRatio = 1;
+    this._view = { scale: 1, offsetX: 0, offsetY: 0 };
     this.resize(window.innerWidth, window.innerHeight);
   }
 
@@ -117,83 +112,110 @@ export class CanvasRenderer {
    * Wipes the canvas without painting the arena background over it.
    *
    * The menu needs this: its swarm backdrop is a canvas of its own, further back, and an
-   * opaque arena background drawn here would hide it completely.
+   * opaque arena background drawn here would hide it completely — which is also why the
+   * wipe has to run in screen space and cover the letterbox margins. Clearing only the
+   * world rectangle would leave the margins painted in front of the menu backdrop.
    * @returns {void}
    */
   clear() {
-    this._ctx.clearRect(0, 0, this._width, this._height);
+    this._inScreenSpace((ctx, screenWidth, screenHeight) => {
+      ctx.clearRect(0, 0, screenWidth, screenHeight);
+    });
   }
 
   /**
    * @param {number} width - CSS pixels.
    * @param {number} height - CSS pixels.
+   * @returns {void}
    */
   resize(width, height) {
     const pixelRatio = window.devicePixelRatio || 1;
     this._width = width;
     this._height = height;
+    this._pixelRatio = pixelRatio;
     this._canvas.width = Math.floor(width * pixelRatio);
     this._canvas.height = Math.floor(height * pixelRatio);
     this._canvas.style.width = `${width}px`;
     this._canvas.style.height = `${height}px`;
-    this._ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+    // The world no longer follows the canvas, so the canvas has to be told where the world
+    // sits inside it.
+    this._view = fitWorldToCanvas(width, height, WORLD_WIDTH, WORLD_HEIGHT);
+    this._applyWorldTransform();
   }
 
   /**
    * @param {object} frame - The engine's flat-buffer frame, as normalized by `engine-bridge.js`.
    * @param {{x: number, y: number}} playerPosition - Current player position.
    * @param {object} [renderState] - HUD-adjacent state (lives, dash cooldown, countdown, ...).
+   * @returns {void}
    */
   drawFrame(frame, playerPosition, renderState = {}) {
     const ctx = this._ctx;
-    ctx.clearRect(0, 0, this._width, this._height);
 
-    drawBackground(ctx, this._width, this._height);
-    drawGrid(ctx, this._width, this._height);
+    // The wipe and the margins are the two things that have to reach outside the world.
+    this._inScreenSpace((screenCtx, screenWidth, screenHeight) => {
+      screenCtx.clearRect(0, 0, screenWidth, screenHeight);
+      drawLetterboxMargins(screenCtx, screenWidth, screenHeight);
+    });
+
+    drawArena(ctx);
+    drawWorldEdge(ctx, this._view.scale);
     // Under the boids and the player, so an obstacle reads as terrain they move over
     // rather than as something in front of them.
     drawObstacles(ctx, frame);
     drawBoids(ctx, frame);
     drawPlayer(ctx, playerPosition, renderState.playerInvulnerable === true);
-    drawPlayerHealth(ctx, playerPosition, renderState, this._width, this._height);
+    drawPlayerHealth(ctx, playerPosition, renderState);
     // The dash bar is not drawn here: it lives in the HUD (`ui/hud.js`), so its label is
     // not re-rasterised on every frame.
-    drawCountdown(ctx, renderState.countdownSeconds, this._width, this._height);
-  }
-}
-
-function drawBackground(ctx, width, height) {
-  ctx.fillStyle = BACKGROUND_COLOR;
-  ctx.fillRect(0, 0, width, height);
-}
-
-/**
- * Two passes over the same lattice function: the fine grid first, the brighter major
- * lines on top. Two `stroke()` calls in total, because a stroke can only carry one
- * colour — drawing the major lines into the same path would repaint them in the fine
- * colour.
- */
-function drawGrid(ctx, width, height) {
-  strokeLattice(ctx, width, height, GRID_SIZE, GRID_COLOR);
-  strokeLattice(ctx, width, height, GRID_MAJOR_SIZE, GRID_MAJOR_COLOR);
-}
-
-function strokeLattice(ctx, width, height, spacing, color) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-
-  for (let x = 0; x <= width; x += spacing) {
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
+    this._drawCountdown(renderState.countdownSeconds);
   }
 
-  for (let y = 0; y <= height; y += spacing) {
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
+  /**
+   * Composes the two mappings the canvas needs into the single transform it can hold.
+   *
+   * Both are affine, so their composition is one `setTransform`:
+   * world to CSS pixels is `css = world * scale + offset`, CSS to device pixels is
+   * `device = css * dpr`, hence `device = dpr * scale * world + dpr * offset`. The offsets
+   * are in CSS pixels and therefore get multiplied by the ratio as well — that is the part
+   * that is easy to get wrong.
+   */
+  _applyWorldTransform() {
+    const combinedScale = this._pixelRatio * this._view.scale;
+    this._ctx.setTransform(
+      combinedScale,
+      0,
+      0,
+      combinedScale,
+      this._pixelRatio * this._view.offsetX,
+      this._pixelRatio * this._view.offsetY,
+    );
   }
 
-  ctx.stroke();
+  /**
+   * Runs a draw callback in screen space: device pixels of the whole canvas, margins
+   * included. Only the three things that have to cover the area *outside* the world need
+   * this — the wipe, the margins themselves, and the countdown scrim.
+   */
+  _inScreenSpace(draw) {
+    const ctx = this._ctx;
+    ctx.save();
+    ctx.resetTransform();
+    draw(ctx, this._canvas.width, this._canvas.height);
+    ctx.restore();
+  }
+
+  /** The scrim has to dim the margins too, so it is the one part drawn in screen space. */
+  _drawCountdown(countdownSeconds) {
+    if (!countdownSeconds || countdownSeconds <= 0) return;
+
+    this._inScreenSpace((screenCtx, screenWidth, screenHeight) => {
+      screenCtx.fillStyle = COUNTDOWN_SCRIM_COLOR;
+      screenCtx.fillRect(0, 0, screenWidth, screenHeight);
+    });
+    drawCountdownGlyph(this._ctx, countdownSeconds);
+  }
 }
 
 function drawBoids(ctx, frame) {
@@ -215,7 +237,8 @@ function drawBoids(ctx, frame) {
 
     // The heading unit vector is itself the rotation matrix, so the arrow is
     // built directly in world space. Rotating the context per boid would risk
-    // clobbering the device-pixel-ratio transform set up in resize().
+    // clobbering the transform set up in resize(), which carries the device pixel
+    // ratio *and* the world scale and offset.
     const velocityX = velocities?.[index] ?? 0;
     const velocityY = velocities?.[index + 1] ?? 0;
     const speed = Math.hypot(velocityX, velocityY);
@@ -308,15 +331,24 @@ function drawPlayer(ctx, playerPosition, playerInvulnerable) {
   ctx.stroke();
 }
 
-function drawPlayerHealth(ctx, playerPosition, renderState, width, height) {
+/**
+ * The bar is drawn in world space, like the player it belongs to: it sticks to the player
+ * rather than to the screen, so it keeps the player's size at any window size and needs no
+ * inverse transform. Its clamps are against the world edges for the same reason.
+ */
+function drawPlayerHealth(ctx, playerPosition, renderState) {
   if (!playerPosition || renderState.lives === undefined) return;
 
   const maxLives = Math.max(1, renderState.maxLives ?? renderState.lives);
   const filledLives = Math.max(0, Math.min(renderState.lives, maxLives));
   const segmentWidth = (HEALTH_BAR_WIDTH - HEALTH_BAR_GAP * (maxLives - 1)) / maxLives;
-  const barX = clamp(playerPosition.x - HEALTH_BAR_WIDTH * 0.5, 4, width - HEALTH_BAR_WIDTH - 4);
+  const barX = clamp(
+    playerPosition.x - HEALTH_BAR_WIDTH * 0.5,
+    HEALTH_BAR_EDGE_MARGIN,
+    WORLD_WIDTH - HEALTH_BAR_WIDTH - HEALTH_BAR_EDGE_MARGIN,
+  );
   const preferredY = playerPosition.y + PLAYER_VISUAL_RADIUS + HEALTH_BAR_OFFSET;
-  const barY = Math.min(preferredY, height - HEALTH_BAR_HEIGHT - 4);
+  const barY = Math.min(preferredY, WORLD_HEIGHT - HEALTH_BAR_HEIGHT - HEALTH_BAR_EDGE_MARGIN);
 
   ctx.fillStyle = HEALTH_BAR_BACKDROP_COLOR;
   ctx.fillRect(barX - 3, barY - 3, HEALTH_BAR_WIDTH + 6, HEALTH_BAR_HEIGHT + 6);
@@ -328,19 +360,19 @@ function drawPlayerHealth(ctx, playerPosition, renderState, width, height) {
   }
 }
 
-function drawCountdown(ctx, countdownSeconds, width, height) {
-  if (!countdownSeconds || countdownSeconds <= 0) return;
-
+/**
+ * The digit itself, in world space and centred on the world — it belongs to the arena the
+ * round is about to start in, not to the window frame around it.
+ */
+function drawCountdownGlyph(ctx, countdownSeconds) {
   ctx.save();
-  ctx.fillStyle = COUNTDOWN_SCRIM_COLOR;
-  ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = COUNTDOWN_COLOR;
   ctx.font = COUNTDOWN_FONT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.shadowColor = COUNTDOWN_GLOW_COLOR;
   ctx.shadowBlur = COUNTDOWN_GLOW_BLUR;
-  ctx.fillText(String(countdownSeconds), width * 0.5, height * 0.5);
+  ctx.fillText(String(countdownSeconds), WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.5);
   ctx.restore();
 }
 

@@ -63,7 +63,9 @@ verworfener Alternativen.
 > relaxieren → Spielertreffer zählen. O(n²) in der Boid-Zahl.
 > Erwähnen: Ein dashender Boid ist innerhalb der Relaxation unbeweglich, damit er
 > seine Linie hält; `wrap_position` nutzt `rem_euclid`, sodass eine Verschiebung
-> größer als die Welt keinen Boid vom Bildschirm entkommen lässt.
+> größer als die Welt keinen Boid aus der Welt entkommen lässt. Welt und Bildschirm sind
+> dabei nicht dasselbe: die Welt hat eine feste logische Größe, die das Frontend ins
+> Fenster einpasst.
 
 ## 4.3 Modularisierung: Strukturierung der fachlichen Logik
 
