@@ -1,0 +1,226 @@
+/* HUD, dash bar and game-over card.
+ *
+ * The HUD is frameless: a value is a kicker plus a large mono number, no surface and no
+ * border, and readability comes from a text shadow instead. That gives four rectangles
+ * of arena back to the game. Where each value sits comes from the position utilities in
+ * main.css, which the HUD shares with the frametime graph. */
+
+.hud-stat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.hud-stat__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(242, 244, 248, 0.38);
+}
+
+.hud-stat__value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  /* Without tabular figures the timer jumps sideways once a second. */
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-shadow: var(--text-shadow-hud);
+}
+
+.hud-stat--timer .hud-stat__value {
+  font-size: 34px;
+}
+
+/* Cyan because the score is your result, red because the boid count is the threat. */
+.hud-stat--score .hud-stat__value {
+  font-size: 30px;
+  color: var(--player);
+}
+
+.hud-stat--boids .hud-stat__value {
+  color: var(--danger);
+}
+
+.hud-stat--right {
+  align-items: flex-end;
+}
+
+.hud-stat--center {
+  align-items: center;
+}
+
+/* Wave progress under the timer: timerSeconds within the current wave. */
+.wave-track {
+  width: 132px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.wave-track__fill {
+  height: 2px;
+  background: var(--player);
+}
+
+/* Dash bar. The glow carries the information "ready" — it is not decoration, which is
+   why only the ready state has it. */
+.dash-bar {
+  width: 200px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.dash-bar__fill {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(56, 189, 248, 0.45);
+  transition: width var(--dur-fast) linear;
+}
+
+.dash-bar--ready .dash-bar__fill {
+  background: var(--player);
+  box-shadow: var(--glow-dash);
+}
+
+.dash-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(242, 244, 248, 0.44);
+}
+
+.dash-bar--ready + .dash-label {
+  color: rgba(56, 189, 248, 0.85);
+}
+
+/* ================================================================== *
+ * Game over — a card, not a full-screen overlay
+ * ================================================================== */
+
+.gameover-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+  width: 424px;
+  padding: 34px;
+  border: 1px solid rgba(240, 58, 95, 0.28);
+  border-radius: var(--radius);
+  background: rgba(18, 22, 30, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+/* The only 2px line in the system, and it marks the one defeat. */
+.gameover-card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  left: -1px;
+  height: 2px;
+  background: var(--danger);
+}
+
+.gameover-card__kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--danger);
+}
+
+.gameover-card__title {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.gameover-card__score {
+  font-family: var(--font-mono);
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot {
+    animation: none;
+  }
+
+  .btn-primary,
+  .btn-ghost,
+  .menu-row,
+  .segmented > button,
+  .dash-bar__fill {
+    transition: none;
+  }
+}
+
+/* ================================================================== *
+ * Small windows
+ * ================================================================== */
+
+@media (max-width: 1100px) {
+  .menu-deck {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    overflow-y: auto;
+  }
+
+  .menu-deck__main {
+    padding-right: 0;
+  }
+
+  .menu-deck__aside {
+    grid-column: 1;
+  }
+
+  .menu-title__text {
+    font-size: 54px;
+  }
+}
+
+@media (max-width: 640px) {
+  .menu-deck {
+    padding: 24px;
+  }
+
+  .menu-title__text {
+    font-size: 38px;
+  }
+
+  .menu-row {
+    font-size: 15px;
+  }
+
+  .menu-row--primary {
+    font-size: 19px;
+  }
+
+  .hud-stat__value {
+    font-size: 20px;
+  }
+
+  .hud-stat--timer .hud-stat__value {
+    font-size: 26px;
+  }
+
+  .hud-stat--score .hud-stat__value {
+    font-size: 22px;
+  }
+}

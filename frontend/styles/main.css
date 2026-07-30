@@ -1,3 +1,9 @@
+/* Layout scaffolding: the reset, the two full-screen layers, and where things sit.
+ *
+ * Loaded last, after tokens.css, components.css, menu.css and hud.css, so the position
+ * utilities at the bottom win over anything a component brings along. All values come
+ * from tokens.css — no colour, font or duration literal belongs in this file. */
+
 *,
 *::before,
 *::after {
@@ -10,10 +16,10 @@ html,
 body {
   width: 100%;
   height: 100%;
-  background: #111318;
+  background: var(--arena);
   overflow: hidden;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: #f4f4f5;
+  font-family: var(--font-display);
+  color: var(--text);
 }
 
 #game-canvas {
@@ -42,10 +48,10 @@ body {
   position: absolute;
   min-width: 7.5rem;
   padding: 0.55rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: rgba(8, 10, 14, 0.58);
-  color: #f4f4f5;
+  color: var(--text);
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1;
@@ -64,7 +70,7 @@ body {
    mapping the graph relies on. Its size comes from the canvas attributes. */
 .frame-time-graph {
   position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: rgba(8, 10, 14, 0.58);
   backdrop-filter: blur(6px);
@@ -91,16 +97,21 @@ body {
   bottom: 1rem;
 }
 
+.bottom-center {
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Temporary, together with the .menu-panel family below: centres the old overlay and
+   dims the arena behind it. The Command Deck brings its own grid and its own scrim
+   (.menu-scrim), so this rule goes away with the menu rebuild. */
 #menu-overlay {
-  position: fixed;
-  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   background: rgba(7, 8, 12, 0.78);
-  color: #f4f4f5;
-  pointer-events: auto;
 }
 
 .menu-panel {
@@ -115,7 +126,6 @@ body {
   font-weight: 800;
   letter-spacing: 0;
   text-align: center;
-  text-shadow: 0 0 1rem rgba(56, 189, 248, 0.32);
 }
 
 .menu-panel p {
@@ -123,26 +133,24 @@ body {
   font-weight: 700;
 }
 
+/* The old centred start button and option pills. They live on until `ui/menu.js` is
+   rebuilt into the Command Deck, so that every step in between still renders a usable
+   menu; the Command Deck replaces them with .btn-primary / .menu-row / .segmented. */
 .menu-button {
   min-width: 11rem;
   min-height: 3.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: #38bdf8;
-  color: #031525;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--player);
+  color: var(--player-ink);
   cursor: pointer;
   font: inherit;
   font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  box-shadow: 0 0.75rem 1.8rem rgba(14, 165, 233, 0.24);
+  font-weight: 700;
 }
 
-.menu-button:hover,
-.menu-button:focus-visible {
-  background: #7dd3fc;
-  outline: 3px solid rgba(248, 250, 252, 0.7);
-  outline-offset: 3px;
+.menu-button:hover {
+  background: var(--player-hover);
 }
 
 .menu-option-group {
@@ -155,7 +163,7 @@ body {
 .menu-option-label {
   font-size: 0.95rem;
   font-weight: 700;
-  color: rgba(244, 244, 245, 0.72);
+  color: var(--text-secondary);
   text-transform: uppercase;
 }
 
@@ -167,27 +175,28 @@ body {
 .menu-option {
   min-width: 5.5rem;
   min-height: 2.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.06);
-  color: #f4f4f5;
+  color: var(--text);
   cursor: pointer;
   font: inherit;
   font-size: 1rem;
   font-weight: 700;
 }
 
-.menu-option:hover,
-.menu-option:focus-visible {
-  border-color: #7dd3fc;
-  outline: 3px solid rgba(248, 250, 252, 0.7);
-  outline-offset: 3px;
+.menu-option.is-selected {
+  border-color: var(--player);
+  background: var(--player);
+  color: var(--player-ink);
 }
 
-.menu-option.is-selected {
-  border-color: #38bdf8;
-  background: #38bdf8;
-  color: #031525;
+.menu-button:focus-visible,
+.menu-option:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--arena),
+    0 0 0 4px var(--player);
 }
 
 /* Scoped to the panel on purpose: `.menu-panel p` above is more specific than a
@@ -196,7 +205,7 @@ body {
   max-width: 22rem;
   font-size: 0.85rem;
   font-weight: 400;
-  color: rgba(244, 244, 245, 0.6);
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -205,14 +214,14 @@ body {
 .menu-section {
   width: 100%;
   max-width: 24rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .menu-section-summary {
   padding: 0.7rem 1rem;
-  color: rgba(244, 244, 245, 0.72);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 700;
@@ -223,13 +232,15 @@ body {
 }
 
 .menu-section-summary:hover {
-  color: #f4f4f5;
+  color: var(--text);
 }
 
 .menu-section-summary:focus-visible {
-  border-radius: 10px;
-  outline: 3px solid rgba(248, 250, 252, 0.7);
-  outline-offset: -1px;
+  border-radius: var(--radius);
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--arena),
+    0 0 0 4px var(--player);
 }
 
 .menu-section-body {
@@ -276,11 +287,6 @@ body {
 
   .menu-panel h1 {
     font-size: 2.4rem;
-  }
-
-  .menu-option {
-    min-width: 4.25rem;
-    font-size: 0.9rem;
   }
 
   .menu-panel .menu-hint {

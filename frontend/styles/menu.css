@@ -1,0 +1,199 @@
+/* Main menu — "Command Deck".
+ *
+ * An asymmetric three-row grid across the full viewport: header hairline, content,
+ * footer hairline. The content is two columns, `1fr 400px`. The reference markup this
+ * mirrors is `docs/design_system/menu-markup.html`.
+ *
+ * The point of the layout is the menu list: one more entry is one more row, not a
+ * redesign. */
+
+#menu-overlay {
+  position: fixed;
+  inset: 0;
+  color: var(--text);
+  pointer-events: auto;
+}
+
+/* Darkens the swarm behind the text side and opens up towards the right edge. Its own
+   element rather than a background on the overlay, so the menu looks identical whether
+   or not the backdrop canvas is running behind it. */
+.menu-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    120% 90% at 22% 45%,
+    rgba(11, 13, 18, 0.93) 0%,
+    rgba(11, 13, 18, 0.82) 42%,
+    rgba(11, 13, 18, 0.5) 100%
+  );
+}
+
+.menu-deck {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  grid-template-rows: auto 1fr auto;
+  padding: 44px 48px;
+}
+
+.menu-deck__bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.menu-deck__bar--foot {
+  padding-top: 18px;
+  padding-bottom: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.menu-deck__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+.menu-deck__sep {
+  color: var(--text-disabled);
+}
+
+.menu-deck__main {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 34px;
+  padding-right: 64px;
+}
+
+.menu-deck__aside {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s4);
+}
+
+.menu-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.menu-title__text {
+  margin: 0;
+  font-size: 82px;
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.menu-title__text em {
+  font-style: normal;
+  color: var(--player);
+}
+
+.menu-title__pitch {
+  max-width: 380px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 420px;
+}
+
+/* One more menu entry is one more row — no redesign needed. */
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 15px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--line-hairline);
+  background: transparent;
+  color: rgba(242, 244, 248, 0.82);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.menu-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.menu-row--muted {
+  color: var(--text-secondary);
+}
+
+.menu-row__index {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+}
+
+.menu-row__label {
+  flex: 1;
+}
+
+.menu-row__marker {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.menu-row--primary {
+  padding: 16px 20px;
+  border-bottom: 0;
+  background: var(--player);
+  color: var(--player-ink);
+  font-size: 22px;
+  font-weight: 700;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+}
+
+.menu-row--primary .menu-row__index {
+  color: rgba(4, 18, 28, 0.55);
+}
+
+.menu-row--primary:hover {
+  background: var(--player-hover);
+  color: var(--player-ink);
+}
+
+/* The swarm canvas from `ui/menuBackdrop.js`. Below the overlay, above the game
+   canvas — the game canvas is cleared while the menu is open so this shows through. */
+#menu-backdrop {
+  position: fixed;
+  inset: 0;
+  display: block;
+  z-index: 0;
+}

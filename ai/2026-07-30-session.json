@@ -28,5 +28,11 @@
     "prompt": "Ich möchte dass du einen Bug für mich fixt: Mir ist aufgefallen dass man in Hindernissen \"steckenbleiben\" kann, vorallem wenn man in sie hinein-dashed, aber auch wenn man länger in sie hinensteuert. Das sollte nicht möglich sein. Wenn mit einem Hindernis kollidiert sollte man leicht zurückgestoßen werden und das Hindernis sollte rot aufleuchten um zu signalisieren dass man es getroffen hat.",
     "topic": "engine",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Ich habe mit Claude Design eine umfassende Überarbeitung der Optik des Spiels erstellt, das Ergebnis liegt in doc/design_system. Bitte plane die Implementierung dieses neuen Designs. Beginne damit dir die Readme.md in design_system durchzulesen.",
+    "topic": "frontend-ui",
+    "use": "impl"
   }
 ]

@@ -1,0 +1,299 @@
+/* SIGNAL building blocks — the parts that appear in more than one place.
+ *
+ * Nothing here positions itself. A kicker, a panel or a keycap is placed by whatever
+ * screen uses it (menu.css, hud.css), which is what keeps these classes reusable. */
+
+/* The recurring structural element: a smallest-size label above every group and every
+   value. Mono, wide letter spacing, uppercase — see design-system.md §3. */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+.kicker--faint {
+  color: var(--text-faint);
+}
+
+.kicker--tight {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+
+.hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--text-faint);
+  text-wrap: pretty;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  padding: var(--s5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel-bg);
+  backdrop-filter: blur(8px);
+}
+
+.panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.panel__foot {
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--s1);
+  border-top: 1px solid var(--line-hairline);
+}
+
+.panel__foot-value {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+}
+
+/* The primary action. The corner cut is the system's one brand motif and belongs
+   nowhere else — it marks the single most important thing on a screen. */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  padding: 18px 30px;
+  border: 0;
+  background: var(--player);
+  color: var(--player-ink);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.btn-primary:hover {
+  background: var(--player-hover);
+}
+
+.btn-ghost {
+  padding: 13px 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--text);
+}
+
+/* One focus ring for everything focusable, so the whole UI stays keyboard-operable —
+   the same guarantee the outline rules in main.css used to give. The inner ring in the
+   arena colour keeps the outer cyan one readable on any surface. */
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible,
+.menu-row:focus-visible,
+.segmented > button:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--arena),
+    0 0 0 4px var(--player);
+}
+
+/* Segmented control — the new look of the option groups from `ui/optionGroup.js`.
+   The 1px dividers come from `gap` on a coloured container rather than from a border
+   per cell, which is what avoids doubled edges between two neighbouring cells. */
+.segmented {
+  display: flex;
+  gap: 1px;
+  padding: 1px;
+  border-radius: var(--radius);
+  background: var(--line);
+}
+
+.segmented > button {
+  min-width: 66px;
+  padding: 11px 0;
+  border: 0;
+  background: var(--panel-solid);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.segmented > button:hover {
+  background: var(--raised);
+  color: var(--text);
+}
+
+.segmented > button.is-selected {
+  background: var(--player);
+  color: var(--player-ink);
+}
+
+/* Keycap. The lighter top border and darker bottom one give it just enough plastic
+   to read as a key without a shadow. */
+.key {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 var(--s2);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-key);
+  background: var(--raised);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(242, 244, 248, 0.82);
+}
+
+/* Outlined in cyan, because SPACE is the ability and not the movement. */
+.key--ability {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--player);
+  letter-spacing: 0.1em;
+}
+
+.key--wide {
+  min-width: 99px;
+}
+
+/* A keycap sitting on the cyan surface of the primary row. */
+.key--on-primary {
+  height: auto;
+  padding: 5px 9px;
+  border: 1px solid rgba(4, 18, 28, 0.35);
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 30px);
+  grid-template-rows: 30px 30px;
+  gap: 3px;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.legend__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.badge--diag {
+  padding: 3px 7px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--warning);
+}
+
+/* Stat row: 1px dividers from gap on a coloured container, same trick as .segmented. */
+.stat-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 1px;
+  background: var(--line-hairline);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: var(--s3) 0 2px var(--s3);
+  background: var(--panel-solid);
+}
+
+.stat:first-child {
+  padding-left: 0;
+}
+
+.stat__value {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-hero {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+}
+
+.score-hero__value {
+  font-family: var(--font-mono);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--player);
+}
+
+.score-hero__unit {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-label);
+}
+
+/* The status light in the menu header — the only permanent loop in the UI. It says
+   "the simulation is running", which is why it pulses rather than sitting still. */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--player);
+  animation: status-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}

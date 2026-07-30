@@ -1,0 +1,93 @@
+/* SIGNAL design system — the canonical values.
+ *
+ * Every colour, font, radius, spacing step and duration in the frontend comes from here.
+ * The rules that turn these values into a system are written down in
+ * `docs/design_system/design-system.md`; this file only holds the numbers.
+ *
+ * Loaded first, before components.css, menu.css, hud.css and main.css, so everything
+ * that follows can refer to the variables.
+ *
+ * The world colours at the bottom are mirrored in `src/renderer/canvasRenderer.js`:
+ * a canvas cannot read a custom property, so those two values exist twice on purpose. */
+
+:root {
+  /* ---- Neutrals ---- */
+  --void: #07080b;
+  --arena: #0b0d12;
+  --surface: #12161e;
+  --raised: #1a1f2a;
+  --obstacle-body: #2a313f;
+
+  --panel-bg: rgba(18, 22, 30, 0.82);
+  --panel-solid: #12161e;
+
+  /* ---- Text ---- */
+  --text: #f2f4f8;
+  --text-secondary: rgba(242, 244, 248, 0.56);
+  --text-label: rgba(242, 244, 248, 0.42);
+  --text-faint: rgba(242, 244, 248, 0.3);
+  --text-disabled: rgba(242, 244, 248, 0.24);
+
+  /* ---- Lines. Always 1px; the only 2px line in the system is the danger edge on
+     the game-over card. ---- */
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --line-hairline: rgba(255, 255, 255, 0.07); /* for gap:1px dividers */
+
+  /* ---- Semantic. Each colour carries exactly one meaning: cyan is you and your
+     ability, red costs you something, amber is a temporary state change, green is
+     life, slate is the inert world. ---- */
+  --player: #38bdf8;
+  --player-hover: #7dd3fc;
+  --player-ink: #04121c; /* text on cyan */
+  --danger: #f03a5f;
+  --danger-edge: rgba(240, 90, 110, 0.92);
+  --warning: #fbbf24;
+  --health: #22c55e;
+  --world: #94a3b8;
+
+  /* Depth comes from surface brightness, never from a shadow. A shadow is only ever
+     glow, and glow is information: cyan glow means ready or active. */
+  --glow-player: 0 0 40px rgba(56, 189, 248, 0.28);
+  --glow-dash: 0 0 12px rgba(56, 189, 248, 0.7);
+  --text-shadow-hud: 0 2px 12px rgba(0, 0, 0, 0.9);
+
+  /* ---- Type ---- */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ---- Form ---- */
+  --radius: 2px;
+  --radius-key: 3px;
+  --radius-pill: 999px;
+  --cut: 12px; /* corner cut of the primary action */
+
+  /* ---- Space (4px grid) ---- */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 22px;
+  --s6: 28px;
+  --s7: 40px;
+  --s8: 56px;
+
+  /* ---- Motion ---- */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 120ms; /* hover, focus */
+  --dur-base: 180ms; /* selection, panel open */
+  --dur-slow: 320ms; /* screen change */
+
+  /* ---- World (mirrored in canvasRenderer.js) ---- */
+  --grid-line: rgba(255, 255, 255, 0.05);
+  --grid-line-major: rgba(255, 255, 255, 0.085);
+}
+
+a {
+  color: var(--player);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--player-hover);
+}

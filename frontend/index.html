@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Boids Survival Runner</title>
+    <!-- Order is load-bearing: tokens defines the variables everything else reads, and
+         main.css comes last so its position utilities win over the components. -->
+    <link rel="stylesheet" href="./styles/tokens.css" />
+    <link rel="stylesheet" href="./styles/components.css" />
+    <link rel="stylesheet" href="./styles/menu.css" />
+    <link rel="stylesheet" href="./styles/hud.css" />
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
