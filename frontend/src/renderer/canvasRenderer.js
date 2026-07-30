@@ -8,18 +8,56 @@ import { t } from '../ui/i18n.js';
 import { dashGlowLevel, dashPulseScale } from './dashPulse.js';
 import { drawObstacles } from './obstacleLayer.js';
 
-const BACKGROUND_COLOR = '#111318';
-const GRID_COLOR = 'rgba(255, 255, 255, 0.07)';
+/**
+ * The arena's own colours, mirrored from `styles/tokens.css` — a canvas cannot read a
+ * CSS custom property, so these values exist in both places on purpose. Whoever changes
+ * one changes the other; the token file carries the same note.
+ */
+const BACKGROUND_COLOR = '#0b0d12';
+const GRID_COLOR = 'rgba(255, 255, 255, 0.05)';
 const GRID_SIZE = 56;
+
+/**
+ * Every fifth grid line is drawn brighter. Two steps instead of one give the arena a
+ * sense of scale and place without the grid as a whole getting lighter: the previous
+ * single-level grid sat between these two values and read flat.
+ */
+const GRID_MAJOR_SIZE = GRID_SIZE * 5;
+const GRID_MAJOR_COLOR = 'rgba(255, 255, 255, 0.085)';
+
 const BOID_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.22)';
 const BOID_OUTLINE_WIDTH = 1.5;
 const PLAYER_COLOR = '#38bdf8';
-const PLAYER_HIT_COLOR = '#facc15';
-const BOID_COLORS = ['#f03a5f', '#fb7185', '#f97316', '#eab308', '#a855f7'];
+
+/**
+ * Amber while invulnerable — the colour of a temporary state change, the same one an
+ * expiring obstacle wears. A player learns the meaning in one place and can read it
+ * everywhere.
+ */
+const PLAYER_HIT_COLOR = '#fbbf24';
+const PLAYER_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.72)';
+
+/**
+ * One colour per difficulty tier. Five tiers need five colours that stay apart at arrow
+ * size, so they cannot all live in the red family — the tier a boid belongs to has to be
+ * readable in a moving crowd of ninety.
+ *
+ * What did change is the fourth tier: it used to be amber, and amber now means "this is
+ * temporary" on its own (invulnerability, an expiring obstacle). A permanently amber boid
+ * would say the wrong thing, so that tier moved to fuchsia, which carries no other
+ * meaning in the system. Going brighter instead was not an option either: the dash
+ * warning already ramps a boid towards white.
+ */
+const BOID_COLORS = ['#f03a5f', '#fb7185', '#f97316', '#d946ef', '#a855f7'];
+
 const HEALTH_BAR_WIDTH = 52;
 const HEALTH_BAR_HEIGHT = 7;
 const HEALTH_BAR_GAP = 3;
 const HEALTH_BAR_OFFSET = 10;
+const HEALTH_BAR_BACKDROP_COLOR = 'rgba(7, 8, 11, 0.72)';
+/** Green is reserved for life and used nowhere else in the whole interface. */
+const HEALTH_SEGMENT_COLOR = '#22c55e';
+const HEALTH_SEGMENT_EMPTY_COLOR = 'rgba(242, 244, 248, 0.18)';
 
 /** Panel geometry of the dash cooldown bar at the bottom of the screen. */
 const DASH_BAR_WIDTH = 168;
@@ -39,10 +77,15 @@ const DASH_BAR_LABEL_FONT = "600 11px 'JetBrains Mono', monospace";
  * The countdown is the one moment the arena is empty, so it is allowed to be large.
  *
  * A canvas cannot read a CSS custom property, which is why the family is spelled out
- * here as well as in `styles/tokens.css`. Both places name numbers, never a colour —
- * the colours below carry the same duplication for the same reason.
+ * here as well as in `styles/tokens.css` — the same duplication the arena colours above
+ * carry, for the same reason.
  */
 const COUNTDOWN_FONT = "700 96px 'Space Grotesk', sans-serif";
+const COUNTDOWN_COLOR = '#f2f4f8';
+const COUNTDOWN_SCRIM_COLOR = 'rgba(7, 8, 11, 0.5)';
+/** Cyan glow, because the countdown belongs to the player, not to the swarm. */
+const COUNTDOWN_GLOW_COLOR = 'rgba(56, 189, 248, 0.55)';
+const COUNTDOWN_GLOW_BLUR = 18;
 
 /**
  * How many brightness steps a boid colour is precomputed in, from the plain
@@ -127,17 +170,28 @@ function drawBackground(ctx, width, height) {
   ctx.fillRect(0, 0, width, height);
 }
 
+/**
+ * Two passes over the same lattice function: the fine grid first, the brighter major
+ * lines on top. Two `stroke()` calls in total, because a stroke can only carry one
+ * colour — drawing the major lines into the same path would repaint them in the fine
+ * colour.
+ */
 function drawGrid(ctx, width, height) {
-  ctx.strokeStyle = GRID_COLOR;
+  strokeLattice(ctx, width, height, GRID_SIZE, GRID_COLOR);
+  strokeLattice(ctx, width, height, GRID_MAJOR_SIZE, GRID_MAJOR_COLOR);
+}
+
+function strokeLattice(ctx, width, height, spacing, color) {
+  ctx.strokeStyle = color;
   ctx.lineWidth = 1;
   ctx.beginPath();
 
-  for (let x = 0; x <= width; x += GRID_SIZE) {
+  for (let x = 0; x <= width; x += spacing) {
     ctx.moveTo(x, 0);
     ctx.lineTo(x, height);
   }
 
-  for (let y = 0; y <= height; y += GRID_SIZE) {
+  for (let y = 0; y <= height; y += spacing) {
     ctx.moveTo(0, y);
     ctx.lineTo(width, y);
   }
@@ -252,7 +306,7 @@ function drawPlayer(ctx, playerPosition, playerInvulnerable) {
   ctx.arc(playerPosition.x, playerPosition.y, PLAYER_VISUAL_RADIUS, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
+  ctx.strokeStyle = PLAYER_OUTLINE_COLOR;
   ctx.lineWidth = 3;
   ctx.stroke();
 }
@@ -267,12 +321,12 @@ function drawPlayerHealth(ctx, playerPosition, renderState, width, height) {
   const preferredY = playerPosition.y + PLAYER_VISUAL_RADIUS + HEALTH_BAR_OFFSET;
   const barY = Math.min(preferredY, height - HEALTH_BAR_HEIGHT - 4);
 
-  ctx.fillStyle = 'rgba(3, 7, 18, 0.7)';
+  ctx.fillStyle = HEALTH_BAR_BACKDROP_COLOR;
   ctx.fillRect(barX - 3, barY - 3, HEALTH_BAR_WIDTH + 6, HEALTH_BAR_HEIGHT + 6);
 
   for (let index = 0; index < maxLives; index += 1) {
     const segmentX = barX + index * (segmentWidth + HEALTH_BAR_GAP);
-    ctx.fillStyle = index < filledLives ? '#22c55e' : 'rgba(248, 250, 252, 0.22)';
+    ctx.fillStyle = index < filledLives ? HEALTH_SEGMENT_COLOR : HEALTH_SEGMENT_EMPTY_COLOR;
     ctx.fillRect(segmentX, barY, segmentWidth, HEALTH_BAR_HEIGHT);
   }
 }
@@ -314,14 +368,14 @@ function drawCountdown(ctx, countdownSeconds, width, height) {
   if (!countdownSeconds || countdownSeconds <= 0) return;
 
   ctx.save();
-  ctx.fillStyle = 'rgba(3, 7, 18, 0.42)';
+  ctx.fillStyle = COUNTDOWN_SCRIM_COLOR;
   ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = '#f4f4f5';
+  ctx.fillStyle = COUNTDOWN_COLOR;
   ctx.font = COUNTDOWN_FONT;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(56, 189, 248, 0.55)';
-  ctx.shadowBlur = 18;
+  ctx.shadowColor = COUNTDOWN_GLOW_COLOR;
+  ctx.shadowBlur = COUNTDOWN_GLOW_BLUR;
   ctx.fillText(String(countdownSeconds), width * 0.5, height * 0.5);
   ctx.restore();
 }
