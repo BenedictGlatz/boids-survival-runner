@@ -36,4 +36,28 @@ test.describe('the round lifecycle', () => {
     await expect(page.locator('#hud-wave .hud-stat__value')).toHaveText('01');
     expect(await hudNumber(page, '#hud-score')).toBe(0);
   });
+
+  test('remembers the run and shows it as the personal best', async ({ page }) => {
+    // The one thing this game keeps between sessions. It is written when the round ends
+    // and read when the menu opens, so this is the only place the round trip is visible.
+    await openStartMenu(page);
+    await startRound(page);
+    await page.locator('#btn-restart').waitFor({ state: 'visible', timeout: 60_000 });
+    await expect(page.locator('.gameover-card')).toContainText(STRINGS.menu.best);
+
+    await page.locator('#btn-main-menu').click();
+
+    const panel = page.locator('#menu-overlay');
+    await expect(panel).toContainText(STRINGS.menu.personalBest);
+    await expect(panel).toContainText(STRINGS.menu.lastRun);
+    await expect(panel).not.toContainText(STRINGS.menu.noRuns);
+  });
+
+  test('opens on the start screen with no records at all', async ({ page }) => {
+    // A first-time visitor has an empty storage, and an empty record must read as
+    // "no runs yet" rather than as a score of zero.
+    await openStartMenu(page);
+
+    await expect(page.locator('#menu-overlay')).toContainText(STRINGS.menu.noRuns);
+  });
 });

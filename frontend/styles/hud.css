@@ -107,6 +107,14 @@
  * Game over — a card, not a full-screen overlay
  * ================================================================== */
 
+/* Dims the frozen arena behind the card. Its own element rather than a background on the
+   overlay, so the card can sit on top of it without inheriting the dimming. */
+.gameover-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 13, 18, 0.82);
+}
+
 .gameover-card {
   position: relative;
   display: flex;
@@ -148,6 +156,19 @@
   text-transform: uppercase;
 }
 
+.gameover-card__result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* The record sits on the baseline of the score, so the two read as one line. */
+.gameover-card__score-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+}
+
 .gameover-card__score {
   font-family: var(--font-mono);
   font-size: 62px;
@@ -155,6 +176,17 @@
   line-height: 1;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
+}
+
+.gameover-card__actions {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s3);
+}
+
+.gameover-card__actions .btn-primary {
+  flex: 1;
+  justify-content: space-between;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -10,8 +10,10 @@ import {
   renderFrameGraphGroup,
   renderFrameGraphModeGroup,
   renderPanel,
+  renderPersonalBest,
   renderTargetFpsGroup,
 } from './menuPanels.js';
+import { renderGameOverCard } from './gameOverCard.js';
 import { bindMenuNavigation, focusFirstRow } from './menuNavigation.js';
 
 /** The trailing markers of the menu rows, spelled out once. */
@@ -42,6 +44,7 @@ export class Menu {
 
     this._view = VIEW.ROOT;
     this._settings = null;
+    this._records = { best: null, last: null };
     this._onStart = null;
 
     // Bound once: the overlay element survives every view change, and the navigation
@@ -60,30 +63,35 @@ export class Menu {
    *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void},
    *          frameGraphMode: {selected: string, onSelect: (mode: string) => void}}} settings -
    *   Current option values and their change handlers.
+   * @param {{best: ?object, last: ?object}} records - Stored runs for the personal-best
+   *   panel, as read by `round/roundRecords.js`.
    * @returns {void}
    */
-  showStart(onStart, settings) {
+  showStart(onStart, settings, records) {
     this._onStart = onStart;
     this._settings = settings;
+    this._records = records;
     this._render(VIEW.ROOT);
     this._el.style.display = 'block';
   }
 
   /**
-   * @param {() => void} onRestart - Called when the restart button is pressed.
-   * @param {number} finalScore - Score reached in the round that just ended.
+   * Shows the game-over card over the frozen arena.
+   * @param {{onRestart: () => void, onMainMenu: () => void}} handlers - What the two
+   *   buttons do.
+   * @param {{run: {score: number, wave: number, timeSeconds: number, boids: number},
+   *          records: {best: ?{score: number}}}} result - The round that ended and the
+   *   records after it.
    * @returns {void}
    */
-  showGameOver(onRestart, finalScore) {
-    this._el.innerHTML = `
-      <div class="menu-panel">
-        <h1>${t('menu.gameover')}</h1>
-        <p>${t('menu.finalScore')}: ${finalScore}</p>
-        <button id="btn-restart" class="menu-button">${t('menu.restart')}</button>
-      </div>
-    `;
-    document.getElementById('btn-restart').addEventListener('click', onRestart);
+  showGameOver({ onRestart, onMainMenu }, { run, records }) {
+    this._el.innerHTML = renderGameOverCard(run, records.best);
+    this._onClick('btn-restart', onRestart);
+    this._onClick('btn-main-menu', onMainMenu);
     this._el.style.display = 'flex';
+
+    // Space restarts, which is what the keycap on the button says.
+    document.getElementById('btn-restart').focus();
   }
 
   /**
@@ -156,7 +164,7 @@ export class Menu {
    * submenu leaves the stack, so its id exists exactly once in the document.
    */
   _renderAside(view) {
-    const panels = [];
+    const panels = [renderPanel(renderPersonalBest(this._records))];
 
     if (view !== VIEW.SETTINGS) {
       panels.push(renderPanel(renderTargetFpsGroup(this._settings.targetFps)));

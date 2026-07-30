@@ -18,7 +18,15 @@
     "move": "Move",
     "diag": "Diag",
     "back": "Back",
-    "navHint": "↑↓ Navigate · Space Select · Esc Back"
+    "navHint": "↑↓ Navigate · Space Select · Esc Back",
+    "personalBest": "Personal Best",
+    "lastRun": "Last Run",
+    "noRuns": "No runs yet",
+    "local": "Local",
+    "points": "pts",
+    "best": "Best",
+    "swarmWins": "Swarm Wins",
+    "mainMenu": "Main Menu"
   },
   "settings": {
     "targetFps": "Target FPS",

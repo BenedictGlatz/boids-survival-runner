@@ -88,53 +88,13 @@ body {
   transform: translateX(-50%);
 }
 
-/* Temporary, together with the .menu-panel family below: centres the game-over panel,
-   which is the last screen still built the old way. It goes away with the game-over card.
-   The Command Deck sets `display: block` on the overlay itself and brings its own grid
-   and scrim, so these rules do not reach it. */
+/* The overlay centres whatever card it holds — today the game-over card. The Command
+   Deck sets `display: block` on it instead and brings its own grid. */
 #menu-overlay {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.menu-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.menu-panel h1 {
-  font-size: 4rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-align: center;
-}
-
-.menu-panel p {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-/* The old centred button. It is the game-over screen's restart button and nothing else
-   now, and goes away with the game-over card. */
-.menu-button {
-  min-width: 11rem;
-  min-height: 3.25rem;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--player);
-  color: var(--player-ink);
-  cursor: pointer;
-  font: inherit;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.menu-button:hover {
-  background: var(--player-hover);
 }
 
 @media (max-width: 640px) {
@@ -163,9 +123,5 @@ body {
   .bottom-right {
     right: 0.75rem;
     bottom: 0.75rem;
-  }
-
-  .menu-panel h1 {
-    font-size: 2.4rem;
   }
 }

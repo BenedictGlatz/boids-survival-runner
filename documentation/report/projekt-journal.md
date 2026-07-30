@@ -59,8 +59,58 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-07-30 | 1,0 | S-07          | Hindernis-Optik „Hazard Tape" eingebaut (Schraffur, Kern, Gefahrenkante, Spawn-Ring, Amber beim Ablaufen, weiße Trefferkante) und die Node-Untestbarkeit des Handoff-Moduls behoben; Unit-Tests von 13 auf 17 Zusicherungen umgeschrieben, Pixel-Sonde des E2E-Tests auf die neue Körperfarbe gezogen und gegen den laufenden Build gemessen |
 | 2026-07-30 | 1,0 | S-03          | HUD von vier gerahmten Panels auf Kicker+Wert umgebaut, Wellen-Schiene unter dem Timer aus dem vorhandenen Timerwert, Dash-Bar vom Canvas ins DOM verlegt; zwei E2E-Zusicherungen auf die getrennten Label-/Wert-Elemente gezogen, gesamte Playwright-Suite gegen den Preview-Build grün                                                     |
 | 2026-07-30 | 2,5 | S-03          | Hauptmenü als „Command Deck" neu gebaut: `menu.js` als Orchestrator plus `menuDeck.js`, `menuPanels.js` und `menuNavigation.js`, Untermenüs statt `<details>`, Tastaturnavigation mit Pfeilen/Escape und Bewegungstasten nur noch während einer Runde; vier E2E-Tests umgeschrieben, drei neue für die Tastatur                              |
+| 2026-07-30 | 1,5 | S-06          | Highscore-Persistenz als `round/roundRecords.js` mit hereingegebenem Storage und 15 Zusicherungen (defekte Einträge, verweigerter Zugriff), Personal-Best-Panel und Game-Over-Karte gebaut, hinter der Karte bleibt der eingefrorene letzte Frame stehen                                                                                     |
 
 ## Entscheidungen
+
+### 2026-07-30 — Der Speicherzugriff wird hereingegeben, nicht importiert
+
+**Gewählt:** `round/roundRecords.js` nimmt den Storage als Parameter
+(`readRecords(storage = localStorage)`), statt selbst auf `localStorage` zuzugreifen. Damit
+ist das Modul unter Vitest im `node`-Environment prüfbar — ein Map-gestütztes Objekt genügt
+als Attrappe — und `roundData.js` bleibt weiter browserfrei, wie es die Trennung von
+Rundenlogik und Umgebung vorsieht. Jeder Zugriff ist zusätzlich in `try`/`catch` gefasst:
+Ein Profil im privaten Modus kann ein `localStorage` haben, das beim Schreiben wirft, und
+eine von Hand editierte Zahl darf nicht als `NaN` im Menü landen. Ein Fehler heißt „kein
+Rekord" und sonst nichts.
+
+**Verworfen:**
+
+| Alternative                                          | Grund der Ablehnung                                                                                                                                                                                                                 |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Direkt `localStorage` importieren und in E2E prüfen  | Die interessante Hälfte dieses Moduls ist nicht der Normalfall, sondern der defekte Eintrag und der verweigerte Zugriff. Beides in Playwright zu erzeugen kostet mehr Aufwand als das ganze Modul und läuft zwei Minuten langsamer. |
+| Die Rekorde in `roundData.js` mitführen              | `roundData` ist reine Rundenarithmetik und hat keinen Bezug zu einer Sitzung darüber hinaus. Ein Storage-Zugriff darin hätte die Testbarkeit des gesamten Moduls an eine Browser-API gehängt.                                       |
+| Ungültige Werte tolerieren und beim Rendern abfangen | Dann müsste jede Anzeigestelle prüfen. Die Grenzkontrolle sitzt an der Systemgrenze: Was `readRecords` verlässt, ist entweder ein vollständiger Lauf oder `null`.                                                                   |
+
+**Konsequenz:** `recordRound` gibt die Rekorde nach dem Schreiben zurück, damit die
+Game-Over-Karte den Rekord **inklusive** der gerade beendeten Runde zeigt — ein Lauf, der
+den Rekord gerade gesetzt hat, muss ihn sehen. Der Datensatz trägt vier Werte statt drei:
+Die Statzeile zeigt neben Welle und Zeit auch die Schwarmgröße, und die aus dem Nichts
+gezeigte Null wäre eine erfundene Zahl gewesen.
+
+→ Kap. 5, 8
+
+### 2026-07-30 — Hinter der Game-Over-Karte steht der eingefrorene letzte Frame
+
+**Gewählt:** Im Zustand `GAME_OVER` zeichnet der Renderer weiter `gameData.currentFrame`,
+und die Karte legt ihren eigenen Scrim (`rgba(11,13,18,.82)`) darüber. Sichtbar bleibt genau
+die Situation, in der man gestorben ist. Das Designsystem beschreibt an dieser Stelle einen
+weiterlaufenden Schwarm; er läuft aber nicht weiter — die Simulation hält beim Tod an, und
+das Bild sagt das lieber, als eine Bewegung zu behaupten, die es nicht gibt.
+
+**Verworfen:**
+
+| Alternative                                         | Grund der Ablehnung                                                                                                                                                                                    |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Den Menü-Backdrop auch über Game Over laufen lassen | Bewegung hinter der Karte, aber es wäre ein anderer, gefälschter Schwarm als der, der einen gerade getötet hat. Eine Animation, die etwas Falsches behauptet, ist schlechter als ein wahres Stillbild. |
+| Wie bisher `emptyFrame` zeichnen                    | Der billigste Weg und der ausdruckloseste: Der Grund der Niederlage verschwindet in dem Moment, in dem man ihn ansehen möchte.                                                                         |
+| Die Simulation im Hintergrund weiterlaufen lassen   | Sie würde ohne Spieler weiterrechnen, Wellen hochzählen und Hindernisse verwalten, während niemand spielt. Rechenzeit und Zustandsänderungen für eine Hintergrunddekoration.                           |
+
+**Konsequenz:** `showStartMenu` schaltet den Zustand ausdrücklich auf `MENU` zurück. Ohne
+das blieb er nach „Main Menu" auf `GAME_OVER` stehen, und der eingefrorene Frame stand auch
+hinter dem Startmenü — genau der Fehler, der beim ersten Durchspielen sichtbar wurde.
+
+→ Kap. 5, 7
 
 ### 2026-07-30 — Eine Optionsgruppe existiert immer nur an einer Stelle
 

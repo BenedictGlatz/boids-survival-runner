@@ -16,6 +16,7 @@ import {
   registerDash,
   registerHit,
 } from './round/roundData.js';
+import { readRecords, recordRound } from './round/roundRecords.js';
 import { GameState, STATE } from './gameState.js';
 import { Hud } from './ui/hud.js';
 import { Menu } from './ui/menu.js';
@@ -101,33 +102,43 @@ async function bootstrap() {
 }
 
 function showStartMenu() {
+  // Back to the menu state, so the renderer stops drawing the frozen frame of the round
+  // that just ended: that picture belongs to the game-over card, not to the start screen.
+  state.transition(STATE.MENU);
+
   menu.showStart(
     () => {
       void startGame();
     },
-    {
-      targetFps: {
-        options: TARGET_FPS_OPTIONS,
-        selected: targetFps,
-        uncappedValue: UNCAPPED_TARGET_FPS,
-        onSelect: (fps) => {
-          targetFps = fps;
-        },
-      },
-      frameGraph: {
-        enabled: frameGraphEnabled,
-        onToggle: (enabled) => {
-          frameGraphEnabled = enabled;
-        },
-      },
-      frameGraphMode: {
-        selected: frameGraphMode,
-        onSelect: (mode) => {
-          frameGraphMode = mode;
-        },
+    menuSettings(),
+    // Read on every open rather than cached: the round that just ended wrote to it.
+    readRecords(),
+  );
+}
+
+function menuSettings() {
+  return {
+    targetFps: {
+      options: TARGET_FPS_OPTIONS,
+      selected: targetFps,
+      uncappedValue: UNCAPPED_TARGET_FPS,
+      onSelect: (fps) => {
+        targetFps = fps;
       },
     },
-  );
+    frameGraph: {
+      enabled: frameGraphEnabled,
+      onToggle: (enabled) => {
+        frameGraphEnabled = enabled;
+      },
+    },
+    frameGraphMode: {
+      selected: frameGraphMode,
+      onSelect: (mode) => {
+        frameGraphMode = mode;
+      },
+    },
+  };
 }
 
 async function startGame() {
@@ -270,6 +281,17 @@ function runSimulationStep() {
 }
 
 function renderCurrentState(timestamp) {
+  // After a death the last frame keeps being drawn, dimmed by the card's own scrim: the
+  // swarm and the obstacles that killed you stay on screen instead of the arena going
+  // empty. Nothing advances — the simulation stopped, and the picture says so.
+  if (state.is(STATE.GAME_OVER)) {
+    renderer.drawFrame(gameData.currentFrame, player.getPosition(), {
+      lives: gameData.lives,
+      maxLives: gameData.maxLives,
+    });
+    return;
+  }
+
   if (!state.is(STATE.PLAYING)) {
     renderer.drawFrame(emptyFrame, player.getPosition());
     return;
@@ -315,9 +337,25 @@ function endRound() {
   input.setGameplayActive(false);
   hud.hide();
   frameTimeGraph.hide();
-  menu.showGameOver(() => {
-    void restartGame();
-  }, gameData.score);
+
+  const run = {
+    score: gameData.score,
+    wave: gameData.wave,
+    timeSeconds: gameData.timerSeconds,
+    boids: gameData.entityCount,
+  };
+
+  menu.showGameOver(
+    {
+      onRestart: () => {
+        void restartGame();
+      },
+      onMainMenu: showStartMenu,
+    },
+    // Written and read in one call, so the card shows the record including this round —
+    // a run that just set one has to see it.
+    { run, records: recordRound(run) },
+  );
 }
 
 function updateWaveProgression(playerPosition) {

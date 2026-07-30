@@ -10,6 +10,7 @@
 
 import { t } from './i18n.js';
 import { renderOptionGroup } from './optionGroup.js';
+import { formatDuration, renderRunStats } from './runStats.js';
 import { FRAME_GRAPH_MODE } from '../gameConfig.js';
 
 export const FPS_GROUP_ID = 'fps-options';
@@ -28,6 +29,51 @@ export const FRAME_GRAPH_OFF = 'off';
  */
 export function renderPanel(body) {
   return `<section class="panel">${body}</section>`;
+}
+
+/**
+ * The personal-best panel: the record score as one large number, the run it was set in,
+ * and the most recent run below it.
+ *
+ * Marked "Local" on purpose — the records live in this browser's storage and nowhere else,
+ * and a scoreboard that looks global while being local would be a lie.
+ * @param {{best: ?{score: number, wave: number, timeSeconds: number},
+ *          last: ?{score: number, wave: number, timeSeconds: number}}} records - Stored runs.
+ * @returns {string} HTML for the panel body.
+ */
+export function renderPersonalBest({ best, last }) {
+  if (!best) {
+    return `
+      <div class="panel__head">
+        <span class="kicker">${t('menu.personalBest')}</span>
+        <span class="kicker kicker--faint">${t('menu.local')}</span>
+      </div>
+      <p class="hint">${t('menu.noRuns')}</p>
+    `;
+  }
+
+  const lastRun = last
+    ? `${last.score} · ${t('hud.wave')} ${String(last.wave).padStart(2, '0')}`
+    : formatDuration(0);
+
+  return `
+    <div class="panel__head">
+      <span class="kicker">${t('menu.personalBest')}</span>
+      <span class="kicker kicker--faint">${t('menu.local')}</span>
+    </div>
+
+    <p class="score-hero">
+      <span class="score-hero__value">${best.score}</span>
+      <span class="score-hero__unit">${t('menu.points')}</span>
+    </p>
+
+    ${renderRunStats(best)}
+
+    <p class="panel__foot">
+      <span class="kicker">${t('menu.lastRun')}</span>
+      <span class="panel__foot-value">${lastRun}</span>
+    </p>
+  `;
 }
 
 /**
