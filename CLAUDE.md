@@ -177,7 +177,14 @@ Owns rendering, input, game state, and UI. Contains **no** simulation math.
   it is testable under Vitest in the same way `loop/frameGraphScale.js` is.
 - `renderer/renderer.js` → `renderer/canvasRenderer.js` — indirection so a WebGL backend could
   replace the canvas one without touching callers.
-- `gameState.js` — `MENU` / `PLAYING` / `GAME_OVER` state machine, transitions only.
+- `loop/simulationStep.js` — the body of one fixed step. The only module in `loop/` without a unit
+  test, because it drives `engine-bridge.js`; Playwright covers it instead.
+- `gameState.js` — `MENU` / `PLAYING` / `PAUSED` / `GAME_OVER` state machine, transitions only. It
+  validates nothing; `PAUSED` is kept reachable only from `PLAYING` by the guards in `index.js`.
+- `input/pauseControl.js` — Escape and the auto-pause on window blur. One window listener owns
+  **both** directions on purpose: `ui/menuNavigation.js` gates its Escape on the overlay being
+  visible, and a second handler would change that gate synchronously inside the same event, so a
+  split version either closes the card as it opens or re-pauses right after resuming.
 - `ui/menu.js` + `ui/optionGroup.js` — start-menu settings built from one shared option-group module.
 - `gameConfig.js` — all frontend constants (no magic numbers in logic modules).
 
@@ -194,10 +201,13 @@ break subtly if ignored:
 - Conversely, one-shot player input must be **latched and consumed once**, not read as held state:
   a "is the key down" check per step turns one space-bar press into up to five dashes.
 - Simulation debt is clamped (`MAX_SIMULATION_STEPS_PER_FRAME`) and deliberately discarded whenever
-  the world is frozen (countdown, round start, death), or a restart would open with a catch-up burst.
+  the world is frozen (countdown, round start, death, pause), or a restart would open with a
+  catch-up burst. The pause is the only one of the four that can last minutes.
 - Score, the in-game timer and every ability cooldown derive from `simulationTimeMs`, never from wall
   time — and any timestamp measured against it must be re-seeded in `beginRound()`, where that clock
-  jumps back to zero.
+  jumps back to zero. `countdownEndsAt` is the one deliberate exception and runs on wall time, which
+  is why it is also the one value a pause has to carry across itself (`pauseCountdown` /
+  `resumeCountdown`).
 
 **2. Flat buffers across the boundary.** `FrameResponse` returns `Float32Array` positions,
 velocities and dash phases plus a `Uint32Array` of difficulty tiers — flat, cache-friendly,

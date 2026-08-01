@@ -100,8 +100,10 @@ describe('FrameScheduler.discardPendingTime', () => {
 
   it('restarts the frame clock, so a frozen span does not become a catch-up burst', () => {
     // This is the whole point of the method: the world is frozen during the
-    // countdown and on death. Without the clock reset the next frame would
-    // measure from the last active frame and open the round with a burst.
+    // countdown, on death, and for as long as the game is paused. Without the clock
+    // reset the next frame would measure from the last active frame and open the
+    // round with a burst — which is why a pause of any length needs no test of its
+    // own here. Sixty seconds is already the case this pins.
     const scheduler = makeScheduler();
     scheduler.beginFrame(0);
 

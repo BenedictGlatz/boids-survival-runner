@@ -62,11 +62,15 @@ export function buildRenderState(roundData, player, powerups, timing) {
 }
 
 /**
- * The frozen picture behind the game-over card.
+ * The frozen picture behind the game-over card and behind the pause card.
  *
  * Nothing advances here, so no wall clock is handed over and the markers stand as still as
  * everything else — but whatever was lying in the arena stays lying in it, the same way the
  * swarm and the obstacles that killed you stay on screen.
+ *
+ * It carries no `countdownSeconds` either, which is what drops the countdown glyph behind a
+ * pause taken before the round began. That is deliberate: the live builder would tick the
+ * countdown down behind the card, and a card cannot say "paused" over a running clock.
  * @param {object} roundData - The round state the run ended with.
  * @param {import('../powerups/powerups.js').PowerupField} powerups - Asked for its snapshot.
  * @returns {object} The render state to hand to `drawFrame`.

@@ -75,7 +75,90 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-01 | 4,5 | S-05b | Power-ups umgesetzt, rein im Frontend: `powerups/powerups.js` (Regeln, Simulationsuhr hereingereicht, Hindernis-Abstand über eine exportierte `distanceToSegment`) und `renderer/powerupLayer.js` (Hexagon-Marker, Aegis-Schale, Zeitbögen, Splitter); `registerHit` um einen optionalen Absorber erweitert, sodass der Trichter einer bleibt und die Reihenfolge Gnadenfrist → Schild → Schaden prüfbar wird; `setSpeedMultiplier` in `playerController.js` statt eines Faktors durch `controls`, weil die Obergrenze auch bei Wand- und Hindernistreffer neu gesetzt wird; Overdrive senkt die Schweif-Schwelle auf `OVERDRIVE_TRAIL_BASE_SHARE`; Buff-Zeilen ins DOM-HUD statt aufs Canvas, Einsammelring aus `launchRingRadius`/`launchRingAlpha` wiederverwendet; `index.js` und `playerController.test.js` liefen an die 400-Zeilen-Grenze und wurden geteilt — der Renderzustand liegt jetzt als `loop/renderState.js` und ist dadurch erstmals unter Vitest, statt nur im nicht ladbaren `index.js` zu stehen; 38 neue Unit-Zusicherungen und drei E2E-Tests |
 
+| 2026-08-01 | 0,5 | S-04b | Pause spezifiziert (`docs/spec-s04b-pause.md`): vierter Freeze-Fall, Countdown-Restzeit, Tastenbesitz von Escape; in `specs-overview.md` S-04 10 → 13 h und Gesamtbudget 165,5 → 168,5 h, die Aufnahme in §3.4 als Fehlerbehebung statt als Feature begründet |
+
+| 2026-08-01 | 3,0 | S-04b | Pause umgesetzt: vierter Zustand `PAUSED`, `input/pauseControl.js` (ein Fenster-Listener für beide Richtungen plus Auto-Pause bei `blur`), `ui/pauseCard.js` als Zwilling der Game-Over-Karte, `pauseCountdown`/`resumeCountdown` und `runSummary` in `roundData.js`; `index.js` lief erneut an die 400-Zeilen-Grenze und wurde vorab geteilt — der Simulationsschritt liegt jetzt als `loop/simulationStep.js`, die Kartenstile als `styles/cards.css` mit neutraler `card`-Basis statt `gameover-`-Klassen; Frametime-Graph pausiert seine Probennahme, `hud.hide()`/`frameTimeGraph.hide()` von `endRound` nach `showStartMenu` verlegt (Fehler, den erst der zweite Weg aus einer Runde sichtbar macht); 12 neue Unit-Zusicherungen, neun E2E-Tests |
+
 ## Entscheidungen
+
+### 2026-08-01 — Ein Listener besitzt beide Richtungen von Escape
+
+**Gewählt:** `input/pauseControl.js` hört einmal auf Fensterebene, liest den Spielzustand
+und schaltet um. `Menu._goBack()` bleibt unverändert und ist auf der Pausenkarte ein No-op.
+
+**Verworfen:** Escape zum Pausieren in einem neuen Listener, Escape zum Fortsetzen über den
+bestehenden Handler in `ui/menuNavigation.js` — der Entwurf, der auf dem Papier keine neue
+Zuständigkeit einführt und die Zusage „Esc geht zurück" aus der Menüfußzeile wiederverwendet.
+
+**Warum:** Er funktioniert in keiner der beiden Bindungsreihenfolgen. Beide Listener hängen
+an `window` und bekommen dasselbe Event; `menuNavigation` prüft dabei, ob das Overlay
+sichtbar ist — und genau das verändert der jeweils andere Handler **synchron innerhalb
+derselben Auslieferung**. Pause zuerst gebunden: Escape pausiert, macht das Overlay sichtbar,
+und der Menü-Handler geht auf der Karte, die eben aufging, sofort „zurück". Menü zuerst
+gebunden: Escape setzt fort, versteckt das Overlay, stellt `PLAYING` her — und der
+Pause-Listener sieht im selben Event `PLAYING` und pausiert erneut. Beides wirkt wie eine
+tote Taste, und beides ist kein Fehler in einer Zeile, sondern im Zuschnitt.
+
+**Konsequenz:** Der Zustands-Guard ist die einzige Autorität; `pauseControl` prüft die
+Sichtbarkeit des Overlays bewusst nicht, weil das eine zweite Stelle wäre, an der dieselbe
+Frage anders beantwortet werden kann. Dafür braucht die Taste einen `event.repeat`-Guard,
+den der Menü-Handler nicht braucht: „zurück" ist idempotent, ein Umschalten nicht.
+Zusätzlich verworfen wurde die Unterbringung in `InputManager` — dessen Vertrag lautet,
+außerhalb einer Runde keine Taste zu besitzen, während die Pause in beide Richtungen gehört
+werden muss; ein Latch dort würde von `setGameplayActive(false)`, also vom Pausieren selbst,
+gelöscht.
+
+→ Kap. 4, 5
+
+### 2026-08-01 — Die Countdown-Restzeit liegt in den Rundendaten
+
+**Gewählt:** `pauseCountdown` legt `countdownRemainingMs` ab, `resumeCountdown` befristet
+`countdownEndsAt` neu. Beide sind No-ops auf einer aktiven Runde, der Guard liegt in den
+Funktionen.
+
+**Verworfen:** (a) Pausieren während des Countdowns verbieten; (b) den Countdown auf die
+Simulationsuhr umstellen; (c) einen `pausedAt`-Zeitstempel in `index.js` halten und dort
+die Differenz rechnen.
+
+**Warum:** `countdownEndsAt` ist der einzige Wandzeit-Wert, den eine Runde noch trägt, und
+damit der einzige, den eine Pause ungültig machen kann — pausiert bei „3" und zehn Sekunden
+später fortgesetzt, ist die Frist verstrichen und die Runde startet ohne Countdown. (a) sieht
+risikofrei aus, macht aber eine dokumentierte Taste drei Sekunden lang wirkungslos, und ein
+Test müsste die Abwesenheit von Verhalten belegen. (b) wäre der architektonisch bessere
+Endzustand und würde die Pause an dieser Stelle kostenlos machen, verlangt aber, dass der
+Countdown-Zweig anstehende Zeit als Schritte **verbraucht** statt sie zu verwerfen — ein
+Umbau genau des Pfads, auf dem der Catch-up-Burst-Kommentar sitzt, mitten in einem
+Pausenmenü. (c) hätte die Rundenarithmetik in die Datei zurückgeholt, die für dieses Feature
+gerade verkleinert werden musste.
+
+**Konsequenz:** Der Countdown-Glyph verschwindet hinter der Karte, weil der eingefrorene
+Renderzustand kein `countdownSeconds` führt. Das ist die richtige Anzeige und steht als
+Kommentar dort, damit es niemand „reparieren" will: ein tickender Countdown hinter einer
+Pausenkarte wäre eine Lüge. (b) bleibt als Option notiert, falls der Countdown aus anderem
+Grund noch einmal angefasst wird.
+
+→ Kap. 4, 5
+
+### 2026-08-01 — Eine abgebrochene Runde wird nicht gespeichert
+
+**Gewählt:** Der Weg von der Pausenkarte ins Hauptmenü schreibt nichts in die Rekorde.
+`PAUSED → MENU` ist damit der einzige Weg aus einer Runde ohne Schreibzugriff.
+
+**Verworfen:** Beim Verlassen `recordRound` aufrufen wie am Rundenende, damit „jede
+gespielte Runde zählt".
+
+**Warum:** `recordRound` beschreibt sich selbst als „records a **finished** round", und
+„Last Run" im Command Deck meint die letzte gespielte Runde. Aufgeben kann nie mehr Punkte
+bringen als Weiterspielen; ein gespeicherter Abbruch könnte „Last Run" also nur mit einer
+Zahl überschreiben, von der der Spieler bewusst weggegangen ist — das ist strikt schlechtere
+Information als der Bestand davor. Der Einwand „wer mitten im Rekord aufgibt, verliert ihn"
+ist die richtige Folge des Aufgebens und kein Fehler.
+
+**Konsequenz:** Abgefedert wird das nicht durch Speichern, sondern durch Anzeigen: Die Karte
+trägt Score und Statzeile, damit die Entscheidung informiert getroffen wird. Die Karte zeigt
+deshalb auch **keinen** Bestwert — die Pause fasst `roundRecords` in keiner Richtung an.
+
+→ Kap. 5, 8
 
 ### 2026-08-01 — Power-ups vollständig ohne Engine-Anteil
 
@@ -1059,6 +1142,29 @@ den Preis von Produktionscode, der nur für Tests existiert.
 → Kap. 3, 8
 
 ## Herausforderungen & Lessons Learned
+
+- **2026-08-01 — Ein eingefrorenes Bild und eine gerade gestartete Runde sehen im HUD
+  identisch aus.** Zwei der neun Pause-E2E-Tests fielen durch, und der Screenshot zeigte
+  eine stehende Welt: Timer `00:00`, Score 0, kein Countdown-Glyph, keine Karte. Das ist
+  genau die Signatur, die entstünde, wenn `menu.showPause` wirft, nachdem der Zustand schon
+  auf `PAUSED` steht — Welt angehalten, Overlay nie sichtbar geworden. Rund 40 min gingen in
+  diese Hypothese, inklusive eines Wegwerf-Specs mit `pageerror`-Mitschnitt, das dann sauber
+  durchlief und die Karte korrekt aufbaute. Die Ursache lag nicht im Code, sondern in der
+  Zusicherung: `startRound()` aus `e2e/support/game.js` wartet `COUNTDOWN_MS + 500`, kehrt
+  also mit etwa einer halben gespielten Sekunde zurück, und der Score ist
+  `Math.floor(timerSeconds)` — er **ist** dort legitim 0. Genau deshalb wartet der
+  bestehende Test in `round.spec.js` vor seinem Vergleich zusätzlich 2,5 s. Der
+  Countdown-Glyph fehlte aus dem zweiten harmlosen Grund: `countdownSecondsLeft` liefert im
+  Moment des Rundenstarts exakt 0, und der Renderer zeichnet bei 0 nichts.
+  Die Lehre ist doppelt. Erstens: Ein Wert, der aus einer Abrundung entsteht, taugt nur als
+  Beweis für „die Uhr läuft", wenn vorher genug Zeit vergangen ist, dass die Abrundung ihn
+  freigibt — sonst prüft der Test die Wartezeit und nicht das Verhalten. Zweitens: Der
+  Screenshot war das schnellere Werkzeug als jede Hypothese, und er wäre es 40 min früher
+  auch gewesen. Die Tests wurden daraufhin nicht nur „entschärft", sondern schärfer: Der
+  Countdown-Test wartet nach dem Fortsetzen bewusst 1,5 s und fordert, dass der Score
+  **immer noch** 0 ist, weil rund 2 s Countdown geschuldet waren — eine verschluckte Restzeit
+  fällt damit auf, während ein reines „irgendwann läuft es wieder" sie durchgelassen hätte.
+  → Kap. 8
 
 - **2026-08-01 — Die Überlappungsauflösung garantiert weniger, als ihr Name verspricht.**
   Beim Verdichten des Schwarms sollte ein Test nachweisen, dass

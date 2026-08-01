@@ -123,18 +123,19 @@ Antwort auf die Frage, was diese Stufe zusätzlich leistet, statt sie behaupten 
 müssen. Als Regressionswächter prüft `boot.spec.js` seitdem beides: dass kein Request
 fehlschlägt und dass die Menütexte echte Wörter statt Schlüsseln sind.
 
-| Flow                | Zweck                                                                                                                 |  Dauer |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------- | -----: |
-| `boot.spec.js`      | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt     |  < 1 s |
-| `round.spec.js`     | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                        |  ~ 5 s |
-| `input.spec.js`     | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                          |  ~ 5 s |
-| `settings.spec.js`  | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                                  |  ~ 4 s |
-| `gameover.spec.js`  | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                                |  ~ 8 s |
-| `obstacles.spec.js` | Hindernisse werden in der Runde gezeichnet, außerhalb nicht; Runde übersteht Erscheinen und Ablauf ohne Fehler        |  ~ 8 s |
-| `letterbox.spec.js` | Weltkante ist sichtbar; ein Resize verändert die Welt nicht; ein Fenster kleiner als die Welt übersteht eine Runde    |  ~ 5 s |
-| `powerups.spec.js`  | Beide Buff-Zeilen im HUD vorhanden und verborgen; Runde übersteht zwei Spawn-Intervalle; Neustart lässt nichts stehen | ~ 48 s |
+| Flow                | Zweck                                                                                                                                              |  Dauer |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -----: |
+| `boot.spec.js`      | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt                                  |  < 1 s |
+| `round.spec.js`     | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                                                     |  ~ 5 s |
+| `input.spec.js`     | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                                                       |  ~ 5 s |
+| `settings.spec.js`  | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                                                               |  ~ 4 s |
+| `gameover.spec.js`  | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                                                             |  ~ 8 s |
+| `obstacles.spec.js` | Hindernisse werden in der Runde gezeichnet, außerhalb nicht; Runde übersteht Erscheinen und Ablauf ohne Fehler                                     |  ~ 8 s |
+| `letterbox.spec.js` | Weltkante ist sichtbar; ein Resize verändert die Welt nicht; ein Fenster kleiner als die Welt übersteht eine Runde                                 |  ~ 5 s |
+| `powerups.spec.js`  | Beide Buff-Zeilen im HUD vorhanden und verborgen; Runde übersteht zwei Spawn-Intervalle; Neustart lässt nichts stehen                              | ~ 48 s |
+| `pause.spec.js`     | Escape friert Score und Uhr ein und setzt fort; Leertaste auf der Karte; Auto-Pause bei Fokusverlust; Countdown-Restzeit; kein Rekord beim Abbruch | ~ 70 s |
 
-Vier bewusste Begrenzungen, jeweils mit ihrem Grund:
+Fünf bewusste Begrenzungen, jeweils mit ihrem Grund:
 
 - **Nur Chromium.** Die Engine ist WebAssembly hinter einem Canvas; ein zweiter
   Browser würde überwiegend dessen eigene WASM- und Canvas-Implementierung
@@ -162,6 +163,18 @@ Vier bewusste Begrenzungen, jeweils mit ihrem Grund:
   seinen Zufallsgenerator im Konstruktor entgegennimmt; die Alternative wäre gewesen,
   die Platzierung wie in der Engine aus einem Integer-Hash abzuleiten und damit das
   Spiel für einen Test vorhersagbar zu machen.
+- **Keine gehaltene Taste über eine Pause hinweg.** Pausieren löscht die gedrückten
+  Tasten, damit keine über den Zustandswechsel hinweg als gehalten gilt; eine physisch
+  noch gedrückte Taste registriert sich im echten Browser beim nächsten
+  Auto-Repeat-Ereignis von selbst wieder. Genau dieses Ereignis schickt Playwright nicht:
+  `keyboard.down` liefert ein einzelnes `keydown` und emuliert keine Wiederholung. Der
+  Spec kann deshalb belegen, dass die **Runde** sauber weiterläuft, nicht aber, dass die
+  **Bewegung** von selbst zurückkommt. Dieselbe Grenze betrifft zwei weitere Auslöser, die
+  der Spec daher per `dispatchEvent` nachbildet statt sie zu erzeugen: das
+  Auto-Repeat-`keydown` mit `repeat: true`, mit dem der Toggle-Guard geprüft wird, und der
+  Fensterfokusverlust, der in einem Headless-Lauf nicht echt herbeigeführt werden kann.
+  Geprüft ist damit jeweils der Listener samt Zustands-Guard, nicht die Buchführung des
+  Browsers darüber.
 
 Die eine Ausnahme von der letzten Begrenzung ist `obstacles.spec.js`, und sie ist keine
 Aufweichung der Regel, sondern deren Kehrseite. Der Spec vergleicht kein Bild, sondern

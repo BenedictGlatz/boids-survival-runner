@@ -50,8 +50,9 @@ export class FrameScheduler {
    * Drops accumulated simulation debt without running it and restarts the frame
    * clock, so the next `beginFrame` measures from then rather than from the last
    * active frame. Used whenever the world is deliberately frozen (countdown,
-   * round start, death); without the clock reset a restart would carry the whole
-   * frozen span into the first step of the new round as a catch-up burst.
+   * round start, death, pause); without the clock reset a restart would carry the
+   * whole frozen span into the first step of the new round as a catch-up burst.
+   * A pause is the only one of the four that can last minutes rather than seconds.
    */
   discardPendingTime() {
     this._pendingMs = 0;

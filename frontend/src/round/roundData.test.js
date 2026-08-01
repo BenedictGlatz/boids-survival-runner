@@ -8,9 +8,12 @@ import {
   isPlayerDashReady,
   isPlayerDead,
   isPlayerInvulnerable,
+  pauseCountdown,
   playerDashCooldownProgress,
   registerDash,
   registerHit,
+  resumeCountdown,
+  runSummary,
 } from './roundData.js';
 
 // The tuning values are mirrored rather than imported: these tests pin the
@@ -229,5 +232,76 @@ describe('countdownSecondsLeft', () => {
     expect(countdownSecondsLeft(round, 1000)).toBe(3);
     expect(countdownSecondsLeft(round, 3100)).toBe(1);
     expect(countdownSecondsLeft(round, 4000)).toBe(0);
+  });
+});
+
+describe('pausing the countdown', () => {
+  it('owes the same time after a pause as it did before it', () => {
+    // The whole point. `countdownEndsAt` is the only wall-clock value a round carries, so
+    // it is the only one a pause can invalidate: without parking the remainder, a pause
+    // longer than the countdown makes the round start with no countdown at all.
+    const round = makeRound(0);
+    const leftAtPause = countdownSecondsLeft(round, 1000);
+
+    pauseCountdown(round, 1000);
+    resumeCountdown(round, 60_000);
+
+    expect(countdownSecondsLeft(round, 60_000)).toBe(leftAtPause);
+  });
+
+  it('leaves the round waiting rather than starting it behind the card', () => {
+    const round = makeRound(0);
+
+    pauseCountdown(round, 1000);
+    resumeCountdown(round, 60_000);
+
+    expect(round.roundActive).toBe(false);
+    expect(round.countdownEndsAt).toBeGreaterThan(60_000);
+  });
+
+  it('owes nothing once the countdown had already run out', () => {
+    // Clamped rather than negative, so a pause taken after the deadline cannot hand the
+    // player back time the countdown already spent.
+    const round = makeRound(0);
+
+    pauseCountdown(round, 10_000);
+
+    expect(round.countdownRemainingMs).toBe(0);
+
+    resumeCountdown(round, 60_000);
+
+    expect(round.countdownEndsAt).toBe(60_000);
+  });
+
+  it('does not touch a round that is already running', () => {
+    // Pausing in the fortieth second must not rewind a countdown that finished long ago.
+    // The guard lives in these two functions, which is why the caller needs no branch.
+    const round = makeRound(0);
+    beginRound(round);
+    const deadline = round.countdownEndsAt;
+
+    pauseCountdown(round, 40_000);
+    resumeCountdown(round, 90_000);
+
+    expect(round.countdownEndsAt).toBe(deadline);
+    expect(round.countdownRemainingMs).toBe(0);
+  });
+});
+
+describe('runSummary', () => {
+  it('reports the run the way both cards and the record store read it', () => {
+    // One shape for the game-over card, the pause card and `roundRecords`, and the only
+    // place the round's `timerSeconds` is renamed to the `timeSeconds` they expect.
+    const round = makeRound(0);
+    beginRound(round);
+    advanceBy(round, 5000);
+    round.wave = 3;
+
+    expect(runSummary(round)).toEqual({
+      score: 5,
+      wave: 3,
+      timeSeconds: round.timerSeconds,
+      boids: 36,
+    });
   });
 });
