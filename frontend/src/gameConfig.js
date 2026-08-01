@@ -38,15 +38,22 @@ export const WORLD_HEIGHT = 1080;
  */
 export const WORLD_BOUNDS = Object.freeze({ width: WORLD_WIDTH, height: WORLD_HEIGHT });
 
-export const INITIAL_BOID_COUNT = 12;
+export const INITIAL_BOID_COUNT = 24;
 export const PLAYER_STARTING_LIVES = 3;
 export const HIT_COOLDOWN_MS = 900;
 export const WAVE_DURATION_SECONDS = 30;
 export const START_COUNTDOWN_SECONDS = 3;
 export const PLAYER_VISUAL_RADIUS = 16;
-export const BOID_VISUAL_LENGTH = 15;
-export const BOID_VISUAL_WIDTH = 11;
-export const BOID_TAIL_INSET = 4;
+/**
+ * The drawn boid dart, in world units. Kept close to twice the engine's
+ * `BOID_COLLISION_RADIUS` (6), which is the distance the overlap relaxation holds
+ * between two boid centres: at that ratio neighbours at rest almost touch, so the
+ * swarm reads as one dense cloud instead of a field of separate darts. Shrinking
+ * these without shrinking the collision radius would only leave visible gaps.
+ */
+export const BOID_VISUAL_LENGTH = 11;
+export const BOID_VISUAL_WIDTH = 8;
+export const BOID_TAIL_INSET = 3;
 export const PLAYER_MAX_SPEED = 360;
 export const PLAYER_ACCELERATION = 1200;
 export const PLAYER_DECELERATION = 1500;

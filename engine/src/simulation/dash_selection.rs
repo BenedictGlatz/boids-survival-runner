@@ -260,7 +260,9 @@ mod tests {
 
     #[test]
     fn no_boid_is_selected_while_the_dash_slots_are_full() {
-        let mut boids = dash_capable_flock(12, eligible_distance());
+        // Comfortably more boids than there are slots, so the loop below stays inside
+        // the flock however far `MAX_CONCURRENT_DASHING_BOIDS` is raised.
+        let mut boids = dash_capable_flock(20, eligible_distance());
         for index in 0..allowed_concurrent_dashers(boids.len()) {
             boids[index].dash_state = DashState::Charging;
         }
@@ -324,7 +326,9 @@ mod tests {
     fn only_boids_of_the_leaders_tier_join_its_group() {
         // Every second boid belongs to the next tier up, which may dash just as well
         // — so if the tier were ignored, the group would happily mix the two.
-        let mut boids = dash_capable_flock(12, eligible_distance());
+        // Sixteen boids means eight of the leader's tier, more than one group holds —
+        // so the assertion below tests the group cap and not the size of this fixture.
+        let mut boids = dash_capable_flock(16, eligible_distance());
         let other_tier = DASH_UNLOCK_DIFFICULTY_TIER + 1;
         for index in (1..boids.len()).step_by(2) {
             boids[index].difficulty_tier = other_tier;

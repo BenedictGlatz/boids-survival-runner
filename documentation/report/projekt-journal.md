@@ -69,7 +69,51 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-01 | 1,0 | S-03 | Bildraten-Einstellung auf einen Ort reduziert (Panel-Stapel des Startbildschirms entfällt) und an den Monitor gebunden: neues Modul `loop/refreshRate.js` misst die Wiederholrate über den Median von zwölf `requestAnimationFrame`-Abständen und filtert die Optionsliste, die schnellste angebotene Rate ist vorausgewählt; Menü-Einstellungen wegen der 400-Zeilen-Grenze aus `index.js` nach `ui/menuSettings.js` gezogen; 23 neue Unit-Zusicherungen, drei E2E-Tests umgeschrieben, zwei neue |
 
+| 2026-08-01 | 1,5 | S-02 | Schwarm zur dichten Wolke verdichtet, um die Simulation stärker zu belasten: Boid-Größe 15×11 → 11×8, `BOID_COLLISION_RADIUS` 10 → 6, neuer benannter Anteil `CLOSE_NEIGHBOUR_RADIUS_SHARE` 0,5 → 0,36 anstelle des Magic-Number-Faktors in `close_neighbour_radius()`, Kohäsion 0,18 → 0,24; Startschwarm 12 → 24 und Wellenzuwachs 6 → 12; Dash-Gruppe 4 → 6, gleichzeitige Dasher 8 → 12, `DASH_GROUP_RADIUS` 70 → 48; Treffer-Radius als eigenes `BOID_HIT_RADIUS` von `PLAYER_COLLISION_RADIUS` getrennt; dritte Kopie der Boid-Silhouette in `ui/menuBackdrop.js` durch Import aus `gameConfig.js` ersetzt; zwei neue Relaxations-Tests in `overlap.rs`, zwei Dash-Fixtures entschärft |
+
 ## Entscheidungen
+
+### 2026-08-01 — Dichte über den Nachbarschaftsradius, nicht über das Separationsgewicht
+
+**Gewählt:** Der Schwarm wird über zwei Radien verdichtet — den harten Mindestabstand
+`BOID_COLLISION_RADIUS` (10 → 6, also 12 statt 20 Einheiten zwischen zwei Mittelpunkten)
+und den Anteil der Wahrnehmungsreichweite, ab dem Separation überhaupt greift. Letzterer
+war eine nackte `0.5` in `Boid::close_neighbour_radius()` und ist jetzt die benannte
+Konstante `CLOSE_NEIGHBOUR_RADIUS_SHARE` mit 0,36. Die Gewichte bleiben bis auf eine
+leichte Anhebung der Kohäsion unangetastet.
+
+**Verworfen:** (a) `DEFAULT_SEPARATION_WEIGHT` (3,2) senken, der naheliegende Griff;
+(b) `DEFAULT_PERCEPTION_RADIUS` senken; (c) den Faktor als Literal stehen lassen und nur
+seinen Wert ändern.
+
+**Warum:** (a) wirkt kaum. `flocking_steering` summiert alle vier Regeln und `clamp_force`
+begrenzt das Ergebnis anschließend auf `max_acceleration` (0,09). Auf kurzer Distanz
+sättigt Separation diese Grenze allein — die Kraft wäre so oder so abgeschnitten, das
+Gewicht verschiebt dann nur noch, _welche_ Regel bei mittlerer Distanz dominiert, nicht den
+Ruheabstand. Der Radius entscheidet dagegen, ab wann Separation überhaupt einsetzt, und
+genau das ist der Ruheabstand. (b) hätte gleichzeitig Alignment, Kohäsion und die
+Hindernis-Vorausschau verkürzt, die alle die volle Wahrnehmungsreichweite benutzen — ein
+Regler für vier Verhalten. (c) verstößt gegen die Magic-Number-Regel und hätte die
+Stellschraube weiter unauffindbar gehalten; der Anteil bleibt bewusst relativ zur
+Wahrnehmung, damit spätere Wellen mit größerem Radius auch entsprechend mehr Abstand
+halten.
+
+**Konsequenz:** Die gezeichnete Boid-Länge (11) liegt jetzt knapp unter dem
+Mindestabstand (12), zwei ruhende Nachbarn berühren sich also fast — das ist die dichte
+Wolke. Weil der Mindestabstand nicht mehr zum Treffer-Radius passte, ist der Boid-Treffer
+als `BOID_HIT_RADIUS` (10,5 → 21 Einheiten Mittenabstand) von `PLAYER_COLLISION_RADIUS`
+getrennt; jener bleibt bei 14, weil die Compile-Time-Zusicherung zur Sackgassenfreiheit
+jedes Hindernis um genau diesen Wert aufbläst. Eine Zahl konnte nicht mit dem Boid
+schrumpfen, ohne die Korridor-Garantie mitzulockern.
+
+Wichtig für Kapitel 10, weil es die Motivation der Änderung relativiert: **Dichte allein
+macht die Simulation nicht teurer.** Die Paarzahl ist O(n²) in der Boid-Anzahl und von der
+Packung unabhängig. Dichte erhöht nur die Arbeit _innerhalb_ der Schleifen — mehr Nachbarn
+innerhalb der Wahrnehmung, vor allem aber deutlich mehr echte Überlappungen, die die vier
+Relaxations-Pässe auflösen müssen. Der eigentliche Lasthebel ist die Schwarmgröße
+(Startschwarm 12 → 24, Zuwachs 6 → 12; Welle 5 also 72 statt 36 Boids). Beides gehört
+zusammen: ohne die Verdichtung wäre der größere Schwarm nur unübersichtlich.
+→ Kap. 4, 8, 10
 
 ### 2026-08-01 — Die Bildwiederholrate wird gemessen, nicht angenommen
 
@@ -900,6 +944,27 @@ den Preis von Produktionscode, der nur für Tests existiert.
 → Kap. 3, 8
 
 ## Herausforderungen & Lessons Learned
+
+- **2026-08-01 — Die Überlappungsauflösung garantiert weniger, als ihr Name verspricht.**
+  Beim Verdichten des Schwarms sollte ein Test nachweisen, dass
+  `BOID_OVERLAP_RELAXATION_STEPS` (4) für den kleineren Kollisionsradius noch reicht — die
+  eine Eigenschaft, auf der die dichte Wolke ruht und für die es bisher keinen Test gab.
+  Der Test fiel durch, und zwar zu Recht: Ein gemessener Stapel aus sechs Boids kommt nach
+  einem Frame nur auf 5,6 der geforderten 12 Einheiten. Der Grund ist strukturell und nicht
+  eine zu kleine Zahl von Pässen — jeder Pass löst nur die Überlappung, die ein Paar
+  _gerade jetzt_ hat, und schiebt dabei einen Boid in den nächsten. Die Folge ist eine
+  asymptotische Annäherung über Frames (Paar: 1 Frame; sechs Boids: ~11,99 nach 30 Frames;
+  24 Boids: 9,6 nach 30, 11,995 nach 120) und in einfacher Genauigkeit **nie** ein exaktes
+  Erreichen des Mindestabstands. Ein `>= minimum` hätte also einen Test ergeben, der
+  niemals bestehen kann.
+  Rund 25 min, überwiegend Messen statt Debuggen — der Code war die ganze Zeit korrekt.
+  Die Lehre betrifft die **Formulierung** der Zusicherung, nicht den Code: Der bestehende
+  Test in `flock.rs` prüft ein einzelnes Paar und war deshalb grün, während für einen Haufen
+  gar keine Aussage existierte. Die zwei neuen Tests trennen das jetzt sauber — ein Paar ist
+  nach einem Frame exakt gelöst, ein Stapel innerhalb einer halben Sekunde bis auf 0,1 %.
+  Die schwächere der beiden ist die ehrlichere, und sie fängt genau den Regress ab, der
+  wirklich weh täte: einen Schwarm, der sich zu einem dauerhaften Knoten verklumpt.
+  → Kap. 4, 8, 10
 
 - **2026-07-29 — Das eigene Prompt-Logging war lückenhaft.** Für den 29.07. war
   _ein_ Prompt geloggt, obwohl der Tag drei Commits inklusive einer 365-zeiligen

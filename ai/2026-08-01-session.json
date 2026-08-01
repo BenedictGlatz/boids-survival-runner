@@ -4,5 +4,11 @@
     "prompt": "Bitte entferne die FPS Wahlmöglichkeit rechts im oberen Part des Hauptmenüs. Man kann diese Einstellung bereits über die game settings konfigurieren, daher ist die Einstellung dort redundant. \n\nAußerdem sollte die maximal auswählbare fps zahl durch den Monitor begrenzt sein, wenn der Nutzer nur einen 60hz monitor hat sollte 120Hz gar nicht erst zur auswahl stehen. Standardmäßig sollte immer die höchstmögliche Option gewählt sein. [Screenshot des Hauptmenüs]",
     "topic": "frontend-ui",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Ziel des Spiels ist es auch die Leistungsfähigkeit der Simulation mittels Rust zu testen. Ich wünsche mir dass du die Boids kleiner machst und den Abstand zwischen ihnen im Schwarm reduzierst, sodass sie eine dichtere Wolke bilden die schwerer zu simulieren ist. Wenn Boids Dashen müssen natürlich auch passend dazu etwas mehr auf einmal dashen",
+    "topic": "engine",
+    "use": "impl"
   }
 ]

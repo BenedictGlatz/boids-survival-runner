@@ -101,6 +101,80 @@ mod tests {
         assert_eq!(position, Vec2::new(5.0, 7.0));
     }
 
+    /// A tight cluster of boids, all inside the minimum distance of each other.
+    fn stacked_boids(count: usize) -> Vec<Boid> {
+        let mut boids = Vec::new();
+
+        for index in 0..count {
+            // A fraction of a unit apart, so every pair starts overlapping but no pair
+            // sits at exactly the same spot and needs the fallback direction.
+            let offset = index as f32 * 0.5;
+            boids.push(Boid::new(
+                Vec2::new(500.0 + offset, 500.0 + offset),
+                Vec2::zero(),
+            ));
+        }
+
+        boids
+    }
+
+    /// Smallest distance between any two boids in the slice.
+    fn closest_pair_distance(boids: &[Boid]) -> f32 {
+        let mut closest = f32::MAX;
+
+        for first_index in 0..boids.len() {
+            for second_index in (first_index + 1)..boids.len() {
+                let distance = boids[first_index]
+                    .position
+                    .distance_to(boids[second_index].position);
+                if distance < closest {
+                    closest = distance;
+                }
+            }
+        }
+
+        closest
+    }
+
+    /// Frames a stack is given to sort itself out — half a second at 60 steps.
+    const FRAMES_TO_SETTLE: usize = 30;
+
+    /// How close to the minimum distance counts as separated. The relaxation only ever
+    /// removes the overlap a pair has *right now*, so it approaches the minimum from
+    /// below and single-precision arithmetic leaves it a fraction short forever. An
+    /// exact comparison would be a test that can never pass.
+    const SEPARATION_TOLERANCE: f32 = 0.999;
+
+    #[test]
+    fn one_pass_is_enough_for_a_single_overlapping_pair() {
+        let mut boids = stacked_boids(2);
+
+        resolve_boid_overlaps(&mut boids, 1000.0, 1000.0);
+
+        assert!(closest_pair_distance(&boids) >= BOID_COLLISION_RADIUS * 2.0);
+    }
+
+    #[test]
+    fn a_stack_of_boids_is_pulled_apart_within_half_a_second() {
+        // The property the dense flock rests on, and it is weaker than it looks: a
+        // single frame does *not* unstack a pile, because fixing one pair pushes a
+        // boid into the next and `BOID_OVERLAP_RELAXATION_STEPS` passes only get part
+        // of the way. What holds is that the knot keeps loosening frame after frame
+        // instead of settling into a permanent clump — which is what would happen if
+        // the passes were cut to zero, or if every pair kept giving way to the other.
+        let mut boids = stacked_boids(6);
+
+        for _ in 0..FRAMES_TO_SETTLE {
+            resolve_boid_overlaps(&mut boids, 1000.0, 1000.0);
+        }
+
+        let minimum_distance = BOID_COLLISION_RADIUS * 2.0;
+        assert!(
+            closest_pair_distance(&boids) >= minimum_distance * SEPARATION_TOLERANCE,
+            "the stack was still overlapping after {FRAMES_TO_SETTLE} frames"
+        );
+    }
+
     #[test]
     fn fallback_overlap_direction_is_always_a_unit_vector() {
         for first_index in 0..4 {

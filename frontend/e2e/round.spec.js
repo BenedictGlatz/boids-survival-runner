@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { COUNTDOWN_MS, STRINGS, hudNumber, openStartMenu, startRound } from './support/game.js';
 
-const INITIAL_BOID_COUNT = 12;
+const INITIAL_BOID_COUNT = 24;
 
 test.describe('starting a round', () => {
   test('swaps the menu for the HUD', async ({ page }) => {

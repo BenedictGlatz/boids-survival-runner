@@ -6,7 +6,7 @@ use super::obstacle_collision::push_boids_out_of_obstacles;
 use super::overlap::{resolve_boid_overlaps, wrap_position};
 use super::physics::{aabb_overlap, clamp_force, integrate};
 use super::steering::{dash_steering, flocking_steering};
-use crate::constants::PLAYER_COLLISION_RADIUS;
+use crate::constants::BOID_HIT_RADIUS;
 use crate::math::vector::Vec2;
 
 /// Manages the collection of all active boids.
@@ -87,7 +87,7 @@ fn count_player_hits(boids: &[Boid], player_position: Vec2) -> u32 {
     let mut hit_count = 0;
 
     for boid in boids {
-        if aabb_overlap(boid.position, player_position, PLAYER_COLLISION_RADIUS) {
+        if aabb_overlap(boid.position, player_position, BOID_HIT_RADIUS) {
             hit_count += 1;
         }
     }
@@ -230,9 +230,9 @@ mod tests {
         launch_dash_along(&mut dasher, Vec2::new(1.0, 0.0));
         flock.add(dasher);
 
-        // The neighbour sits inside the perception radius (85) but outside the close
-        // neighbour radius (42.5), so separation contributes nothing and only
-        // cohesion and alignment could pull the dasher downwards.
+        // The neighbour sits 60 units away: inside the default perception radius (70)
+        // but outside the close neighbour radius (25.2), so separation contributes
+        // nothing and only cohesion and alignment could pull the dasher downwards.
         flock.add(dash_capable_boid(
             Vec2::new(100.0, 160.0),
             DASH_UNLOCK_DIFFICULTY_TIER,
@@ -270,12 +270,17 @@ mod tests {
         // line is the overlap relaxation, which is what this test is about.
         dasher.properties.separation_weight = 0.0;
         launch_dash_along(&mut dasher, Vec2::new(1.0, 0.0));
+        // With separation off and the cap raised for the dash, the dasher covers
+        // exactly its dash velocity this step. Placing the bystander relative to where
+        // it lands keeps the pair overlapping whatever `BOID_COLLISION_RADIUS` is
+        // tuned to, instead of relying on the dash being shorter than that radius.
+        let landing_x = dasher.position.x + dasher.velocity.x;
         flock.add(dasher);
 
         // A second boid sitting a little above the dasher: it overlaps, so the
         // relaxation has to resolve the pair, and the dasher must not be the one
         // that gives way.
-        let mut bystander = dash_capable_boid(Vec2::new(500.0, 505.0), 0);
+        let mut bystander = dash_capable_boid(Vec2::new(landing_x, 505.0), 0);
         bystander.properties.max_speed = 0.0;
         bystander.properties.max_acceleration = 0.0;
         flock.add(bystander);

@@ -16,6 +16,8 @@
  *   backdrop.stop();    // when a round starts
  */
 
+import { BOID_TAIL_INSET, BOID_VISUAL_LENGTH, BOID_VISUAL_WIDTH } from '../gameConfig.js';
+
 const BACKGROUND_COLOR = '#0b0d12';
 const GRID_COLOR = 'rgba(255, 255, 255, 0.05)';
 const GRID_MAJOR_COLOR = 'rgba(255, 255, 255, 0.085)';
@@ -24,9 +26,6 @@ const GRID_MAJOR_SIZE = 280;
 
 const BOID_COLORS = ['#f03a5f', '#fb7185', '#f97316'];
 const BOID_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.2)';
-const BOID_LENGTH = 15;
-const BOID_WIDTH = 11;
-const BOID_TAIL_INSET = 4;
 
 const BOID_COUNT = 72;
 const BOID_ALPHA = 0.35;
@@ -257,9 +256,14 @@ function strokeLattice(ctx, width, height, size, color) {
 }
 
 /**
- * The same dart silhouette the game draws. The heading unit vectors are the rotation
- * matrix themselves, so the arrow is built directly in backdrop coordinates — a
- * `ctx.rotate()` per boid would touch the transform set up in `_resize()`.
+ * The same dart silhouette the game draws — literally the same three numbers, taken
+ * from `gameConfig.js` rather than repeated here, so retuning the boid size cannot
+ * leave the menu swarm behind. The dimensions are world units there and CSS pixels
+ * here, which coincide at the world's reference width.
+ *
+ * The heading unit vectors are the rotation matrix themselves, so the arrow is built
+ * directly in backdrop coordinates — a `ctx.rotate()` per boid would touch the
+ * transform set up in `_resize()`.
  *
  * Unlike the game renderer, this canvas has no world and is deliberately *not*
  * letterboxed: it is decoration that fills the window behind the Command Deck, and void
@@ -267,10 +271,10 @@ function strokeLattice(ctx, width, height, size, color) {
  */
 function drawArrow(ctx, x, y, headingX, headingY, color) {
   const corners = [
-    [BOID_LENGTH * 0.5, 0],
-    [-BOID_LENGTH * 0.5, BOID_WIDTH * 0.5],
-    [-BOID_LENGTH * 0.5 + BOID_TAIL_INSET, 0],
-    [-BOID_LENGTH * 0.5, -BOID_WIDTH * 0.5],
+    [BOID_VISUAL_LENGTH * 0.5, 0],
+    [-BOID_VISUAL_LENGTH * 0.5, BOID_VISUAL_WIDTH * 0.5],
+    [-BOID_VISUAL_LENGTH * 0.5 + BOID_TAIL_INSET, 0],
+    [-BOID_VISUAL_LENGTH * 0.5, -BOID_VISUAL_WIDTH * 0.5],
   ];
 
   ctx.fillStyle = color;

@@ -185,25 +185,27 @@ Der gewürfelte Boid ist nicht der Dasher, sondern der **Anführer** einer Grupp
 nimmt jeden Boid auf, der
 
 - denselben `difficulty_tier` wie der Anführer hat,
-- höchstens `DASH_GROUP_RADIUS` (70 px) von ihm entfernt ist und
+- höchstens `DASH_GROUP_RADIUS` (48 px) von ihm entfernt ist und
 - dieselbe Eignungsprüfung wie der Anführer besteht,
 
-bis `MAX_DASH_GROUP_SIZE` (4) oder die Zahl der freien Slots erreicht ist. Findet sich
+bis `MAX_DASH_GROUP_SIZE` (6) oder die Zahl der freien Slots erreicht ist. Findet sich
 niemand, dashe der Anführer allein — der Einzeldash ist also der Randfall der Gruppe
 und kein zweiter Codepfad.
 
-Der Tier-Vergleich trägt zwei Lasten. Sichtbar: vier gleichfarbige Boids lesen sich als
-ein abgestimmter Stoß, ein gemischtes Häufchen als Rauschen. Mechanisch: Boids eines
+Der Tier-Vergleich trägt zwei Lasten. Sichtbar: mehrere gleichfarbige Boids lesen sich
+als ein abgestimmter Stoß, ein gemischtes Häufchen als Rauschen. Mechanisch: Boids eines
 Tiers teilen ihre `charge_steps`, die Gruppe pulst also synchron und startet im
 **selben** Simulationsschritt. Ein tierübergreifender Trupp würde gestaffelt losfliegen
 und damit genau die Lesbarkeit verlieren, um die es geht.
 
-`DASH_GROUP_RADIUS` liegt bewusst unter `DEFAULT_PERCEPTION_RADIUS` (85 px): eine Gruppe
+`DASH_GROUP_RADIUS` liegt bewusst unter `DEFAULT_PERCEPTION_RADIUS` (70 px): eine Gruppe
 ist ein Verband, der ohnehin schon zusammen fliegt, nicht ein über den Bildschirm
-zusammengesuchtes Kommando.
+zusammengesuchtes Kommando. Bei der Packungsdichte des Schwarms enthalten diese 48 px
+mehr Boids, als eine Gruppe fassen kann — der Radius begrenzt die Gruppe also praktisch
+nie, `MAX_DASH_GROUP_SIZE` und die freien Slots tun es.
 
 Die Slot-Grenze ist unverändert die Obergrenze — nicht die Gruppengröße. Bleiben nur
-zwei Slots frei, dashen zwei Boids gemeinsam statt vier.
+zwei Slots frei, dashen zwei Boids gemeinsam statt sechs.
 
 Erwartete Gleichzeitigkeit ≈ 4; harte Obergrenze 8 (36 Boids) bis 11 (156 Boids).
 

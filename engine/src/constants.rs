@@ -14,28 +14,60 @@ pub const DEFAULT_SEPARATION_WEIGHT: f32 = 3.2;
 pub const DEFAULT_ALIGNMENT_WEIGHT: f32 = 0.45;
 
 /// Default weight applied to the cohesion steering rule.
-pub const DEFAULT_COHESION_WEIGHT: f32 = 0.18;
+pub const DEFAULT_COHESION_WEIGHT: f32 = 0.24;
+
+/// Share of a boid's perception radius inside which a neighbour counts as *close*
+/// and the separation rule starts pushing back. At the default perception radius
+/// that is about 25 units.
+///
+/// **This is the flock's density dial, and the weight is not.** All four rules are
+/// summed in `flocking_steering` and the result is then capped by
+/// `max_acceleration` in `clamp_force`. At short range separation alone already
+/// saturates that cap, so lowering `DEFAULT_SEPARATION_WEIGHT` barely moves the
+/// resting distance between two boids — the force was going to be clamped either
+/// way. This share decides *from where on* separation acts at all, which is what
+/// actually sets that distance. Lower it and the swarm packs into a denser cloud.
+pub const CLOSE_NEIGHBOUR_RADIUS_SHARE: f32 = 0.36;
 
 /// Default weight applied to steering toward the player.
 pub const DEFAULT_TARGET_SEEK_WEIGHT: f32 = 0.22;
 
 /// Number of boids spawned when a new browser game starts.
-pub const INITIAL_BOID_COUNT: u32 = 12;
+pub const INITIAL_BOID_COUNT: u32 = 24;
 
 /// Additional boids introduced for each new wave.
-pub const WAVE_BOID_INCREMENT: u32 = 6;
+pub const WAVE_BOID_INCREMENT: u32 = 12;
 
 /// Maximum difficulty tier used for boid variants and colours.
 pub const MAX_BOID_DIFFICULTY_TIER: u32 = 4;
 
 /// Radius used to keep boids from visually stacking on top of each other.
-pub const BOID_COLLISION_RADIUS: f32 = 10.0;
+///
+/// The relaxation holds twice this value between two boid centres, so 6 means a
+/// minimum distance of 12 — roughly the length the frontend draws a boid at. Two
+/// neighbours at rest therefore almost touch, which is what makes the swarm read as
+/// one dense cloud rather than a field of separate darts.
+pub const BOID_COLLISION_RADIUS: f32 = 6.0;
 
 /// Number of pairwise passes used to relax overlapping boids each frame.
 pub const BOID_OVERLAP_RELAXATION_STEPS: usize = 4;
 
-/// Radius used for player collision checks.
+/// Radius used for the player's own body when it is swept against an obstacle.
+///
+/// Deliberately *not* the radius a boid is tested against — that one is
+/// `BOID_HIT_RADIUS`. This value carries the no-dead-end guarantee: the compile-time
+/// assertion further down inflates every obstacle by it, so shrinking it would widen
+/// the corridors the guarantee promises and let the player clip into surfaces.
 pub const PLAYER_COLLISION_RADIUS: f32 = 14.0;
+
+/// Distance at which a boid counts as having caught the player.
+///
+/// `aabb_overlap` compares against twice the radius, so this is a hit at 21 units
+/// between the two centres: the player's drawn radius of 16 plus half a boid's drawn
+/// length. Split off from `PLAYER_COLLISION_RADIUS` because that one is the obstacle
+/// sweep and is pinned by the corridor assertion — one number could not shrink with
+/// the boid without also loosening the dead-end guarantee.
+pub const BOID_HIT_RADIUS: f32 = 10.5;
 
 // ---------------------------------------------------------------------------
 // Boid dash
@@ -86,7 +118,7 @@ pub const DASH_SELECTION_INTERVAL_STEPS: u32 = 24;
 
 /// Boids allowed to charge or dash at the same time in a small flock. Has to hold
 /// at least two full groups, or a single group would block every other lunge.
-pub const MAX_CONCURRENT_DASHING_BOIDS: usize = 8;
+pub const MAX_CONCURRENT_DASHING_BOIDS: usize = 12;
 
 /// One extra dash slot is unlocked for every this many boids in the flock, so a
 /// dash still happens now and then once the swarm has grown large.
@@ -94,13 +126,14 @@ pub const BOIDS_PER_EXTRA_DASH_SLOT: usize = 40;
 
 /// Most boids that may lunge together as one group. A group is what the player
 /// reads as a coordinated push, so it stays small enough to still be dodgeable.
-pub const MAX_DASH_GROUP_SIZE: usize = 4;
+pub const MAX_DASH_GROUP_SIZE: usize = 6;
 
 /// How close a boid has to be to the boid that was picked first to join its
 /// group. Deliberately below `DEFAULT_PERCEPTION_RADIUS`, so a group is always a
 /// cluster that already flies together rather than boids gathered from across
-/// the screen.
-pub const DASH_GROUP_RADIUS: f32 = 70.0;
+/// the screen. At the flock's packing density this still holds far more boids than
+/// one group needs, so a group rarely fails to fill up.
+pub const DASH_GROUP_RADIUS: f32 = 48.0;
 
 /// A boid closer to the player than this leaves no room to dodge, so it is not
 /// offered a dash.

@@ -1,8 +1,8 @@
 use super::dash::{DashProperties, DashState};
 use crate::constants::{
-    DEFAULT_ALIGNMENT_WEIGHT, DEFAULT_COHESION_WEIGHT, DEFAULT_MAX_ACCELERATION, DEFAULT_MAX_SPEED,
-    DEFAULT_OBSTACLE_AVOID_WEIGHT, DEFAULT_PERCEPTION_RADIUS, DEFAULT_SEPARATION_WEIGHT,
-    DEFAULT_TARGET_SEEK_WEIGHT,
+    CLOSE_NEIGHBOUR_RADIUS_SHARE, DEFAULT_ALIGNMENT_WEIGHT, DEFAULT_COHESION_WEIGHT,
+    DEFAULT_MAX_ACCELERATION, DEFAULT_MAX_SPEED, DEFAULT_OBSTACLE_AVOID_WEIGHT,
+    DEFAULT_PERCEPTION_RADIUS, DEFAULT_SEPARATION_WEIGHT, DEFAULT_TARGET_SEEK_WEIGHT,
 };
 use crate::math::vector::Vec2;
 
@@ -84,8 +84,11 @@ impl Boid {
         }
     }
 
+    /// The radius separation works inside. Derived from this boid's own perception
+    /// radius, so a later wave that sees further also keeps its distance further —
+    /// the two scale together instead of drifting apart.
     pub fn close_neighbour_radius(&self) -> f32 {
-        self.properties.perception_radius * 0.5
+        self.properties.perception_radius * CLOSE_NEIGHBOUR_RADIUS_SHARE
     }
 }
 
@@ -116,7 +119,12 @@ mod tests {
 
         assert_eq!(boid.properties, properties);
         assert_eq!(boid.difficulty_tier, 0);
-        assert_eq!(boid.close_neighbour_radius(), 45.0);
+        // Asserted against the share rather than a fixed number, so retuning the
+        // flock's density does not turn this into a failing test.
+        assert_eq!(
+            boid.close_neighbour_radius(),
+            90.0 * CLOSE_NEIGHBOUR_RADIUS_SHARE
+        );
     }
 
     #[test]
