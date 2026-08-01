@@ -79,7 +79,36 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-01 | 3,0 | S-04b | Pause umgesetzt: vierter Zustand `PAUSED`, `input/pauseControl.js` (ein Fenster-Listener für beide Richtungen plus Auto-Pause bei `blur`), `ui/pauseCard.js` als Zwilling der Game-Over-Karte, `pauseCountdown`/`resumeCountdown` und `runSummary` in `roundData.js`; `index.js` lief erneut an die 400-Zeilen-Grenze und wurde vorab geteilt — der Simulationsschritt liegt jetzt als `loop/simulationStep.js`, die Kartenstile als `styles/cards.css` mit neutraler `card`-Basis statt `gameover-`-Klassen; Frametime-Graph pausiert seine Probennahme, `hud.hide()`/`frameTimeGraph.hide()` von `endRound` nach `showStartMenu` verlegt (Fehler, den erst der zweite Weg aus einer Runde sichtbar macht); 12 neue Unit-Zusicherungen, neun E2E-Tests |
 
+| 2026-08-02 | 4,0 | S-02 | Absturz aus dem Playtest (`RuntimeError: index out of bounds` aus `tick()`) diagnostiziert und behoben: Art der Trap gemessen statt geraten (provozierter Rust-Panic meldet `unreachable`, Summe aller Stapelrahmen 1,5 kB), damit Bereichsfehler und Stapelüberlauf ausgeschlossen; Ursache ist ein zweiter nebenläufiger `initEngine`-Aufruf, der eine zweite WebAssembly-Instanz baut, weil der generierte Loader nur gegen ein abgeschlossenes Laden prüft; `engine-bridge.js` teilt jetzt das Lade-Promise, `startGame()` in `index.js` verweigert einen zweiten Start während des ersten; neuer E2E-Flow `engine-instance.spec.js` zählt die Instanziierungen in der Seite (zwei Tests, der erste fällt ohne die Behebung durch) |
+
 ## Entscheidungen
+
+### 2026-08-02 — Der Modul-Ladevorgang wird als Promise geteilt, nicht als Flag geprüft
+
+**Gewählt:** `engine-bridge.js` hält das **Promise** des Ladens (`modulePromise`) und gibt
+es an jeden weiteren Aufruf zurück. Zusätzlich verweigert `startGame()` in `index.js` einen
+zweiten Start, solange der erste noch läuft.
+
+**Verworfen:** nur ein Boolean `isLoading` in `initEngine`. Es beschreibt denselben Zustand,
+aber der zweite Aufrufer hat dann nichts, worauf er warten könnte — er müsste pollen oder
+sofort zurückkehren und damit eine Runde ohne Engine öffnen. Ebenfalls verworfen: die Karte
+vor dem `await` ausblenden. Das verhindert den Doppelklick, lässt die Ursache aber
+bestehen — jeder künftige Aufrufer von `initEngine` fiele erneut hinein.
+
+**Warum:** Ein Flag ist erst gesetzt, wenn das Laden **fertig** ist; genau das ist auch die
+einzige Absicherung im generierten `wasm-bindgen`-Loader (`if (wasm !== undefined) return`).
+Zwei Aufrufe, die beide starten, während noch geladen wird, finden beide nichts vor und
+instanziieren beide — das Promise ist die einzige Form, die den _laufenden_ Vorgang
+darstellt. Die Sperre in `index.js` steht daneben und nicht dafür: sie schützt nicht nur die
+Engine, sondern auch Rundenzustand, Zustandsübergang und Tastenbesitz vor der doppelten
+Ausführung.
+
+**Konsequenz:** Eine WebAssembly-Instanz pro Sitzung, unabhängig davon, wie oft und wie
+schnell gestartet wird. Zwei E2E-Tests halten das fest, indem sie
+`WebAssembly.instantiate`/`instantiateStreaming` in der Seite zählen — die Zusicherung ist
+„genau eine Instanziierung", nicht „keine Fehlermeldung", weil der Schaden erst Minuten
+später und an anderer Stelle sichtbar wird.
+→ Kap. 4, 8
 
 ### 2026-08-01 — Ein Listener besitzt beide Richtungen von Escape
 
@@ -1142,6 +1171,37 @@ den Preis von Produktionscode, der nur für Tests existiert.
 → Kap. 3, 8
 
 ## Herausforderungen & Lessons Learned
+
+- **2026-08-02 — Die Fehlermeldung zeigte auf `tick()`, die Ursache lag im Startknopf.**
+  Ein Playtest endete mitten in der Runde mit `RuntimeError: index out of bounds`, im Stack
+  ausschließlich der heiße Pfad: `loop` → `advanceSimulation` → `runSimulationStep` →
+  `tick`. Die naheliegende Lesart — ein Indexfehler in der Engine — ist falsch, und das ließ
+  sich messen statt vermuten: Ein absichtlich provozierter Rust-Panic aus demselben Build
+  meldet sich als `RuntimeError: unreachable`, nicht als `index out of bounds`. Damit war es
+  kein Bereichsfehler in sicherem Rust, sondern ein echter Speicherzugriff außerhalb der
+  linearen Speichers. Der zweite übliche Verdächtige, ein Stapelüberlauf, fiel ebenfalls
+  aus: Die Summe **aller** Stapelrahmen des Moduls beträgt 1,5 kB gegen 1 MiB Stapel.
+  Übrig blieb ein Zeiger, der auf keine gültige Struktur mehr zeigt. Rund 4 h, davon etwa
+  dreieinhalb auf die Diagnose: ~2 Mio. simulierte Schritte über vier parallele Browserläufe
+  mit dem echten `runSimulationStep` reproduzierten nichts, weil die Ursache gar nicht in der
+  Simulation liegt. Sichtbar wurde sie erst, als ein Testaufbau versehentlich zwei
+  Modulinstanzen erzeugte: `initEngine` zweimal nebenläufig aufgerufen ergibt **zwei**
+  WebAssembly-Instanzen, weil der generierte Loader nur gegen ein _abgeschlossenes_ Laden
+  prüft. Danach mischen sich beide Halden — Adressen der einen Instanz werden mit der
+  anderen benutzt, und die `FinalizationRegistry` der verworfenen Instanz gibt diese Adressen
+  in der überlebenden frei. Der Absturz kommt deshalb verzögert und an beliebiger Stelle.
+  Erreichbar ist das im Spiel über den Startknopf: `startGame()` wartet auf das Modul, und
+  bis dahin liegt die Karte mit fokussiertem Knopf noch auf dem Bild — eine gehaltene
+  Leertaste genügt.
+  Zwei Lehren. Erstens: **Der Stack einer Speicherverletzung zeigt den Ort des Schadens, nicht
+  den der Ursache.** Solange nicht geklärt ist, welche Art Trap überhaupt vorliegt, ist jede
+  Codelesung im Stack-Pfad verlorene Zeit; die drei Messungen (Panic-Signatur,
+  Stapelrahmen, Zeigergültigkeit) haben den Suchraum in Minuten mehr eingegrenzt als Stunden
+  Lesen. Zweitens: **Jedes `await` in einem Bedienpfad ist ein Zeitfenster für eine zweite
+  Betätigung**, und ein `if (!x)`-Wächter vor einem `await` prüft den Zustand _vorher_, nicht
+  den laufenden Vorgang. Das ist dieselbe Lücke wie beim Steckenbleiben im Hindernis, nur
+  zwischen zwei Nutzeraktionen statt zwischen zwei Simulationsschritten.
+  → Kap. 4, 8, 10
 
 - **2026-08-01 — Ein eingefrorenes Bild und eine gerade gestartete Runde sehen im HUD
   identisch aus.** Zwei der neun Pause-E2E-Tests fielen durch, und der Screenshot zeigte

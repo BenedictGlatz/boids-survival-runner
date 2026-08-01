@@ -45,6 +45,8 @@ let menuBackdrop;
 let frameTimeGraph;
 let canvas;
 let gameData;
+// True from the moment a round is asked for until it is actually running. See startGame().
+let startingRound = false;
 
 // These live at module scope rather than in gameData: the menu and game-over
 // branches have no gameData, and the frame clock has to keep running across
@@ -117,7 +119,32 @@ function showStartMenu() {
   );
 }
 
+/**
+ * Opens a round: rebuilds the engine, seeds the round state and hands the keyboard over.
+ *
+ * The guard is the point. Everything below the `await` — the round state, the state
+ * transition, the keyboard — happens a turn later, and until then the card that started
+ * this round is still on screen with its button still focused. A second Enter, a held
+ * space bar repeating, or an impatient second click therefore starts a whole second
+ * round on top of this one. On the very first start that is worst: the engine module is
+ * not loaded yet, so the second call also asks for it, and two rounds racing over one
+ * WASM module is what `engine-bridge.js` has to survive rather than merely tolerate.
+ */
 async function startGame() {
+  if (startingRound) {
+    return;
+  }
+
+  startingRound = true;
+
+  try {
+    await openRound();
+  } finally {
+    startingRound = false;
+  }
+}
+
+async function openRound() {
   const playerStartPosition = {
     x: WORLD_WIDTH * 0.5,
     y: WORLD_HEIGHT * 0.5,

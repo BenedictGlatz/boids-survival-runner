@@ -22,5 +22,17 @@
     "prompt": "Das Spiel sollte mit ESC pausierbar sein, mit einem Pausemenü ähnlich zum Gameover menü. Bitte planen dieses Feature",
     "topic": "frontend-ui",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "bitte compile eine neue version und starte den dev server",
+    "topic": "tooling-tests",
+    "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Ich hab das Spiel gerade geplay-testet und habe diesen Fehler erhalten, bitte suche die Ursache und behebe ihn [Screenshot der Firefox-Konsole: \"Uncaught RuntimeError: index out of bounds\", Stack tick (boids_survival_runner_engine.js:247) ← tick (engine-bridge.js:53) ← runSimulationStep ← advanceSimulation ← loop]",
+    "topic": "wasm-bridge",
+    "use": "impl"
   }
 ]

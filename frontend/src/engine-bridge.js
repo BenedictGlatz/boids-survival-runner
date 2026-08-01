@@ -1,11 +1,23 @@
 import { INITIAL_BOID_COUNT } from './gameConfig.js';
 
-let wasmModule;
+// The module load, kept as the promise rather than as the loaded module. A flag or a
+// module variable is only set once the load has *finished*, so two calls that start
+// while the first is still loading would both find it unset and both load — and
+// `wasm-bindgen`'s generated init only guards against a *finished* one
+// (`if (wasm !== undefined) return wasm`), so the second call instantiates a second
+// WebAssembly module with its own memory. From then on the two are mixed: pointers made
+// against one instance are used with the other, and the finalizers of the discarded
+// instance free those addresses inside the surviving heap. That corruption surfaces
+// minutes later as a bare `RuntimeError` out of `tick()`, which is exactly what it did.
+// Awaiting one shared promise means every caller gets the same single instance.
+let modulePromise;
 let engine;
 
 /**
  * Loads and instantiates the WASM module, and spawns the initial flock.
- * Safe to call more than once — the module itself is only loaded on the first call.
+ *
+ * Safe to call more than once, and safe to call again while an earlier call is still
+ * running: the module is loaded and instantiated exactly once per session.
  * @param {number} width - World width in world units. Fixed for the whole session; see
  *   `WORLD_WIDTH` in `gameConfig.js` for why it no longer follows the window.
  * @param {number} height - World height in world units.
@@ -13,10 +25,7 @@ let engine;
  * @returns {Promise<void>}
  */
 export async function initEngine(width, height, playerPosition) {
-  if (!wasmModule) {
-    wasmModule = await import('./wasm/engine/boids_survival_runner_engine.js');
-    await wasmModule.default();
-  }
+  const wasmModule = await loadWasmModule();
 
   engine = new wasmModule.GameEngine(
     Math.floor(width),
@@ -25,6 +34,19 @@ export async function initEngine(width, height, playerPosition) {
     playerPosition.x,
     playerPosition.y,
   );
+}
+
+/** The one module load of the session, started on the first call and shared by the rest. */
+function loadWasmModule() {
+  if (!modulePromise) {
+    modulePromise = (async () => {
+      const wasmModule = await import('./wasm/engine/boids_survival_runner_engine.js');
+      await wasmModule.default();
+      return wasmModule;
+    })();
+  }
+
+  return modulePromise;
 }
 
 // There is deliberately no `resizeEngine` wrapper any more. The world is a fixed size and

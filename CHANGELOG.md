@@ -154,6 +154,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- A round no longer dies with a bare `RuntimeError` out of the engine somewhere in the middle of
+  play. Starting a round waits for the WebAssembly module, and until that wait is over the card that
+  started it is still on screen with its button still focused — so a second Enter, a held space bar
+  repeating, or an impatient second click started a whole second round on top of the first. On the
+  very first start that also asked for the engine module a second time, and the generated loader only
+  guards against a load that has already _finished_: the second request therefore built a second
+  WebAssembly instance with its own memory. From then on the two were mixed — addresses made against
+  one instance used with the other, and the clean-up of the discarded instance freeing those
+  addresses inside the surviving one. The game carried on for a while and then died at an unrelated
+  moment, which is why the crash never pointed anywhere near the start button. Starting is now
+  ignored while a start is already running, and the module load is shared by every caller instead of
+  being restarted.
 - The score and in-game timer no longer advance while the browser tab is in the background, which previously handed out score for time in which no boid moved.
 - The production build now ships the locale file. `ui/i18n.js` fetches `./locales/en.json` at runtime,
   so Vite never saw it in the module graph and left it out of `dist/`; every label in a built copy of
