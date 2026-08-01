@@ -42,13 +42,25 @@ export class Hud {
     }
 
     this._dash = createDashBar();
+    // Above the dash bar in the same flex column, so the two abilities read as one stack and
+    // no second position has to be kept in step with the first.
+    this._buffs = {
+      aegis: createBuffRow('aegis', 'hud.aegis'),
+      overdrive: createBuffRow('overdrive', 'hud.overdrive'),
+    };
+
+    for (const buff of Object.values(this._buffs)) {
+      this._dash.element.insertBefore(buff.element, this._dash.bar);
+    }
+
     this._el.appendChild(this._dash.element);
   }
 
   /**
    * @param {{timerSeconds: number, wave: number, score: number, entityCount: number}} data -
    *   Current round state to display.
-   * @param {{dashCooldownProgress?: number}} [renderState] - Ability state for the dash bar.
+   * @param {object} [renderState] - Ability state: `dashCooldownProgress` for the dash bar and
+   *   `powerupBuffs` for the two power-up rows.
    * @returns {void}
    */
   update(data, renderState = {}) {
@@ -60,6 +72,7 @@ export class Hud {
 
     this._waveFill.style.width = `${waveProgressPercent(data.timerSeconds)}%`;
     this._updateDash(renderState.dashCooldownProgress);
+    this._updateBuffs(renderState.powerupBuffs);
   }
 
   /**
@@ -89,6 +102,22 @@ export class Hud {
     this._dash.fill.style.width = `${level * 100}%`;
     this._dash.bar.classList.toggle('dash-bar--ready', isReady);
     this._dash.label.textContent = isReady ? t('hud.dashReady') : t('hud.dash');
+  }
+
+  /**
+   * A row exists only while its buff runs. It is the second place to look — the warning that
+   * a buff is about to end is the blinking arc on the player, not anything here.
+   */
+  _updateBuffs(powerupBuffs = {}) {
+    for (const [kind, row] of Object.entries(this._buffs)) {
+      const remaining = powerupBuffs[kind];
+
+      row.element.style.display = remaining === undefined ? 'none' : 'flex';
+
+      if (remaining !== undefined) {
+        row.fill.style.width = `${clamp01(remaining) * 100}%`;
+      }
+    }
   }
 }
 
@@ -133,6 +162,40 @@ function createDashBar() {
   element.appendChild(label);
 
   return { element, bar, fill, label };
+}
+
+/**
+ * One power-up row: the kind's hexagon, a draining bar and a name.
+ *
+ * It sits in the DOM for the same reason the dash bar does — the label never changes and has
+ * no business being re-rasterised sixty times a second. The hexagon is a `clip-path` rather
+ * than a glyph, so it is the same shape the canvas draws without a font being involved.
+ */
+function createBuffRow(kind, labelKey) {
+  const element = document.createElement('div');
+  element.id = `hud-buff-${kind}`;
+  element.className = `buff-row buff-row--${kind}`;
+  element.style.display = 'none';
+
+  const glyph = document.createElement('span');
+  glyph.className = 'buff-glyph';
+
+  const bar = document.createElement('div');
+  bar.className = 'buff-bar';
+
+  const fill = document.createElement('div');
+  fill.className = 'buff-bar__fill';
+  bar.appendChild(fill);
+
+  const label = document.createElement('span');
+  label.className = 'buff-label';
+  label.textContent = t(labelKey);
+
+  element.appendChild(glyph);
+  element.appendChild(bar);
+  element.appendChild(label);
+
+  return { element, fill };
 }
 
 /**

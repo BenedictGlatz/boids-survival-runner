@@ -18,6 +18,7 @@ import {
   trailColorForTier,
 } from './entityPalette.js';
 import { drawObstacles } from './obstacleLayer.js';
+import { drawPlayerBuffs, drawPowerupMarkers } from './powerupLayer.js';
 import { drawDashTrails } from './trailLayer.js';
 import { sampleDashTrails } from './trailSampling.js';
 import { fitWorldToCanvas } from './worldTransform.js';
@@ -152,6 +153,9 @@ export class CanvasRenderer {
     // Under the boids and the player, so an obstacle reads as terrain they move over
     // rather than as something in front of them.
     drawObstacles(ctx, frame);
+    // A marker lies on the ground: over the obstacles, under everything that moves. Its spin
+    // and bob run on wall time, because they are presentation and follow the frame rate.
+    drawPowerupMarkers(ctx, renderState, renderState.wallClockSeconds ?? 0);
     // The order is the statement: a dash trail sits over the obstacles, because it is
     // movement rather than terrain, and under the boids and the player, because it is their
     // exhaust rather than an object of its own. Sampling happens first, so a ribbon and its
@@ -166,6 +170,9 @@ export class CanvasRenderer {
     drawDashTrails(ctx, dashTrails, trailColorForTier);
     drawBoids(ctx, frame);
     drawPlayer(ctx, playerPosition, renderState.playerInvulnerable === true);
+    // A shell and its time arcs lie on the player, so they come after them — and before the
+    // health bar, which is the one thing that may never be drawn over.
+    drawPlayerBuffs(ctx, playerPosition, renderState, renderState.wallClockSeconds ?? 0);
     drawPlayerHealth(ctx, playerPosition, renderState);
     // The dash bar is not drawn here: it lives in the HUD (`ui/hud.js`), so its label is
     // not re-rasterised on every frame.

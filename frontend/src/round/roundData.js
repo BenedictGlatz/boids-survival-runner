@@ -79,16 +79,28 @@ export function isPlayerInvulnerable(roundData) {
 }
 
 /**
- * Spends one life unless the player is still invulnerable.
+ * Spends one life unless the player is still invulnerable or something absorbs the hit.
  *
  * Every source of damage goes through this one function on purpose. Sharing the
  * grace period is what keeps a player who is leaning against something from
  * losing every life within a handful of steps.
+ *
+ * The order of the two escapes matters and is the reason `absorbHit` is a callback rather
+ * than a flag: the grace period is checked first, so a shield is never spent on a hit that
+ * would have cost nothing anyway. An absorbed hit deliberately starts no grace period —
+ * `lastHitAtSimulationMs` stays where it was, so the next hit costs a life immediately and a
+ * shield reads as a single charge rather than as a second invulnerability window.
  * @param {object} roundData - The round state to charge the hit to.
+ * @param {() => boolean} [absorbHit] - Asked only for a hit that would really land. Returning
+ *   true consumes whatever absorbed it and cancels the damage.
  * @returns {boolean} True if a life was actually spent.
  */
-export function registerHit(roundData) {
+export function registerHit(roundData, absorbHit) {
   if (isPlayerInvulnerable(roundData)) {
+    return false;
+  }
+
+  if (absorbHit !== undefined && absorbHit() === true) {
     return false;
   }
 

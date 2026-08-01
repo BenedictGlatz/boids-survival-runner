@@ -14,7 +14,9 @@ export class PlayerController {
   constructor() {
     this.position = { x: 0, y: 0 };
     this.velocity = { x: 0, y: 0 };
-    // Normally the same as PLAYER_MAX_SPEED. A dash raises it for a moment and it
+    // Normally PLAYER_MAX_SPEED, raised while the Overdrive power-up runs.
+    this._maxSpeed = PLAYER_MAX_SPEED;
+    // Normally the same as the top speed. A dash raises it for a moment and it
     // then falls back on its own, which is the whole of the dash mechanic.
     this._speedLimit = PLAYER_MAX_SPEED;
   }
@@ -26,7 +28,25 @@ export class PlayerController {
   reset(x, y) {
     this.position = { x, y };
     this.velocity = { x: 0, y: 0 };
+    this._maxSpeed = PLAYER_MAX_SPEED;
     this._speedLimit = PLAYER_MAX_SPEED;
+  }
+
+  /**
+   * Scales the top speed for as long as a speed buff runs.
+   *
+   * It is set here rather than passed through `controls` because the top speed is read in
+   * four places, two of which run outside `update()` — a wall hit and an obstacle hit both
+   * drop the speed limit back to it. Leaving those two on the unscaled value would let a
+   * scrape along a wall quietly end the buff.
+   *
+   * The dash is deliberately not scaled: `PLAYER_DASH_SPEED` is already the fastest the
+   * obstacle sweep has to resolve, and multiplying it would tunnel through thin obstacles.
+   * @param {number} factor - Multiplier on `PLAYER_MAX_SPEED`; `1` when no buff is running.
+   * @returns {void}
+   */
+  setSpeedMultiplier(factor) {
+    this._maxSpeed = PLAYER_MAX_SPEED * Math.max(1, factor);
   }
 
   /**
@@ -59,7 +79,7 @@ export class PlayerController {
     // eases out as if slowed by friction instead of stopping dead. Without the
     // raised limit the impulse would be clamped away in the same step it started.
     this._speedLimit = Math.max(
-      PLAYER_MAX_SPEED,
+      this._maxSpeed,
       this._speedLimit - PLAYER_DASH_SPEED_DECAY * safeDeltaSeconds,
     );
     limitVelocity(this.velocity, this._speedLimit);
@@ -102,7 +122,7 @@ export class PlayerController {
     // place would let ordinary movement run above the top speed for the rest of
     // the dash window.
     if (hitAWall) {
-      this._speedLimit = PLAYER_MAX_SPEED;
+      this._speedLimit = this._maxSpeed;
     }
   }
 
@@ -139,7 +159,7 @@ export class PlayerController {
       this.velocity.y -= surfaceNormal.y * removedAndReversed;
     }
 
-    this._speedLimit = PLAYER_MAX_SPEED;
+    this._speedLimit = this._maxSpeed;
   }
 
   /** @returns {{x: number, y: number}} A copy of the current position. */

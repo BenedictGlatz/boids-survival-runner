@@ -103,6 +103,57 @@
   color: rgba(56, 189, 248, 0.85);
 }
 
+/* Power-up rows, stacked above the dash bar in the same column. Secondary information: the
+   warning that a buff is about to run out is the blinking arc on the player, not this bar,
+   which is why nothing here blinks or glows. The hexagon is the same fourth shape the canvas
+   draws for a marker — clipped rather than drawn, so no font is involved. */
+.buff-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.buff-glyph {
+  width: 11px;
+  height: 11px;
+  clip-path: polygon(100% 50%, 75% 93%, 25% 93%, 0% 50%, 25% 7%, 75% 7%);
+}
+
+.buff-bar {
+  width: 62px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.buff-bar__fill {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  transition: width var(--dur-fast) linear;
+}
+
+.buff-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(242, 244, 248, 0.44);
+}
+
+/* Amber for the shield, cyan for the speed — the same two tokens §11 of the design system
+   assigns, and the same two colours the canvas uses for the arcs. */
+.buff-row--aegis .buff-glyph,
+.buff-row--aegis .buff-bar__fill {
+  background: var(--warning);
+}
+
+.buff-row--overdrive .buff-glyph,
+.buff-row--overdrive .buff-bar__fill {
+  background: var(--player);
+}
+
 /* ================================================================== *
  * Game over — a card, not a full-screen overlay
  * ================================================================== */

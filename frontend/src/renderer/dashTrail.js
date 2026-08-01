@@ -47,6 +47,15 @@ export const LAUNCH_RING_END_RADIUS = 90;
 export const PLAYER_TRAIL_TIER = -1;
 
 /**
+ * What the trail measures against while Overdrive runs, as a share of `PLAYER_MAX_SPEED`.
+ *
+ * Overdrive has no effect of its own on the player (`design-system.md` §11) — it lowers this
+ * threshold instead, so the streak runs continuously during ordinary movement rather than only
+ * during a dash. Speed already has a language in this game; the buff switches it on.
+ */
+export const OVERDRIVE_TRAIL_BASE_SHARE = 0.55;
+
+/**
  * How much of a trail the current speed earns, from `0` (none) to `1` (full).
  *
  * The trail exists only above normal movement speed, so it ends by itself when the impulse

@@ -6,17 +6,15 @@ import { PlayerController } from './player/playerController.js';
 import {
   advanceClock,
   beginRound as beginRoundData,
-  countdownSecondsLeft,
   createRoundData,
   dueWaveNumber,
   isPlayerDashReady,
   isPlayerDead,
-  isPlayerInvulnerable,
-  playerDashCooldownProgress,
   registerDash,
   registerHit,
 } from './round/roundData.js';
 import { readRecords, recordRound } from './round/roundRecords.js';
+import { PowerupField } from './powerups/powerups.js';
 import { GameState, STATE } from './gameState.js';
 import { Hud } from './ui/hud.js';
 import { Menu } from './ui/menu.js';
@@ -25,6 +23,7 @@ import { MenuSettings } from './ui/menuSettings.js';
 import { FrameTimeGraph } from './ui/frameTimeGraph.js';
 import { loadLocale } from './ui/i18n.js';
 import { FrameScheduler } from './loop/frameScheduler.js';
+import { buildFrozenRenderState, buildRenderState } from './loop/renderState.js';
 import { FrameMetrics } from './loop/frameMetrics.js';
 import { measureRefreshRateHz } from './loop/refreshRate.js';
 import {
@@ -63,6 +62,9 @@ const scheduler = new FrameScheduler(
 // Sampled unconditionally: the cost is two performance.now() calls per frame, and
 // keeping it always on means the graph shows real history the moment it is shown.
 const frameMetrics = new FrameMetrics(FRAME_GRAPH_SAMPLE_COUNT);
+// Round state, but built once like the scheduler rather than with gameData: it is cleared in
+// beginRound(), which is where the simulation clock it measures against jumps back to zero.
+const powerups = new PowerupField();
 
 async function bootstrap() {
   // Measured next to the locale fetch, not after it: the probe waits for a dozen
@@ -225,6 +227,10 @@ function runSimulationStep() {
   // to cross a thin obstacle inside a single step.
   const previousPosition = player.getPosition();
 
+  // Set every step rather than only when it changes: it is one multiplication, and a buff
+  // that expires has to reach the controller on the step it expires on.
+  player.setSpeedMultiplier(powerups.speedMultiplier());
+
   // The player has to move inside the same fixed step as the flock: its
   // position is an input to tick() and to the engine's collision test, so
   // integrating it per rendered frame would desync the two.
@@ -249,12 +255,25 @@ function runSimulationStep() {
     player.applyObstacleBlock(frame.playerPosition, frame.blockNormal);
   }
 
+  // After that correction, so nothing is ever collected from a position the player was just
+  // pushed out of. It runs per simulation step and not per frame, or a 144 Hz player would
+  // collect differently from a 60 Hz one.
+  powerups.step(gameData.simulationTimeMs, player.position.x, player.position.y, frame);
+
   // Every step's hits are consumed here, and both sources share one entry point so
   // they share the invulnerability window. Reading only the last frame of a multi-step
   // frame would silently drop a hit from an earlier step.
   if (frame.hitCount > 0 || frame.obstacleHit) {
-    registerHit(gameData);
+    registerHit(gameData, absorbWithAegis);
   }
+}
+
+/**
+ * Handed to `registerHit`, which asks it only for a hit that would really cost a life. A
+ * module-level function rather than a closure per hit, so nothing is allocated in the step.
+ */
+function absorbWithAegis() {
+  return powerups.absorbHit(gameData.simulationTimeMs);
 }
 
 function renderCurrentState(timestamp, renderDeltaSeconds) {
@@ -262,10 +281,8 @@ function renderCurrentState(timestamp, renderDeltaSeconds) {
   // swarm and the obstacles that killed you stay on screen instead of the arena going
   // empty. Nothing advances — the simulation stopped, and the picture says so.
   if (state.is(STATE.GAME_OVER)) {
-    renderer.drawFrame(gameData.currentFrame, player.getPosition(), {
-      lives: gameData.lives,
-      maxLives: gameData.maxLives,
-    });
+    const frozen = buildFrozenRenderState(gameData, powerups);
+    renderer.drawFrame(gameData.currentFrame, player.getPosition(), frozen);
     return;
   }
 
@@ -281,28 +298,10 @@ function renderCurrentState(timestamp, renderDeltaSeconds) {
   // Built once and handed to both the renderer and the HUD: the dash bar moved into the
   // HUD, but the player's own state is still drawn on the canvas, and they have to agree
   // within a frame.
-  // `deltaSeconds`, `playerSpeed` and the velocity are what the dash trail needs, and they are
-  // handed over only while the world is actually moving: their absence is how the renderer
-  // knows not to sample a frozen frame. The velocity comes from here rather than being read
-  // in the renderer, which has no business reaching into the simulation side.
-  const renderState = gameData.roundActive
-    ? {
-        playerInvulnerable: isPlayerInvulnerable(gameData),
-        lives: gameData.lives,
-        maxLives: gameData.maxLives,
-        dashCooldownProgress: playerDashCooldownProgress(gameData),
-        deltaSeconds: renderDeltaSeconds,
-        playerSpeed: Math.hypot(player.velocity.x, player.velocity.y),
-        playerVelocityX: player.velocity.x,
-        playerVelocityY: player.velocity.y,
-      }
-    : {
-        lives: gameData.lives,
-        maxLives: gameData.maxLives,
-        countdownSeconds: countdownSecondsLeft(gameData, timestamp),
-        playerInvulnerable: true,
-        dashCooldownProgress: 1,
-      };
+  const renderState = buildRenderState(gameData, player, powerups, {
+    renderDeltaSeconds,
+    timestamp,
+  });
 
   renderer.drawFrame(gameData.currentFrame, playerPosition, renderState);
   hud.update(gameData, renderState);
@@ -316,6 +315,9 @@ function advanceCountdown(timestamp) {
 
 function beginRound() {
   beginRoundData(gameData);
+  // Here and not in startGame(): every power-up timestamp is measured against
+  // simulationTimeMs, and that is the clock beginRoundData just set back to zero.
+  powerups.reset(WORLD_WIDTH, WORLD_HEIGHT);
   scheduler.discardPendingTime();
 }
 

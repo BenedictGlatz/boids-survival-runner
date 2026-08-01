@@ -14,7 +14,7 @@
  */
 
 import { PLAYER_DASH_SPEED, PLAYER_MAX_SPEED, SIMULATION_STEP_SECONDS } from '../gameConfig.js';
-import { boidTrailStrength, trailStrength } from './dashTrail.js';
+import { boidTrailStrength, OVERDRIVE_TRAIL_BASE_SHARE, trailStrength } from './dashTrail.js';
 
 /**
  * Heading used when an object is momentarily at rest — the same fallback the boid arrows use,
@@ -29,7 +29,8 @@ const DEFAULT_HEADING_Y = 0;
  * @param {object} frame - The engine's flat-buffer frame, as normalized by `engine-bridge.js`.
  * @param {{x: number, y: number}} playerPosition - Current player position.
  * @param {object} renderState - The loop's render state. Read here are `deltaSeconds` (wall
- *   time of the drawn frame), `playerSpeed`, `playerVelocityX` and `playerVelocityY`.
+ *   time of the drawn frame), `playerSpeed`, `playerVelocityX`, `playerVelocityY` and
+ *   `powerupBuffs`.
  * @returns {void}
  */
 export function sampleDashTrails(trails, frame, playerPosition, renderState) {
@@ -48,12 +49,19 @@ export function sampleDashTrails(trails, frame, playerPosition, renderState) {
  * The speed and the velocity are passed in through the render state rather than read from the
  * controller: the renderer has no business holding a reference to the simulation side, and
  * these are three numbers the loop already has in hand.
+ *
+ * While Overdrive runs the threshold drops, which is the whole of that buff's own look: the
+ * streak then runs during ordinary movement instead of only during a dash.
  */
 function samplePlayerTrail(trails, playerPosition, renderState) {
   if (!playerPosition || renderState.playerSpeed === undefined) return;
 
   const speed = renderState.playerSpeed;
-  const strength = trailStrength(speed, PLAYER_MAX_SPEED, PLAYER_DASH_SPEED);
+  const overdriveRuns = renderState.powerupBuffs?.overdrive !== undefined;
+  const baseSpeed = overdriveRuns
+    ? PLAYER_MAX_SPEED * OVERDRIVE_TRAIL_BASE_SHARE
+    : PLAYER_MAX_SPEED;
+  const strength = trailStrength(speed, baseSpeed, PLAYER_DASH_SPEED);
   if (strength <= 0) return;
 
   const headingX = speed === 0 ? DEFAULT_HEADING_X : (renderState.playerVelocityX ?? 0) / speed;

@@ -51,7 +51,9 @@
     "wave": "Wave",
     "boids": "Boids",
     "dash": "Dash",
-    "dashReady": "Dash Ready"
+    "dashReady": "Dash Ready",
+    "aegis": "Aegis",
+    "overdrive": "Overdrive"
   },
   "perf": {
     "simulation": "sim",
