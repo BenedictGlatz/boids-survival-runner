@@ -35,7 +35,7 @@ test.describe('booting the built game', () => {
     await expect(menu).toContainText(STRINGS.menu.title);
     // Contains rather than equals: the play row also carries its index and its keycap.
     await expect(page.locator('#btn-start')).toContainText(STRINGS.menu.play);
-    await expect(menu).toContainText(STRINGS.settings.targetFps);
+    await expect(menu).toContainText(STRINGS.menu.gameSettings);
     await expect(menu).not.toContainText('menu.');
     await expect(menu).not.toContainText('settings.');
   });

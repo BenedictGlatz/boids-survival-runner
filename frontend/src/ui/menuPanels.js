@@ -2,10 +2,11 @@
  * The panels of the Command Deck: the settings groups and the controls legend.
  * Templates only — no state, no event handling, no game logic.
  *
- * A panel is shown in exactly one place at a time. On the start screen the settings sit
- * in the right-hand stack; inside a submenu the group that submenu is about moves into
- * the left column and leaves the stack, so no group is ever rendered twice — which
- * matters, because `bindOptionGroup` finds its group by id.
+ * A panel is shown in exactly one place at a time. The controls legend sits in the
+ * right-hand stack on the start screen and moves into the left column inside its own
+ * submenu, leaving the stack while it is there — no panel is ever rendered twice, which
+ * matters because `bindOptionGroup` finds its group by id. The settings groups have no
+ * copy in the stack at all: each one lives behind the menu row it belongs to.
  */
 
 import { t } from './i18n.js';
@@ -77,19 +78,23 @@ export function renderPersonalBest({ best, last }) {
 }
 
 /**
- * The target framerate. The top option cannot be guaranteed — requestAnimationFrame is
- * capped by the display refresh rate — so it is labelled as "as fast as possible".
- * @param {{options: number[], selected: number, uncappedValue: number}} setting - Current
+ * The target framerate. Only rates the display can actually show are on the list, so its
+ * top entry is as fast as this machine gets and is labelled accordingly. The measured
+ * rate is named in the hint — otherwise a missing option looks like a bug.
+ * @param {{options: number[], selected: number, refreshRateHz: ?number}} setting - Current
  *   values of the framerate setting.
  * @returns {string} HTML for the group.
  */
-export function renderTargetFpsGroup({ options, selected, uncappedValue }) {
+export function renderTargetFpsGroup({ options, selected, refreshRateHz }) {
+  // The list is ascending, so the last entry is the fastest one on offer.
+  const fastestOffered = options[options.length - 1];
+
   return renderOptionGroup({
     id: FPS_GROUP_ID,
     label: t('settings.targetFps'),
-    hint: t('settings.fpsHint'),
+    hint: renderFpsHint(refreshRateHz),
     options: options.map((fps) => {
-      const label = fps >= uncappedValue ? `${fps} (${t('settings.fpsUncapped')})` : `${fps}`;
+      const label = fps === fastestOffered ? `${fps} (${t('settings.fpsUncapped')})` : `${fps}`;
 
       return {
         value: String(fps),
@@ -99,6 +104,15 @@ export function renderTargetFpsGroup({ options, selected, uncappedValue }) {
       };
     }),
   });
+}
+
+/** The measured rate is appended only when there is one — never "null Hz". */
+function renderFpsHint(refreshRateHz) {
+  if (refreshRateHz === null || refreshRateHz === undefined) {
+    return t('settings.fpsHint');
+  }
+
+  return `${t('settings.fpsHint')} · ${Math.round(refreshRateHz)} ${t('settings.hertz')}`;
 }
 
 /**

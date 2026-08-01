@@ -58,7 +58,7 @@ export class Menu {
    * Settings arrive as one object rather than as positional arguments, so adding
    * a further setting does not keep widening the signature.
    * @param {() => void} onStart - Called when the play row is activated.
-   * @param {{targetFps: {options: number[], selected: number, uncappedValue: number,
+   * @param {{targetFps: {options: number[], selected: number, refreshRateHz: ?number,
    *                      onSelect: (fps: number) => void},
    *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void},
    *          frameGraphMode: {selected: string, onSelect: (mode: string) => void}}} settings -
@@ -160,15 +160,12 @@ export class Menu {
   }
 
   /**
-   * The panel stack shows what the left column is not showing: a group moved into a
-   * submenu leaves the stack, so its id exists exactly once in the document.
+   * The panel stack shows what the left column is not showing: the legend moved into its
+   * submenu leaves the stack, so its markup exists exactly once in the document. No
+   * setting is duplicated here — each one lives behind the menu row it belongs to.
    */
   _renderAside(view) {
     const panels = [renderPanel(renderPersonalBest(this._records))];
-
-    if (view !== VIEW.SETTINGS) {
-      panels.push(renderPanel(renderTargetFpsGroup(this._settings.targetFps)));
-    }
 
     if (view !== VIEW.CONTROLS) {
       panels.push(renderPanel(renderControlsLegend()));

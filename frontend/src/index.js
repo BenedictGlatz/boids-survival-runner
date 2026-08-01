@@ -21,20 +21,18 @@ import { GameState, STATE } from './gameState.js';
 import { Hud } from './ui/hud.js';
 import { Menu } from './ui/menu.js';
 import { MenuBackdrop } from './ui/menuBackdrop.js';
+import { MenuSettings } from './ui/menuSettings.js';
 import { FrameTimeGraph } from './ui/frameTimeGraph.js';
 import { loadLocale } from './ui/i18n.js';
 import { FrameScheduler } from './loop/frameScheduler.js';
 import { FrameMetrics } from './loop/frameMetrics.js';
+import { measureRefreshRateHz } from './loop/refreshRate.js';
 import {
-  DEFAULT_FRAME_GRAPH_ENABLED,
-  DEFAULT_FRAME_GRAPH_MODE,
-  DEFAULT_TARGET_FPS,
   FRAME_GRAPH_SAMPLE_COUNT,
   MAX_SIMULATION_STEPS_PER_FRAME,
   RENDER_INTERVAL_TOLERANCE_MS,
   SIMULATION_STEP_MS,
   SIMULATION_STEP_SECONDS,
-  TARGET_FPS_OPTIONS,
   UNCAPPED_TARGET_FPS,
   WORLD_BOUNDS,
   WORLD_HEIGHT,
@@ -55,9 +53,7 @@ let gameData;
 // These live at module scope rather than in gameData: the menu and game-over
 // branches have no gameData, and the frame clock has to keep running across
 // state changes or the first playing frame would see a multi-second delta.
-let targetFps = DEFAULT_TARGET_FPS;
-let frameGraphEnabled = DEFAULT_FRAME_GRAPH_ENABLED;
-let frameGraphMode = DEFAULT_FRAME_GRAPH_MODE;
+const settings = new MenuSettings();
 const scheduler = new FrameScheduler(
   SIMULATION_STEP_MS,
   MAX_SIMULATION_STEPS_PER_FRAME,
@@ -69,7 +65,11 @@ const scheduler = new FrameScheduler(
 const frameMetrics = new FrameMetrics(FRAME_GRAPH_SAMPLE_COUNT);
 
 async function bootstrap() {
-  await loadLocale('en');
+  // Measured next to the locale fetch, not after it: the probe waits for a dozen
+  // animation frames, and hiding that behind the network round trip means the menu
+  // opens no later than it did before.
+  const [, refreshRateHz] = await Promise.all([loadLocale('en'), measureRefreshRateHz()]);
+  settings.applyDisplayLimits(refreshRateHz);
 
   canvas = document.getElementById('game-canvas');
   renderer = new Renderer(canvas);
@@ -107,35 +107,10 @@ function showStartMenu() {
     () => {
       void startGame();
     },
-    menuSettings(),
+    settings.toMenuOptions(),
     // Read on every open rather than cached: the round that just ended wrote to it.
     readRecords(),
   );
-}
-
-function menuSettings() {
-  return {
-    targetFps: {
-      options: TARGET_FPS_OPTIONS,
-      selected: targetFps,
-      uncappedValue: UNCAPPED_TARGET_FPS,
-      onSelect: (fps) => {
-        targetFps = fps;
-      },
-    },
-    frameGraph: {
-      enabled: frameGraphEnabled,
-      onToggle: (enabled) => {
-        frameGraphEnabled = enabled;
-      },
-    },
-    frameGraphMode: {
-      selected: frameGraphMode,
-      onSelect: (mode) => {
-        frameGraphMode = mode;
-      },
-    },
-  };
 }
 
 async function startGame() {
@@ -162,7 +137,7 @@ async function startGame() {
   // ones and the engine-loading spike that precedes them.
   frameMetrics.reset();
 
-  if (frameGraphEnabled) {
+  if (settings.frameGraphEnabled) {
     frameTimeGraph.show();
   }
 }
@@ -187,7 +162,7 @@ function loop(timestamp) {
   frameMetrics.addSimulationTime(performance.now() - simulationStartedAt);
 
   // Only drawing follows the chosen target framerate.
-  if (scheduler.shouldRenderNow(timestamp, targetFps)) {
+  if (scheduler.shouldRenderNow(timestamp, settings.targetFps)) {
     // Read before the frame is marked as drawn, or it would measure against itself. The dash
     // trail's launch ring runs on this wall-clock delta rather than on the simulation clock:
     // it is presentation, and presentation follows the frame rate.
@@ -199,10 +174,10 @@ function loop(timestamp) {
     frameMetrics.commitRenderedFrame(performance.now() - renderStartedAt);
 
     // Drawn after the measurement closes, so the graph never reports its own cost.
-    if (frameGraphEnabled) {
+    if (settings.frameGraphEnabled) {
       frameTimeGraph.draw(frameMetrics, {
-        mode: frameGraphMode,
-        targetFps,
+        mode: settings.frameGraphMode,
+        targetFps: settings.targetFps,
       });
     }
   }

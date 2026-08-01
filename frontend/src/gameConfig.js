@@ -126,7 +126,17 @@ export const SIMULATION_STEP_SECONDS = 1 / SIMULATION_STEPS_PER_SECOND;
  */
 export const MAX_SIMULATION_STEPS_PER_FRAME = 5;
 
+/**
+ * Every rate the menu knows about. Which of them are actually offered depends on
+ * the display: `loop/refreshRate.js` drops the ones it cannot show.
+ */
 export const TARGET_FPS_OPTIONS = Object.freeze([30, 60, 120]);
+
+/**
+ * Fallback target only. The menu preselects the highest option the display can
+ * show, so this value is what the frametime graph falls back to when it is drawn
+ * without being told the current target.
+ */
 export const DEFAULT_TARGET_FPS = 60;
 
 /** Selecting this option disables render throttling entirely. */
@@ -138,6 +148,31 @@ export const UNCAPPED_TARGET_FPS = 120;
  * display frame, producing alternating 33/50 ms frames (visible judder).
  */
 export const RENDER_INTERVAL_TOLERANCE_MS = 2;
+
+// ---------------------------------------------------------------------------
+// Display refresh rate (measured once at start-up)
+// ---------------------------------------------------------------------------
+
+/**
+ * How many animation frames the refresh-rate probe watches. Enough for a stable
+ * median, short enough to finish while the locale file is still being fetched.
+ */
+export const REFRESH_RATE_SAMPLE_COUNT = 12;
+
+/**
+ * Headroom when comparing an option against the measured rate. A nominal 60 Hz
+ * panel usually measures as 59.94 Hz, and without the headroom 60 fps would be
+ * filtered off the very display that can show it.
+ */
+export const REFRESH_RATE_TOLERANCE = 0.05;
+
+/**
+ * Range a measurement has to fall into to be believed. A backgrounded tab
+ * throttles requestAnimationFrame to about one call per second, which would
+ * otherwise look like a 1 Hz display and leave the player with 30 fps only.
+ */
+export const MIN_PLAUSIBLE_REFRESH_RATE_HZ = 20;
+export const MAX_PLAUSIBLE_REFRESH_RATE_HZ = 500;
 
 // ---------------------------------------------------------------------------
 // Frametime graph (opt-in performance overlay)

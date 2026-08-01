@@ -67,7 +67,63 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-07-30 | 2,0 | S-03 | Dash-Schweif „Ion Streak" aus dem Designsystem umgesetzt: `renderer/dashTrail.js` (Kennwerte und Verlaufsmathematik), `renderer/dashTrailHistory.js` (Ringpuffer-Historie), `renderer/trailLayer.js` (Zeichnen) und `renderer/trailSampling.js` (Abtasten pro Frame); Renderer-Farben nach `renderer/entityPalette.js` gezogen, `secondsSinceRender` im `FrameScheduler` als Wall-Time-Basis der Präsentation; 20 neue Unit-Zusicherungen, Sichtprüfung per Screenshot |
 
+| 2026-08-01 | 1,0 | S-03 | Bildraten-Einstellung auf einen Ort reduziert (Panel-Stapel des Startbildschirms entfällt) und an den Monitor gebunden: neues Modul `loop/refreshRate.js` misst die Wiederholrate über den Median von zwölf `requestAnimationFrame`-Abständen und filtert die Optionsliste, die schnellste angebotene Rate ist vorausgewählt; Menü-Einstellungen wegen der 400-Zeilen-Grenze aus `index.js` nach `ui/menuSettings.js` gezogen; 23 neue Unit-Zusicherungen, drei E2E-Tests umgeschrieben, zwei neue |
+
 ## Entscheidungen
+
+### 2026-08-01 — Die Bildwiederholrate wird gemessen, nicht angenommen
+
+**Gewählt:** Beim Start beobachtet `loop/refreshRate.js` zwölf aufeinanderfolgende
+`requestAnimationFrame`-Aufrufe und nimmt den **Median** ihrer Abstände als Bildwiederholrate.
+Die feste Liste `[30, 60, 120]` wird daran gefiltert, mit 5 % Toleranz; vorausgewählt ist die
+schnellste übrig gebliebene Option.
+
+**Verworfen:** (a) die gemessene Rate selbst als Option anbieten, ein 144-Hz-Monitor bekäme
+also einen Eintrag „144 (Max)"; (b) gar nicht messen und stattdessen weiter im Hinweistext
+darauf verweisen, dass der Monitor die Obergrenze setzt; (c) den Mittelwert statt des Medians.
+
+**Warum:** Eine Browser-API für die Wiederholrate gibt es nicht — `requestAnimationFrame` wird
+aber vom Bildschirm getaktet, der Abstand zwischen zwei Aufrufen _ist_ die Periode. Der Median
+ist nötig, weil während des Starts regelmäßig ein einzelner langer Frame dazwischenliegt; ein
+Ausreißer von 250 ms zieht den Mittelwert über zwölf 60-Hz-Abstände auf rund 46 Hz und würde
+60 fps vom eigenen 60-Hz-Monitor werfen. Gegen (a) spricht, dass die Optionsliste damit
+maschinenabhängig wird — jeder Test müsste sich auf die Hardware des Prüfrechners einlassen —
+und der Gewinn null ist: Da der Renderer bei ≥ 120 gar nicht mehr drosselt, zeichnet „120 (Max)"
+auf einem 144-Hz-Schirm ohnehin 144 Bilder. (b) war der bisherige Zustand und stellt dem
+Spieler eine Wahl, die die Hardware nicht einlöst.
+
+**Konsequenz:** Der `FrameScheduler` bleibt unverändert. Das ist kein Versehen, sondern folgt
+aus der Filterung: Ist das Ziel nie höher als die Wiederholrate, liegt das Renderfenster
+`1000 / Ziel − 2 ms` immer unter dem tatsächlichen Frameabstand (14,67 ms gegen 16,67 ms bei
+60 Hz; 6,33 ms gegen 8,33 ms bei 120 Hz), die oberste Option zeichnet also jeden Frame — mit
+und ohne Drosselung dasselbe Ergebnis. Zwei Fälle sind bewusst abgefangen: Ein im Hintergrund
+gestarteter Tab drosselt `requestAnimationFrame` auf etwa 1 Hz, das wäre als 1-Hz-Monitor
+gelesen worden; und ein Bildschirm langsamer als jede Option behält die langsamste, damit die
+Gruppe nie leer ist. Scheitert die Messung, stehen wieder alle drei Optionen zur Wahl — die
+Drosselung durch den Bildschirm bleibt ja bestehen.
+→ Kap. 5, 8
+
+### 2026-08-01 — Die Menü-Einstellungen bekommen ein eigenes Modul
+
+**Gewählt:** Die drei Einstellwerte und die Fabrik, die das Objekt für `Menu.showStart` baut,
+liegen als Klasse `MenuSettings` in `ui/menuSettings.js`. `index.js` hält nur noch eine Instanz
+davon und liest im Loop über Getter.
+
+**Verworfen:** die zusätzliche Bootstrap-Logik in `index.js` belassen und dort weitere Zeilen
+anhängen.
+
+**Warum:** Erzwungen durch die 400-Zeilen-Grenze — `index.js` stand bei 398 Zeilen, die Messung
+und ihre Auswertung hätten sie gerissen. Der Schnitt ist aber nicht nur Platzgewinn: Die einzige
+Logik unter den Einstellungen, nämlich welche Bildraten der Monitor übrig lässt und welche davon
+vorausgewählt ist, war in `index.js` unter Vitest gar nicht erreichbar, weil das Modul die
+WASM-Bridge und den Canvas mitzieht. Als eigenes Modul ist sie importfrei bis auf `gameConfig.js`
+und `refreshRate.js` und damit direkt prüfbar.
+
+**Konsequenz:** `index.js` fällt von 398 auf 324 Zeilen und handelt wieder von der Schleife
+statt von Menüwerten. Die Einstellungen sind weiterhin nicht persistent; sie überleben eine
+Runde, aber kein Neuladen der Seite. Das bleibt so, bis Persistenz gefordert ist —
+`round/roundRecords.js` zeigt, wie sie dann aussähe.
+→ Kap. 5, 8
 
 ### 2026-07-30 — Der Schweif liest den Dash aus der Geschwindigkeit statt aus einem Zustand
 
