@@ -70,6 +70,24 @@ export function advanceClock(roundData) {
 }
 
 /**
+ * The round as the two cards and the record store all want to read it.
+ *
+ * One function rather than the same object literal in two places: the game-over card and
+ * the pause card must not disagree about what a run is, and `roundRecords.js` consumes the
+ * same shape. It is also the only place `timerSeconds` is renamed to `timeSeconds`.
+ * @param {object} roundData - The round state to summarise.
+ * @returns {{score: number, wave: number, timeSeconds: number, boids: number}} The summary.
+ */
+export function runSummary(roundData) {
+  return {
+    score: roundData.score,
+    wave: roundData.wave,
+    timeSeconds: roundData.timerSeconds,
+    boids: roundData.entityCount,
+  };
+}
+
+/**
  * Whether the player is currently in the grace period after taking a hit.
  * @param {object} roundData - The round state to inspect.
  * @returns {boolean} True while no further hit may be counted.

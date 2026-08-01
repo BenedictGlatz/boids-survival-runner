@@ -17,24 +17,24 @@ import { renderRunStats } from './runStats.js';
  */
 export function renderGameOverCard(run, best) {
   return `
-    <div class="gameover-scrim"></div>
-    <div class="gameover-card">
+    <div class="card-scrim"></div>
+    <div class="card card--defeat">
       <div>
-        <span class="gameover-card__kicker">${t('menu.swarmWins')}</span>
-        <h1 class="gameover-card__title">${t('menu.gameover')}</h1>
+        <span class="card__kicker">${t('menu.swarmWins')}</span>
+        <h1 class="card__title">${t('menu.gameover')}</h1>
       </div>
 
-      <div class="gameover-card__result">
+      <div class="card__result">
         <span class="kicker">${t('menu.finalScore')}</span>
-        <p class="gameover-card__score-line">
-          <span class="gameover-card__score">${run.score}</span>
+        <p class="card__score-line">
+          <span class="card__score">${run.score}</span>
           ${best ? `<span class="kicker kicker--faint">${t('menu.best')} ${best.score}</span>` : ''}
         </p>
       </div>
 
       ${renderRunStats(run)}
 
-      <div class="gameover-card__actions">
+      <div class="card__actions">
         <button id="btn-restart" type="button" class="btn-primary">
           <span>${t('menu.restart')}</span>
           <span class="key key--on-primary">Space</span>

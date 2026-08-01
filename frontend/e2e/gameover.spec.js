@@ -43,7 +43,7 @@ test.describe('the round lifecycle', () => {
     await openStartMenu(page);
     await startRound(page);
     await page.locator('#btn-restart').waitFor({ state: 'visible', timeout: 60_000 });
-    await expect(page.locator('.gameover-card')).toContainText(STRINGS.menu.best);
+    await expect(page.locator('.card--defeat')).toContainText(STRINGS.menu.best);
 
     await page.locator('#btn-main-menu').click();
 

@@ -1,17 +1,12 @@
-import { initEngine, setWave, snapshot, tick } from './engine-bridge.js';
+import { initEngine, snapshot } from './engine-bridge.js';
 import { Renderer } from './renderer/renderer.js';
 import { InputManager } from './input/inputManager.js';
-import { buildControls } from './input/controls.js';
 import { PlayerController } from './player/playerController.js';
 import {
-  advanceClock,
   beginRound as beginRoundData,
   createRoundData,
-  dueWaveNumber,
-  isPlayerDashReady,
   isPlayerDead,
-  registerDash,
-  registerHit,
+  runSummary,
 } from './round/roundData.js';
 import { readRecords, recordRound } from './round/roundRecords.js';
 import { PowerupField } from './powerups/powerups.js';
@@ -24,6 +19,7 @@ import { FrameTimeGraph } from './ui/frameTimeGraph.js';
 import { loadLocale } from './ui/i18n.js';
 import { FrameScheduler } from './loop/frameScheduler.js';
 import { buildFrozenRenderState, buildRenderState } from './loop/renderState.js';
+import { runSimulationStep } from './loop/simulationStep.js';
 import { FrameMetrics } from './loop/frameMetrics.js';
 import { measureRefreshRateHz } from './loop/refreshRate.js';
 import {
@@ -31,9 +27,7 @@ import {
   MAX_SIMULATION_STEPS_PER_FRAME,
   RENDER_INTERVAL_TOLERANCE_MS,
   SIMULATION_STEP_MS,
-  SIMULATION_STEP_SECONDS,
   UNCAPPED_TARGET_FPS,
-  WORLD_BOUNDS,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from './gameConfig.js';
@@ -200,7 +194,7 @@ function advanceSimulation(timestamp) {
   const steps = scheduler.beginFrame(timestamp);
 
   for (let step = 0; step < steps; step += 1) {
-    runSimulationStep();
+    runSimulationStep(gameData, input, player, powerups);
 
     if (isPlayerDead(gameData)) {
       scheduler.discardPendingTime();
@@ -208,72 +202,6 @@ function advanceSimulation(timestamp) {
       return;
     }
   }
-}
-
-function runSimulationStep() {
-  advanceClock(gameData);
-
-  // Read once per step: the dash request is a latch, so consuming it here is what
-  // keeps one key press from firing a dash in every step of a multi-step frame.
-  const controls = buildControls(input);
-  const dashing = controls.dashRequested && isPlayerDashReady(gameData);
-
-  if (dashing) {
-    registerDash(gameData);
-  }
-
-  // Captured before the player integrates: the engine tests the whole move against
-  // the obstacles, not just where it ended, which is what catches a dash fast enough
-  // to cross a thin obstacle inside a single step.
-  const previousPosition = player.getPosition();
-
-  // Set every step rather than only when it changes: it is one multiplication, and a buff
-  // that expires has to reach the controller on the step it expires on.
-  player.setSpeedMultiplier(powerups.speedMultiplier());
-
-  // The player has to move inside the same fixed step as the flock: its
-  // position is an input to tick() and to the engine's collision test, so
-  // integrating it per rendered frame would desync the two.
-  const attemptedPosition = player.update(
-    { direction: controls.direction, dash: dashing },
-    SIMULATION_STEP_SECONDS,
-    WORLD_BOUNDS,
-  );
-
-  // Runs per step so newly spawned boids exist before this step's tick(), and
-  // so setWave sees the current player position for safe-spawn placement.
-  updateWaveProgression(attemptedPosition);
-
-  const frame = tick(previousPosition, attemptedPosition);
-  gameData.currentFrame = frame;
-  gameData.entityCount = frame.entityCount;
-
-  // The engine may have pushed the player back out of an obstacle. Taking its answer
-  // is what keeps the position the renderer draws and the one the flock steered
-  // against from drifting apart over a run.
-  if (frame.obstacleHit) {
-    player.applyObstacleBlock(frame.playerPosition, frame.blockNormal);
-  }
-
-  // After that correction, so nothing is ever collected from a position the player was just
-  // pushed out of. It runs per simulation step and not per frame, or a 144 Hz player would
-  // collect differently from a 60 Hz one.
-  powerups.step(gameData.simulationTimeMs, player.position.x, player.position.y, frame);
-
-  // Every step's hits are consumed here, and both sources share one entry point so
-  // they share the invulnerability window. Reading only the last frame of a multi-step
-  // frame would silently drop a hit from an earlier step.
-  if (frame.hitCount > 0 || frame.obstacleHit) {
-    registerHit(gameData, absorbWithAegis);
-  }
-}
-
-/**
- * Handed to `registerHit`, which asks it only for a hit that would really cost a life. A
- * module-level function rather than a closure per hit, so nothing is allocated in the step.
- */
-function absorbWithAegis() {
-  return powerups.absorbHit(gameData.simulationTimeMs);
 }
 
 function renderCurrentState(timestamp, renderDeltaSeconds) {
@@ -328,12 +256,7 @@ function endRound() {
   hud.hide();
   frameTimeGraph.hide();
 
-  const run = {
-    score: gameData.score,
-    wave: gameData.wave,
-    timeSeconds: gameData.timerSeconds,
-    boids: gameData.entityCount,
-  };
+  const run = runSummary(gameData);
 
   menu.showGameOver(
     {
@@ -346,17 +269,6 @@ function endRound() {
     // a run that just set one has to see it.
     { run, records: recordRound(run) },
   );
-}
-
-function updateWaveProgression(playerPosition) {
-  const nextWave = dueWaveNumber(gameData);
-
-  if (nextWave <= gameData.wave) {
-    return;
-  }
-
-  gameData.wave = nextWave;
-  setWave(gameData.wave, playerPosition);
 }
 
 /**

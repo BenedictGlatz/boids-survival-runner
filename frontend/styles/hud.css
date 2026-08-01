@@ -1,4 +1,4 @@
-/* HUD, dash bar and game-over card.
+/* HUD and dash bar.
  *
  * The HUD is frameless: a value is a kicker plus a large mono number, no surface and no
  * border, and readability comes from a text shadow instead. That gives four rectangles
@@ -152,92 +152,6 @@
 .buff-row--overdrive .buff-glyph,
 .buff-row--overdrive .buff-bar__fill {
   background: var(--player);
-}
-
-/* ================================================================== *
- * Game over — a card, not a full-screen overlay
- * ================================================================== */
-
-/* Dims the frozen arena behind the card. Its own element rather than a background on the
-   overlay, so the card can sit on top of it without inheriting the dimming. */
-.gameover-scrim {
-  position: absolute;
-  inset: 0;
-  background: rgba(11, 13, 18, 0.82);
-}
-
-.gameover-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s6);
-  width: 424px;
-  padding: 34px;
-  border: 1px solid rgba(240, 58, 95, 0.28);
-  border-radius: var(--radius);
-  background: rgba(18, 22, 30, 0.9);
-  backdrop-filter: blur(10px);
-}
-
-/* The only 2px line in the system, and it marks the one defeat. */
-.gameover-card::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  left: -1px;
-  height: 2px;
-  background: var(--danger);
-}
-
-.gameover-card__kicker {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--danger);
-}
-
-.gameover-card__title {
-  margin: 0;
-  font-size: 46px;
-  font-weight: 700;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  text-transform: uppercase;
-}
-
-.gameover-card__result {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2);
-}
-
-/* The record sits on the baseline of the score, so the two read as one line. */
-.gameover-card__score-line {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s4);
-}
-
-.gameover-card__score {
-  font-family: var(--font-mono);
-  font-size: 62px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-}
-
-.gameover-card__actions {
-  display: flex;
-  align-items: stretch;
-  gap: var(--s3);
-}
-
-.gameover-card__actions .btn-primary {
-  flex: 1;
-  justify-content: space-between;
 }
 
 @media (prefers-reduced-motion: reduce) {

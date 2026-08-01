@@ -1,0 +1,129 @@
+/* The two cards that sit over a frozen arena: game over and pause.
+ *
+ * A card rather than a full-screen overlay, so the arena stays visible behind it — the
+ * swarm and the obstacles of the moment it stopped are still there, merely dimmed. The
+ * geometry is shared and only the accent differs, which is the whole reason the base class
+ * is called `card` and not after either of the two screens that use it. */
+
+/* Dims the frozen arena behind the card. Its own element rather than a background on the
+   overlay, so the card can sit on top of it without inheriting the dimming. */
+.card-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 13, 18, 0.82);
+}
+
+/* A pause dims less than a defeat. The arena is still yours, you are just holding it. */
+.card-scrim--paused {
+  background: rgba(11, 13, 18, 0.62);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s6);
+  width: 424px;
+  padding: 34px;
+  border-radius: var(--radius);
+  background: rgba(18, 22, 30, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  left: -1px;
+}
+
+.card--defeat {
+  border: 1px solid rgba(240, 58, 95, 0.28);
+}
+
+/* The only 2px line in the system, and it marks the one defeat. */
+.card--defeat::before {
+  height: 2px;
+  background: var(--danger);
+}
+
+/* Amber and one pixel: a state that ends when you say so, not one that ended on you. */
+.card--paused {
+  border: 1px solid rgba(251, 191, 36, 0.28);
+}
+
+.card--paused::before {
+  height: 1px;
+  background: var(--warning);
+}
+
+.card__kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--danger);
+}
+
+.card--paused .card__kicker {
+  color: var(--warning);
+}
+
+.card__title {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.card__result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+/* The record sits on the baseline of the score, so the two read as one line. */
+.card__score-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+}
+
+.card__score {
+  font-family: var(--font-mono);
+  font-size: 62px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.card__actions {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s3);
+}
+
+.card__actions .btn-primary {
+  flex: 1;
+  justify-content: space-between;
+}
+
+/* The pause card stacks its primary action over the two that leave the round, so "keep
+   playing" is never one of three equal-looking choices. */
+.card__actions--stacked {
+  flex-direction: column;
+}
+
+.card__actions--stacked .btn-ghost {
+  flex: 1;
+}
+
+.card__actions-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s3);
+}

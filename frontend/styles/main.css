@@ -88,8 +88,8 @@ body {
   transform: translateX(-50%);
 }
 
-/* The overlay centres whatever card it holds — today the game-over card. The Command
-   Deck sets `display: block` on it instead and brings its own grid. */
+/* The overlay centres whatever card it holds — the game-over card or the pause card. The
+   Command Deck sets `display: block` on it instead and brings its own grid. */
 #menu-overlay {
   display: flex;
   flex-direction: column;
