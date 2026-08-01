@@ -22,13 +22,14 @@ Kollisionen zwischen beiden.
 | S-01 | Boid-Schwarm-Simulation (Steering, Varianten, Kollision/Overlap)          | Engine    |
 | S-02 | WASM-Bridge-API (Buffer-Vertrag JS↔Rust)                                  | Engine/FE |
 | S-03 | Rendering & HUD (Canvas, Leben/Score/Wave/Timer)                          | Frontend  |
-| S-04 | Spiel-Loop & Wave-Progression (Schwierigkeitskurve)                       | Frontend  |
+| S-04 | Spiel-Loop & Wave-Progression (Schwierigkeitskurve, Pause)                | Frontend  |
 | S-05 | Steuerung & Power-Ups (Dash und Power-ups umgesetzt, _fiktiv: Slow-Time_) | Engine/FE |
 | S-06 | Querschnitt: i18n, Scoring/Highscore, Build-Pipeline                      | FE/E      |
 | S-07 | Temporäre Hindernisse (Weltgeometrie, Kollision, Dichte-Rampe)            | Engine/FE |
 
 Detail-Specs:
 
+- [S-04b — Pause (Escape und Fokusverlust)](spec-s04b-pause.md)
 - [S-05a — Dash (Spieler und Boids)](spec-s05-dash.md)
 - [S-05b — Power-ups (Aegis und Overdrive)](spec-s05b-powerups.md)
 - [S-07 — Temporäre Hindernisse](spec-s07-hindernisse.md)
@@ -42,13 +43,13 @@ Detail-Specs:
 | S-01 Schwarm-Simulation    |                  18 h |
 | S-02 Bridge-API            |                   5 h |
 | S-03 Rendering & HUD       |                  12 h |
-| S-04 Loop & Waves          |                  10 h |
+| S-04 Loop & Waves          |                  13 h |
 | S-05 Steuerung & Power-Ups |                  20 h |
 | S-06 Querschnitt           |                  12 h |
 | S-07 Hindernisse           |                  16 h |
-| **Summe**                  |              **93 h** |
+| **Summe**                  |              **96 h** |
 | + Integration/Test (~20 %) |                 ~19 h |
-| **Gesamt Specs**           | **≈ 112 h (≈ 14 PT)** |
+| **Gesamt Specs**           | **≈ 115 h (≈ 14 PT)** |
 
 **Schwerpunkt:** Die Engine (S-01/S-02, ~23 h) ist der teuerste Block. Das
 Grundgerüst ist spielbar; offen sind v. a. Highscore-Persistenz und Settings.
@@ -58,6 +59,12 @@ Der Dash aus S-05 ist umgesetzt (~12 h der dort ursprünglich geschätzten 14 h,
 verschoben, weil der Boid-Dash in der Simulation liegt. Die beiden Power-ups Aegis und
 Overdrive ([spec-s05b-powerups.md](spec-s05b-powerups.md)) kommen mit ~6 h dazu; S-05
 steht damit bei 20 h. Offen bleibt in S-05 nur noch Slow-Time.
+
+S-04 steht bei 13 h statt 10 h, weil die Pause ([spec-s04b-pause.md](spec-s04b-pause.md))
+mit ~3 h dazukommt. Sie liegt in S-04 und nicht in S-03, obwohl das Sichtbarste an ihr eine
+Karte ist: Die Karte ist eine Kopie der bestehenden Game-Over-Karte, der Aufwand steckt im
+vierten Freeze-Fall des festen Zeitschritts und in der Wandzeit-Frist des Countdowns — also
+in genau dem Mechanismus, den S-04 beschreibt.
 
 S-07 ist **nachträglich aufgenommen** und war in der ursprünglichen Aufstellung nicht
 enthalten. Er ist kein Teil von S-01, weil er nicht das Schwarmmodell verfeinert,
@@ -103,10 +110,10 @@ Hälfte.
 
 | Block              |                 Aufwand |
 | ------------------ | ----------------------: |
-| Specs S-01…S-07    |                 ≈ 112 h |
+| Specs S-01…S-07    |                 ≈ 115 h |
 | Tooling T-01…T-07  |                ≈ 31,5 h |
 | Dokumentation D-01 |                  ≈ 22 h |
-| **Gesamt**         | **≈ 165,5 h (≈ 21 PT)** |
+| **Gesamt**         | **≈ 168,5 h (≈ 21 PT)** |
 
 Bis zur Abgabe am **03.09.2026** stehen realistisch ~5 Wochen zur Verfügung. Das
 Gesamtbudget von ≈ 165,5 h liegt damit über der verfügbaren Kapazität, weshalb
@@ -132,12 +139,20 @@ bewusst gekürzt wird:
   Fähigkeit mit Restlaufzeit angezeigt gehört, überhaupt erst auf. Ehrlich bleibt
   trotzdem: Die ursprüngliche Kürzung sollte Kapazität freimachen, und diese Aufnahme
   gibt sie vollständig wieder aus.
+- **Die Pause kommt trotz der Überbuchung dazu** (≈ 3 h, [S-04b](spec-s04b-pause.md)) und
+  ist der einzige Posten in dieser Liste, der als Fehlerbehebung gerechtfertigt ist statt
+  als Feature: Ein Fensterwechsel aus einer laufenden Runde lässt den Scheduler die ganze
+  Abwesenheit als Simulationsschuld sehen und die Welt in einem Bild um bis zu ~83 ms
+  springen — auf einen Spieler zu, den der Schwarm sucht. Eine automatische Pause bei
+  Fokusverlust schließt das, und die Karte fällt dabei als das Billigste an, was das
+  Feature enthält. Sie bringt zusätzlich den vierten Freeze-Fall des festen Zeitschritts
+  in den Bericht, also einen weiteren belegbaren Fall zur tragenden Invariante.
 - **Code-Freeze am 24.08.2026**; die restlichen ~10 Tage sind für Prosa,
   Diagramme und Layout reserviert.
 
-Die Überbuchung ist mit T-03 und T-07 um 7,5 h, mit S-07 um weitere 19 h und mit S-05b
-um noch einmal ~7 h **gewachsen**, und sie wird hier nicht durch eine Gegenkürzung
-wegdefiniert. Was sie
+Die Überbuchung ist mit T-03 und T-07 um 7,5 h, mit S-07 um weitere 19 h, mit S-05b um
+noch einmal ~7 h und mit S-04b um ~3 h **gewachsen**, und sie wird hier nicht durch eine
+Gegenkürzung wegdefiniert. Was sie
 trägt, ist die Reihenfolge: Die Qualitätsmaßnahmen liegen vor T-02, T-05 und T-06,
 weil sie zwei Kriterien gleichzeitig bedienen (_Qualität_ als Kapitel und „hohe
 Testabdeckung" als Code-Kriterium), während TypeScript und Deployment je nur eines
