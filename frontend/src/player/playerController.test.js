@@ -6,7 +6,6 @@ import {
   PLAYER_DASH_SPEED_DECAY,
   PLAYER_MAX_DELTA_SECONDS,
   PLAYER_MAX_SPEED,
-  PLAYER_OBSTACLE_BOUNCE,
   PLAYER_VISUAL_RADIUS,
 } from '../gameConfig.js';
 
@@ -143,77 +142,64 @@ describe('PlayerController.update — movement', () => {
   });
 });
 
-describe('PlayerController.applyObstacleBlock', () => {
-  const FROM_THE_LEFT = { x: -1, y: 0 };
+// `applyObstacleBlock` is covered in `playerObstacleBlock.test.js` — split off when this file
+// reached the 400-line limit.
 
-  it('takes the position the engine worked out', () => {
-    // The engine owns the obstacle geometry, so its answer is the authority. Ignoring
-    // it would leave the drawn player and the one the flock chased slowly diverging.
+describe('PlayerController.setSpeedMultiplier', () => {
+  /** Holds a direction long enough for the velocity to settle at whatever the cap is. */
+  function runToTopSpeed(player) {
+    for (let held = 0; held < 240; held += 1) {
+      step(player, RIGHT);
+    }
+
+    return speedOf(player);
+  }
+
+  it('raises the top speed by the factor it is given', () => {
     const player = makePlayerAtCentre();
+    player.setSpeedMultiplier(1.6);
 
-    player.applyObstacleBlock({ x: 123, y: 456 }, FROM_THE_LEFT);
-
-    expect(player.position).toEqual({ x: 123, y: 456 });
+    expect(runToTopSpeed(player)).toBeCloseTo(PLAYER_MAX_SPEED * 1.6, 4);
   });
 
-  it('turns the velocity running into the surface around as a knockback', () => {
-    // Not merely removed: a fraction of it comes back the other way, which is what
-    // makes a collision read as being pushed off rather than as stopping dead. The
-    // fraction stays well under one, or a dashing player would be flung across the
-    // world by the obstacle they touched.
+  it('gives the speed back when the buff ends', () => {
     const player = makePlayerAtCentre();
-    player.velocity = { x: 200, y: 0 };
+    player.setSpeedMultiplier(1.6);
+    runToTopSpeed(player);
 
-    player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
+    player.setSpeedMultiplier(1);
 
-    expect(player.velocity.x).toBeCloseTo(-200 * PLAYER_OBSTACLE_BOUNCE, 6);
+    expect(runToTopSpeed(player)).toBeCloseTo(PLAYER_MAX_SPEED, 4);
   });
 
-  it('keeps the velocity running along the surface', () => {
-    // This is the difference between sliding and sticking. Zeroing the whole velocity
-    // would make every obstacle a wall the player has to peel away from by hand.
-    const player = makePlayerAtCentre();
-    player.velocity = { x: 200, y: 150 };
+  it('leaves the dash alone, so no buff can tunnel the player through an obstacle', () => {
+    // PLAYER_DASH_SPEED is already the fastest the engine's obstacle sweep has to resolve,
+    // so a buffed dash has to come out at exactly the speed an unbuffed one does.
+    const buffed = makePlayerAtCentre();
+    buffed.setSpeedMultiplier(1.6);
+    step(buffed, RIGHT, { dash: true });
 
-    player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
+    const plain = makePlayerAtCentre();
+    step(plain, RIGHT, { dash: true });
 
-    expect(player.velocity.y).toBeCloseTo(150, 6);
+    expect(speedOf(buffed)).toBeCloseTo(speedOf(plain), 6);
+    expect(speedOf(buffed)).toBeLessThanOrEqual(PLAYER_DASH_SPEED);
   });
 
-  it('leaves a velocity already pointing away from the surface untouched', () => {
-    // Nothing runs into the obstacle here, so subtracting the projection would
-    // accelerate the player off it instead of leaving them alone.
+  it('ignores a factor below one, so nothing here can slow the player down', () => {
     const player = makePlayerAtCentre();
-    player.velocity = { x: -200, y: 0 };
+    player.setSpeedMultiplier(0.2);
 
-    player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
-
-    expect(player.velocity.x).toBeCloseTo(-200, 6);
+    expect(runToTopSpeed(player)).toBeCloseTo(PLAYER_MAX_SPEED, 4);
   });
 
-  it('ends a dash that ran into an obstacle', () => {
-    // Same reason the world edge ends one: the raised speed limit would otherwise let
-    // ordinary movement run above the top speed for the rest of the dash window.
+  it('survives a reset by dropping back to the plain top speed', () => {
     const player = makePlayerAtCentre();
-    step(player, RIGHT, { dash: true });
+    player.setSpeedMultiplier(1.6);
 
-    player.applyObstacleBlock({ x: 500, y: 500 }, FROM_THE_LEFT);
-    step(player, RIGHT);
+    player.reset(100, 100);
 
-    expect(speedOf(player)).toBeLessThanOrEqual(PLAYER_MAX_SPEED);
-  });
-
-  it('handles a diagonal surface', () => {
-    // A bar can sit at any angle, so the normal is rarely axis-aligned. Whatever the
-    // angle, the player has to end up moving away from the obstacle rather than into it.
-    const player = makePlayerAtCentre();
-    const diagonal = { x: -Math.SQRT1_2, y: -Math.SQRT1_2 };
-    player.velocity = { x: 100, y: 100 };
-
-    player.applyObstacleBlock({ x: 500, y: 500 }, diagonal);
-
-    const alongTheNormal = player.velocity.x * diagonal.x + player.velocity.y * diagonal.y;
-    expect(alongTheNormal).toBeGreaterThan(0);
+    expect(runToTopSpeed(player)).toBeCloseTo(PLAYER_MAX_SPEED, 4);
   });
 });
 

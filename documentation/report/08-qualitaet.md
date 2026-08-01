@@ -123,17 +123,18 @@ Antwort auf die Frage, was diese Stufe zusätzlich leistet, statt sie behaupten 
 müssen. Als Regressionswächter prüft `boot.spec.js` seitdem beides: dass kein Request
 fehlschlägt und dass die Menütexte echte Wörter statt Schlüsseln sind.
 
-| Flow                | Zweck                                                                                                              | Dauer |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------ | ----: |
-| `boot.spec.js`      | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt  | < 1 s |
-| `round.spec.js`     | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                     | ~ 5 s |
-| `input.spec.js`     | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                       | ~ 5 s |
-| `settings.spec.js`  | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                               | ~ 4 s |
-| `gameover.spec.js`  | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                             | ~ 8 s |
-| `obstacles.spec.js` | Hindernisse werden in der Runde gezeichnet, außerhalb nicht; Runde übersteht Erscheinen und Ablauf ohne Fehler     | ~ 8 s |
-| `letterbox.spec.js` | Weltkante ist sichtbar; ein Resize verändert die Welt nicht; ein Fenster kleiner als die Welt übersteht eine Runde | ~ 5 s |
+| Flow                | Zweck                                                                                                                 |  Dauer |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------- | -----: |
+| `boot.spec.js`      | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt     |  < 1 s |
+| `round.spec.js`     | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                        |  ~ 5 s |
+| `input.spec.js`     | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                          |  ~ 5 s |
+| `settings.spec.js`  | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                                  |  ~ 4 s |
+| `gameover.spec.js`  | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                                |  ~ 8 s |
+| `obstacles.spec.js` | Hindernisse werden in der Runde gezeichnet, außerhalb nicht; Runde übersteht Erscheinen und Ablauf ohne Fehler        |  ~ 8 s |
+| `letterbox.spec.js` | Weltkante ist sichtbar; ein Resize verändert die Welt nicht; ein Fenster kleiner als die Welt übersteht eine Runde    |  ~ 5 s |
+| `powerups.spec.js`  | Beide Buff-Zeilen im HUD vorhanden und verborgen; Runde übersteht zwei Spawn-Intervalle; Neustart lässt nichts stehen | ~ 48 s |
 
-Drei bewusste Begrenzungen, jeweils mit ihrem Grund:
+Vier bewusste Begrenzungen, jeweils mit ihrem Grund:
 
 - **Nur Chromium.** Die Engine ist WebAssembly hinter einem Canvas; ein zweiter
   Browser würde überwiegend dessen eigene WASM- und Canvas-Implementierung
@@ -152,6 +153,15 @@ Drei bewusste Begrenzungen, jeweils mit ihrem Grund:
   `player/dashCooldown.js`, `ui/frameGraphScale.js`, `renderer/obstacleFade.js`) — das
   ist der Grund, aus dem diese Module überhaupt aus ihren Renderern herausgezogen
   wurden.
+- **Kein Einsammeln eines Power-ups.** Marker werden zufällig platziert, ein Test, der
+  zu einer unbekannten Koordinate läuft, wäre ein Wettlauf. `powerups.spec.js` prüft
+  deshalb nur die Verdrahtung, und ein Pixelvergleich hilft hier zusätzlich nicht
+  weiter, weil Amber sowohl die Aegis-Farbe als auch `PLAYER_HIT_COLOR` ist — gezählte
+  Amber-Pixel könnten einen Marker nicht von einem gerade getroffenen Spieler
+  unterscheiden. Die Regeln selbst liegen zu 98 % unter Unit-Test, weil `PowerupField`
+  seinen Zufallsgenerator im Konstruktor entgegennimmt; die Alternative wäre gewesen,
+  die Platzierung wie in der Engine aus einem Integer-Hash abzuleiten und damit das
+  Spiel für einen Test vorhersagbar zu machen.
 
 Die eine Ausnahme von der letzten Begrenzung ist `obstacles.spec.js`, und sie ist keine
 Aufweichung der Regel, sondern deren Kehrseite. Der Spec vergleicht kein Bild, sondern

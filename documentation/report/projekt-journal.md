@@ -71,7 +71,122 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-01 | 1,5 | S-02 | Schwarm zur dichten Wolke verdichtet, um die Simulation stärker zu belasten: Boid-Größe 15×11 → 11×8, `BOID_COLLISION_RADIUS` 10 → 6, neuer benannter Anteil `CLOSE_NEIGHBOUR_RADIUS_SHARE` 0,5 → 0,36 anstelle des Magic-Number-Faktors in `close_neighbour_radius()`, Kohäsion 0,18 → 0,24; Startschwarm 12 → 24 und Wellenzuwachs 6 → 12; Dash-Gruppe 4 → 6, gleichzeitige Dasher 8 → 12, `DASH_GROUP_RADIUS` 70 → 48; Treffer-Radius als eigenes `BOID_HIT_RADIUS` von `PLAYER_COLLISION_RADIUS` getrennt; dritte Kopie der Boid-Silhouette in `ui/menuBackdrop.js` durch Import aus `gameConfig.js` ersetzt; zwei neue Relaxations-Tests in `overlap.rs`, zwei Dash-Fixtures entschärft |
 
+| 2026-08-01 | 1,0 | S-05b | Power-ups Aegis und Overdrive spezifiziert (`docs/spec-s05b-powerups.md`) und die Streichung in `specs-overview.md` §3.4 durch eine begründete Wiederaufnahme ersetzt; S-05 14 → 20 h, Gesamtbudget 157,5 → 165,5 h |
+
+| 2026-08-01 | 4,5 | S-05b | Power-ups umgesetzt, rein im Frontend: `powerups/powerups.js` (Regeln, Simulationsuhr hereingereicht, Hindernis-Abstand über eine exportierte `distanceToSegment`) und `renderer/powerupLayer.js` (Hexagon-Marker, Aegis-Schale, Zeitbögen, Splitter); `registerHit` um einen optionalen Absorber erweitert, sodass der Trichter einer bleibt und die Reihenfolge Gnadenfrist → Schild → Schaden prüfbar wird; `setSpeedMultiplier` in `playerController.js` statt eines Faktors durch `controls`, weil die Obergrenze auch bei Wand- und Hindernistreffer neu gesetzt wird; Overdrive senkt die Schweif-Schwelle auf `OVERDRIVE_TRAIL_BASE_SHARE`; Buff-Zeilen ins DOM-HUD statt aufs Canvas, Einsammelring aus `launchRingRadius`/`launchRingAlpha` wiederverwendet; `index.js` und `playerController.test.js` liefen an die 400-Zeilen-Grenze und wurden geteilt — der Renderzustand liegt jetzt als `loop/renderState.js` und ist dadurch erstmals unter Vitest, statt nur im nicht ladbaren `index.js` zu stehen; 38 neue Unit-Zusicherungen und drei E2E-Tests |
+
 ## Entscheidungen
+
+### 2026-08-01 — Power-ups vollständig ohne Engine-Anteil
+
+**Gewählt:** Marker, Aufnahme, Buff-Laufzeit und Wirkung liegen komplett im Frontend.
+Die WASM-Signatur bleibt unverändert, es kommt kein sechster Puffer über die Grenze.
+
+**Verworfen:** (a) Marker als Weltobjekte in die Engine legen, analog zu den Hindernissen
+aus S-07; (b) nur die Kollision Spieler↔Marker in die Engine geben, weil dort schon
+`aabb_overlap` und die Kapsel-Auflösung liegen.
+
+**Warum:** (a) Hindernisse gehören in die Engine, weil die Boids ihnen ausweichen — sie
+sind Teil der Simulation. Einen Marker sieht kein Boid an; er ist nur für den Spieler da,
+und der wird ohnehin im Frontend integriert. (b) hätte einen Puffer und eine
+`tick`-Signaturänderung gekostet, um einen Abstandsvergleich zu verlagern, den das
+Frontend in derselben Zeile schon selbst rechnet.
+
+**Konsequenz:** Der Hindernis-Abstand beim Spawn muss das Frontend aus `frame.obstacles`
+lesen und die Punkt-Segment-Geometrie selbst können. Das ist die einzige Stelle, an der
+sich die Engine-Geometrie ein zweites Mal im Frontend zeigt — bewusst über eine
+exportierte, einzeln getestete `distanceToSegment` statt inline im Spawnversuch.
+
+→ Kap. 4, 5
+
+### 2026-08-01 — Aegis neben der Gnadenfrist, nicht als ihre Verlängerung
+
+**Gewählt:** Der Schild ist ein eigener Zustand mit eigener Laufzeit. `registerHit` bekommt
+einen optionalen Absorber-Callback und fragt ihn erst, nachdem die Gnadenfrist verneint hat.
+Ein absorbierter Treffer setzt `lastHitAtSimulationMs` **nicht**.
+
+**Verworfen:** (a) Aegis als vorgezogene Unverwundbarkeit implementieren, also einfach
+`lastHitAtSimulationMs` in die Zukunft schieben — so schlägt es das Designsystem vor;
+(b) den Absorber in `index.js` vor `registerHit` prüfen, statt ihn hineinzureichen.
+
+**Warum:** (a) hätte zwei Verhaltensunterschiede eingeebnet, die das Feature ausmachen:
+Ein Schild endet mit dem Treffer, den er frisst, eine Gnadenfrist läuft nach dem Treffer
+weiter; und nach einem absorbierten Treffer soll der nächste sofort wieder kosten, nach
+einer Gnadenfrist gerade nicht. (b) hätte die Reihenfolge Gnadenfrist → Schild → Schaden
+in `index.js` verdoppelt, wo sie nicht unter Vitest steht — `index.js` importiert den
+Renderer und das DOM. Als Parameter von `registerHit` bleibt der Schadenstrichter genau
+eine Funktion und die Reihenfolge ist mit vier Zusicherungen festgenagelt.
+
+**Konsequenz:** Der Schild kann nicht mehr auf einem Treffer verschwendet werden, der
+während der Gnadenfrist ohnehin nichts gekostet hätte. `roundData.js` weiß dafür, dass
+Schaden abgefangen werden kann — aber nicht, wovon.
+
+→ Kap. 4, 8
+
+### 2026-08-01 — Die Simulationsuhr wird hereingereicht, nicht nachgebaut
+
+**Gewählt:** `PowerupField.step/absorbHit/snapshot/grant` nehmen `simulationTimeMs` als
+Parameter. Das Modul führt keine eigene Uhr.
+
+**Verworfen:** Den `_elapsedMs`-Akkumulator des Handoffs behalten, der pro Schritt
+`stepSeconds * 1000` addiert.
+
+**Warum:** Beide Uhren wären dieselbe Uhr, bloß zweimal geführt — synchron nur so lange,
+wie `reset()` und `beginRound()` beieinander bleiben. Genau diese Kopplung ist die, die
+beim Dash-Cooldown schon einmal Ärger gemacht hat, weshalb `dashCooldown.js` seine Zeit
+ebenfalls als Parameter bekommt und `roundData.js` sie bindet.
+
+**Konsequenz:** Das Handoff-Modul und seine Testsuite mussten umgeschrieben werden; die
+Tests treiben die Uhr jetzt über einen kleinen `Driver`, der macht, was `index.js` macht.
+Dafür ist `reset()` an `beginRound()` gebunden — dokumentiert und durch den Test
+„startet das Spawn-Intervall neu" abgesichert.
+
+→ Kap. 4, 8
+
+### 2026-08-01 — Buff-Anzeige im DOM statt auf dem Canvas
+
+**Gewählt:** Die beiden Restzeit-Balken sind DOM-Elemente in `ui/hud.js`, eingehängt in
+dieselbe Flex-Spalte wie die Dash-Bar. `drawHudBuff` aus dem Handoff entfällt.
+
+**Verworfen:** Die Handoff-Variante, die die Zeilen in Screen-Space aufs Canvas zeichnet.
+
+**Warum:** Die Dash-Bar ist am 2026-07-30 aus genau diesem Grund vom Canvas ins DOM
+gewandert: Ihre Beschriftung ändert sich nie und wurde trotzdem in jedem Frame neu
+gerastert. Für die Buff-Zeilen gilt dasselbe, und zwei HUD-Elemente derselben Art an zwei
+verschiedenen Orten wären die schlechtere Antwort. Die Warnung vor dem Ablauf bleibt
+davon unberührt — sie ist der 4-Hz-Bogen am Spieler, dort wo in Welle 5 tatsächlich
+hingesehen wird.
+
+**Konsequenz:** Zwei neue Locale-Schlüssel (`hud.aegis`, `hud.overdrive`) und ein CSS-Hex
+über `clip-path` statt eines gezeichneten. Die E2E-Suite kann die Zeilen dadurch
+überhaupt erst prüfen — auf dem Canvas wären sie unsichtbar für Playwright gewesen.
+
+→ Kap. 6, 8
+
+### 2026-08-01 — Marker bleiben zufällig platziert, und der E2E-Test bezahlt dafür
+
+**Gewählt:** Die Spawn-Position kommt weiterhin aus `Math.random`, hereingegeben im
+Konstruktor. Der Playwright-Test prüft deshalb nur die Verdrahtung: dass die HUD-Zeilen
+existieren, verborgen bleiben, bis ein Buff läuft, und ein Neustart nichts stehen lässt —
+plus eine Runde über zwei Spawn-Intervalle ohne Konsolenfehler.
+
+**Verworfen:** Die Position wie `find_spawn_position` in der Engine aus einem
+Integer-Hash des Schrittzählers ableiten. Dann wäre der ganze Ablauf reproduzierbar und
+ein E2E-Test könnte zu einem bekannten Punkt laufen und einsammeln.
+
+**Warum:** Die Determinismus-Regel des Projekts gilt der **Engine** — sie ist das
+Fokus-Thema, und ihre Reproduzierbarkeit ist eine Aussage über die Simulation. Ein
+Marker ist keine Simulation. Vier Runden mit identischer Marker-Abfolge wären zudem
+spielerisch schlechter als vier verschiedene, und der Gewinn wäre ein einzelner
+E2E-Test — die Regeln selbst stehen über die injizierte RNG bereits vollständig unter
+Unit-Test (98 % Statements in `powerups.js`).
+
+**Konsequenz:** Eine Lücke, die benannt gehört: Es gibt keinen automatisierten Test, der
+das Einsammeln im echten Browser durchläuft. Die Prüfliste aus dem Handoff bleibt für
+diesen Teil eine manuelle. Sie steht als vierte dokumentierte E2E-Grenze in Kap. 8.2
+neben Chromium-only, Single-Worker und keinem Pixelvergleich.
+
+→ Kap. 8
 
 ### 2026-08-01 — Dichte über den Nachbarschaftsradius, nicht über das Separationsgewicht
 

@@ -72,6 +72,37 @@ describe('sampleDashTrails', () => {
     expect(strength).toBeLessThan(0.25);
   });
 
+  it('turns the wisp into a real ribbon while Overdrive runs', () => {
+    const trails = new DashTrails();
+
+    // Overdrive has no effect of its own on the player: it lowers the trail's threshold, so
+    // the streak runs during ordinary movement instead of only during a dash. Same speed as
+    // the wisp case above, several times the strength.
+    sampleDashTrails(trails, makeFrame(4), PLAYER_POSITION, {
+      deltaSeconds: 1 / 60,
+      playerSpeed: PLAYER_MAX_SPEED,
+      playerVelocityX: PLAYER_MAX_SPEED,
+      playerVelocityY: 0,
+      powerupBuffs: { overdrive: 0.8 },
+    });
+
+    expect(trails.samples[trails.offsetOf(0, 0) + 4]).toBeGreaterThan(0.25);
+  });
+
+  it('leaves the threshold alone for a buff that is not Overdrive', () => {
+    const trails = new DashTrails();
+
+    sampleDashTrails(trails, makeFrame(4), PLAYER_POSITION, {
+      deltaSeconds: 1 / 60,
+      playerSpeed: PLAYER_MAX_SPEED,
+      playerVelocityX: PLAYER_MAX_SPEED,
+      playerVelocityY: 0,
+      powerupBuffs: { aegis: 0.8 },
+    });
+
+    expect(trails.samples[trails.offsetOf(0, 0) + 4]).toBeLessThan(0.25);
+  });
+
   it('opens one trail for a dashing player', () => {
     const trails = new DashTrails();
 

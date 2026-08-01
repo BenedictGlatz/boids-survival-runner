@@ -105,6 +105,45 @@ describe('registerHit', () => {
     expect(round.lives).toBe(STARTING_LIVES - 2);
   });
 
+  it('lets an absorber cancel a hit without spending a life', () => {
+    const round = makeRound();
+
+    expect(registerHit(round, () => true)).toBe(false);
+    expect(round.lives).toBe(STARTING_LIVES);
+  });
+
+  it('starts no grace period for an absorbed hit, so the next one still costs', () => {
+    // A shield is a single charge, not a second invulnerability window.
+    const round = makeRound();
+    registerHit(round, () => true);
+
+    expect(registerHit(round)).toBe(true);
+    expect(round.lives).toBe(STARTING_LIVES - 1);
+  });
+
+  it('never asks the absorber during the grace period', () => {
+    // Otherwise a shield would be spent on a hit that was free anyway.
+    const round = makeRound();
+    registerHit(round);
+    advanceBy(round, HIT_COOLDOWN / 2);
+
+    let asked = false;
+    registerHit(round, () => {
+      asked = true;
+
+      return true;
+    });
+
+    expect(asked).toBe(false);
+  });
+
+  it('spends a life when the absorber declines', () => {
+    const round = makeRound();
+
+    expect(registerHit(round, () => false)).toBe(true);
+    expect(round.lives).toBe(STARTING_LIVES - 1);
+  });
+
   it('reports death only once the last life is gone', () => {
     const round = makeRound();
 
