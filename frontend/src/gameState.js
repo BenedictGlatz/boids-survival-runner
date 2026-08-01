@@ -5,6 +5,10 @@
 export const STATE = Object.freeze({
   MENU: 'menu',
   PLAYING: 'playing',
+  // The only state the world returns to PLAYING from, and reachable only from it. That
+  // restriction is not enforced here — `transition` deliberately validates nothing — but
+  // by the two guards in `index.js` that own the pair of transitions.
+  PAUSED: 'paused',
   GAME_OVER: 'game_over',
 });
 

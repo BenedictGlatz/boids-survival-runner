@@ -14,6 +14,7 @@ import {
   renderTargetFpsGroup,
 } from './menuPanels.js';
 import { renderGameOverCard } from './gameOverCard.js';
+import { renderPauseCard } from './pauseCard.js';
 import { bindMenuNavigation, focusFirstRow } from './menuNavigation.js';
 
 /** The trailing markers of the menu rows, spelled out once. */
@@ -95,7 +96,31 @@ export class Menu {
   }
 
   /**
-   * Hides whichever overlay (start or game-over) is currently shown.
+   * Shows the pause card over the frozen arena.
+   *
+   * The buttons carry their own ids rather than reusing the game-over card's: `#btn-restart`
+   * appearing is what the end-to-end suite reads as "the round is over", and that signal
+   * has to keep meaning only that.
+   * @param {{onResume: () => void, onRestart: () => void, onMainMenu: () => void}} handlers -
+   *   What the three buttons do.
+   * @param {{score: number, wave: number, timeSeconds: number, boids: number}} run - The run
+   *   currently on hold, for the numbers on the card.
+   * @returns {void}
+   */
+  showPause({ onResume, onRestart, onMainMenu }, run) {
+    this._el.innerHTML = renderPauseCard(run);
+    this._onClick('btn-resume', onResume);
+    this._onClick('btn-pause-restart', onRestart);
+    this._onClick('btn-pause-menu', onMainMenu);
+    this._el.style.display = 'flex';
+
+    // Space resumes, which is what the keycap on the button says. It reaches the button and
+    // not the dash because pausing handed the space bar back to the menu.
+    document.getElementById('btn-resume').focus();
+  }
+
+  /**
+   * Hides whichever overlay (start, game-over or pause) is currently shown.
    * @returns {void}
    */
   hide() {

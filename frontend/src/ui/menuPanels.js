@@ -158,8 +158,9 @@ export function renderFrameGraphModeGroup({ selected }) {
 }
 
 /**
- * The controls legend: the movement keys as a keypad, and the ability on its own row.
- * Space is outlined in cyan because it is the ability, not the movement.
+ * The controls legend: the movement keys as a keypad, then the ability and the pause on
+ * their own rows. Space is outlined in cyan because it is the ability, not the movement;
+ * Escape is a plain keycap because pausing is not something you do to the swarm.
  * @param {{heading?: boolean}} [options] - Set `heading` to false inside the controls
  *   submenu, where the breadcrumb above already names the section.
  * @returns {string} HTML for the legend.
@@ -181,6 +182,10 @@ export function renderControlsLegend({ heading = true } = {}) {
     <div class="legend">
       <span class="key key--ability key--wide">Space</span>
       <span class="legend__label">${t('hud.dash')}</span>
+    </div>
+    <div class="legend">
+      <span class="key key--wide">Esc</span>
+      <span class="legend__label">${t('menu.pause')}</span>
     </div>
   `;
 }

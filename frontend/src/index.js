@@ -1,11 +1,14 @@
 import { initEngine, snapshot } from './engine-bridge.js';
 import { Renderer } from './renderer/renderer.js';
 import { InputManager } from './input/inputManager.js';
+import { bindPauseControl } from './input/pauseControl.js';
 import { PlayerController } from './player/playerController.js';
 import {
   beginRound as beginRoundData,
   createRoundData,
   isPlayerDead,
+  pauseCountdown,
+  resumeCountdown,
   runSummary,
 } from './round/roundData.js';
 import { readRecords, recordRound } from './round/roundRecords.js';
@@ -82,9 +85,8 @@ async function bootstrap() {
 
   window.addEventListener('resize', handleResize);
   handleResize();
+  bindPauseControl(state, { onPause: pauseGame, onResume: resumeGame });
 
-  hud.hide();
-  frameTimeGraph.hide();
   showStartMenu();
 
   requestAnimationFrame(loop);
@@ -94,6 +96,12 @@ function showStartMenu() {
   // The swarm behind the deck. It only runs while the menu is up — nobody watches a
   // decoration during a round, and it would compete with the simulation for frames.
   menuBackdrop.start();
+
+  // The start screen is responsible for its own screen, which is why these two live here
+  // rather than only in endRound(): the pause card can leave a round without ending it, and
+  // the deck would otherwise open with the HUD and the frametime graph still drawn over it.
+  hud.hide();
+  frameTimeGraph.hide();
 
   // Back to the menu state, so the renderer stops drawing the frozen frame of the round
   // that just ended: that picture belongs to the game-over card, not to the start screen.
@@ -144,6 +152,11 @@ async function restartGame() {
 
 function loop(timestamp) {
   const simulationStartedAt = performance.now();
+  // A paused frame costs almost nothing and would be a lie in the frametime graph. Its ring
+  // buffer holds 120 samples, which is two seconds at 60 fps, so a longer pause would
+  // overwrite the whole history — including the peaks the graph exists to report — with the
+  // price of drawing a still picture. Measuring nothing freezes the graph with the arena.
+  const measured = !state.is(STATE.PAUSED);
 
   // The simulation is advanced first and is never gated: the Rust engine runs
   // exactly one fixed step per tick(), so skipping ticks would slow the whole
@@ -155,7 +168,9 @@ function loop(timestamp) {
   // Recorded on every animation frame, not only on drawn ones: with rendering
   // throttled there are more simulation frames than bars, and sampling only the
   // drawn ones would hide part of the work the simulation actually did.
-  frameMetrics.addSimulationTime(performance.now() - simulationStartedAt);
+  if (measured) {
+    frameMetrics.addSimulationTime(performance.now() - simulationStartedAt);
+  }
 
   // Only drawing follows the chosen target framerate.
   if (scheduler.shouldRenderNow(timestamp, settings.targetFps)) {
@@ -167,7 +182,10 @@ function loop(timestamp) {
 
     const renderStartedAt = performance.now();
     renderCurrentState(timestamp, renderDeltaSeconds);
-    frameMetrics.commitRenderedFrame(performance.now() - renderStartedAt);
+
+    if (measured) {
+      frameMetrics.commitRenderedFrame(performance.now() - renderStartedAt);
+    }
 
     // Drawn after the measurement closes, so the graph never reports its own cost.
     if (settings.frameGraphEnabled) {
@@ -205,10 +223,17 @@ function advanceSimulation(timestamp) {
 }
 
 function renderCurrentState(timestamp, renderDeltaSeconds) {
-  // After a death the last frame keeps being drawn, dimmed by the card's own scrim: the
-  // swarm and the obstacles that killed you stay on screen instead of the arena going
-  // empty. Nothing advances — the simulation stopped, and the picture says so.
-  if (state.is(STATE.GAME_OVER)) {
+  // Behind both cards the last frame keeps being drawn, dimmed by the card's own scrim: the
+  // swarm and the obstacles that killed you — or that you walked away from for a moment —
+  // stay on screen instead of the arena going empty. Nothing advances: the simulation
+  // stopped, and the picture says so.
+  //
+  // Two states spelled out rather than inverting PLAYING, because this branch runs first and
+  // MENU must not reach it — a round left behind is still lying in `gameData`. The countdown
+  // glyph is deliberately lost here (the frozen state carries no `countdownSeconds`): a
+  // ticking countdown behind a pause card would be a lie, and a frozen one would be noise
+  // under a card that brings its own title.
+  if (state.is(STATE.GAME_OVER) || state.is(STATE.PAUSED)) {
     const frozen = buildFrozenRenderState(gameData, powerups);
     renderer.drawFrame(gameData.currentFrame, player.getPosition(), frozen);
     return;
@@ -246,6 +271,66 @@ function beginRound() {
   // Here and not in startGame(): every power-up timestamp is measured against
   // simulationTimeMs, and that is the clock beginRoundData just set back to zero.
   powerups.reset(WORLD_WIDTH, WORLD_HEIGHT);
+  scheduler.discardPendingTime();
+}
+
+/**
+ * Holds the round: the world stops, the card comes up, the keyboard goes back to the menu.
+ *
+ * The guard is not cosmetic. `startGame()` awaits the engine before it changes the state, so
+ * a restart from the pause card leaves a window in which the state is still PAUSED — a
+ * second Escape in that window would otherwise resume into a round that is still being
+ * built. Together with the one in `resumeGame`, this pair is also what makes "PAUSED is
+ * reachable only from PLAYING" true, without `GameState` having to validate transitions.
+ *
+ * The HUD and the frametime graph stay on screen, unlike at the end of a round: the round is
+ * frozen, not over. The card carries the numbers anyway, because its scrim covers them.
+ */
+function pauseGame() {
+  if (!state.is(STATE.PLAYING)) {
+    return;
+  }
+
+  state.transition(STATE.PAUSED);
+  // Hands the space bar back to the menu, so it activates the focused Resume button instead
+  // of queueing a dash. It also drops the held movement keys — a key still held on resume
+  // registers itself again on its next auto-repeat, which is the same one-or-two frames of
+  // standing still that a restart already has.
+  input.setGameplayActive(false);
+  // The one wall-clock deadline a round carries. Everything else rides the simulation clock,
+  // which stops on its own because no step runs.
+  pauseCountdown(gameData, performance.now());
+
+  menu.showPause(
+    {
+      onResume: resumeGame,
+      onRestart: () => {
+        void restartGame();
+      },
+      // Deliberately without `recordRound`: a run the player walked away from is not a
+      // finished run, and storing it could only overwrite "Last Run" with a number they
+      // chose to abandon. This is the only way out of a round that writes nothing.
+      onMainMenu: showStartMenu,
+    },
+    runSummary(gameData),
+  );
+}
+
+/** Lets the world go again. Mirrors `pauseGame`, including why the guard is there. */
+function resumeGame() {
+  if (!state.is(STATE.PAUSED)) {
+    return;
+  }
+
+  resumeCountdown(gameData, performance.now());
+  menu.hide();
+  state.transition(STATE.PLAYING);
+  input.setGameplayActive(true);
+
+  // The fourth case of a deliberately frozen world, and the only one that can last minutes.
+  // `beginFrame` never ran while paused, so the scheduler still measures from the last
+  // playing frame; without this the whole pause arrives at once as a clamped burst of
+  // catch-up steps — exactly the jump that auto-pausing on focus loss is there to prevent.
   scheduler.discardPendingTime();
 }
 

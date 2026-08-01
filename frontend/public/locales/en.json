@@ -4,6 +4,7 @@
     "play": "Play",
     "start": "Start Game",
     "pause": "Pause",
+    "paused": "Paused",
     "resume": "Resume",
     "gameover": "Game Over",
     "restart": "Restart",
@@ -26,6 +27,7 @@
     "points": "pts",
     "best": "Best",
     "swarmWins": "Swarm Wins",
+    "swarmWaits": "Swarm Waits",
     "mainMenu": "Main Menu"
   },
   "settings": {

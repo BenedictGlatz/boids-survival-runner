@@ -37,6 +37,9 @@ export function createRoundData(startedAt, initialFrame) {
     // The countdown runs before the simulation starts, so it stays on wall
     // time — three seconds should be three real seconds.
     countdownEndsAt: startedAt + START_COUNTDOWN_SECONDS * 1000,
+    // Where a pause parks the rest of the countdown. Present from the start rather than
+    // appearing at runtime, so the shape of a round never depends on whether it was paused.
+    countdownRemainingMs: 0,
     roundActive: false,
     currentFrame: initialFrame,
   };
@@ -189,4 +192,45 @@ export function dueWaveNumber(roundData) {
  */
 export function countdownSecondsLeft(roundData, timestamp) {
   return Math.ceil((roundData.countdownEndsAt - timestamp) / 1000);
+}
+
+/**
+ * Parks the rest of the countdown when the game is paused.
+ *
+ * `countdownEndsAt` is the only wall-clock value in this module — everything else measures
+ * against `simulationTimeMs`, which simply stops when no step runs. It is therefore also
+ * the only value a pause can invalidate: pausing at "3" and resuming ten seconds later
+ * would find the deadline long past and start the round with no countdown at all.
+ *
+ * The `roundActive` check lives here rather than in the caller, so pausing in the middle of
+ * a round cannot rewind a countdown that finished long ago, and so the caller needs no
+ * branch of its own.
+ * @param {object} roundData - The round state to pause.
+ * @param {number} timestamp - Current wall-clock time in milliseconds.
+ * @returns {void}
+ */
+export function pauseCountdown(roundData, timestamp) {
+  if (roundData.roundActive) {
+    return;
+  }
+
+  roundData.countdownRemainingMs = Math.max(0, roundData.countdownEndsAt - timestamp);
+}
+
+/**
+ * Gives the parked countdown a fresh deadline, measured from now.
+ *
+ * The counterpart of `pauseCountdown`, with the same guard for the same reason. A pause
+ * longer than the whole countdown leaves a remainder of zero, so the round starts on the
+ * first resumed frame instead of owing the player time it already took.
+ * @param {object} roundData - The round state to resume.
+ * @param {number} timestamp - Current wall-clock time in milliseconds.
+ * @returns {void}
+ */
+export function resumeCountdown(roundData, timestamp) {
+  if (roundData.roundActive) {
+    return;
+  }
+
+  roundData.countdownEndsAt = timestamp + roundData.countdownRemainingMs;
 }
