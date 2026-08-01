@@ -10,5 +10,11 @@
     "prompt": "Ziel des Spiels ist es auch die Leistungsfähigkeit der Simulation mittels Rust zu testen. Ich wünsche mir dass du die Boids kleiner machst und den Abstand zwischen ihnen im Schwarm reduzierst, sodass sie eine dichtere Wolke bilden die schwerer zu simulieren ist. Wenn Boids Dashen müssen natürlich auch passend dazu etwas mehr auf einmal dashen",
     "topic": "engine",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Ich habe mit Claude Design zwei Powerups entworfen, eins macht den Spieler für kurze Zeit unverwundbar, das andere macht ihn für kurze Zeit schneller, bitte entwirf einen plan um diese beiden Features inklusive der implementation des übergebenen designs umzusetzen",
+    "topic": "frontend-ui",
+    "use": "impl"
   }
 ]
