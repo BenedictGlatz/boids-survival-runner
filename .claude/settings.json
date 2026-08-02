@@ -6,7 +6,30 @@
       "Bash(cargo clippy *)",
       "Bash(npm test)",
       "Bash(npm test *)",
-      "Bash(command -v *)"
+      "Bash(command -v *)",
+      "Bash(node tmp-repro.mjs http://localhost:5173/ 120000)",
+      "Bash(node tmp-repro.mjs http://localhost:5173/ 60000 1)",
+      "Bash(node tmp-play.mjs http://localhost:5173/ 4)",
+      "Bash(timeout 300 node tmp-trap.mjs http://localhost:5173/)",
+      "Bash(timeout 600 node tmp-fast.mjs http://localhost:5173/ 120000 1)",
+      "Bash(timeout 900 node tmp-fast.mjs http://localhost:5173/ 120000 1)",
+      "WebSearch",
+      "Bash(timeout 300 node tmp-double.mjs)",
+      "Bash(timeout 600 node tmp-double.mjs)",
+      "Bash(cd \"c:/Users/l.bolender/boids-survival-runner/boids-survival-runner/frontend\" && rm -f tmp-repro.mjs tmp-play.mjs tmp-trap.mjs tmp-fast.mjs tmp-check.mjs tmp-panic.mjs tmp-double.mjs tmp-run-*.log && rm -f ../engine/tests/tmp_repro.rs && git status --short | head -20)",
+      "Bash(git stash *)",
+      "PowerShell(npx vitest run src/renderer/drawCallCounter.test.js 2>&1)",
+      "PowerShell(npx vitest run src/ui/drawnFrameRate.test.js 2>&1)",
+      "PowerShell(cd frontend; npm run lint 2>&1 | Select-Object -Last 12; echo \"=== LOC ===\"; @\\('src/index.js','src/ui/frameTimeGraph.js','src/ui/frameGraphScale.js','src/ui/frameGraphScale.test.js','src/renderer/canvasRenderer.js'\\) | ForEach-Object { \"$_`: $\\(\\(Get-Content $_\\).Count\\)\" })",
+      "PowerShell(npx playwright test e2e/settings.spec.js 2>&1)",
+      "Bash(python -c ' *)",
+      "Bash(awk '/^### 2026-08-02 — Der Modul-Ladevorgang/,/^---|^### 2026-08-01/' documentation/report/projekt-journal.md)",
+      "PowerShell($dpi = \\(Get-ItemProperty -Path 'HKCU:\\\\Control Panel\\\\Desktop\\\\WindowMetrics' -Name AppliedDPI -ErrorAction SilentlyContinue\\).AppliedDPI; \"AppliedDPI: $dpi  => scale $\\([math]::Round\\($dpi/96,2\\)\\)x\"; Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Screen]::AllScreens | ForEach-Object { \"Bounds \\(scaled\\): $\\($_.Bounds.Width\\)x$\\($_.Bounds.Height\\)  Primary=$\\($_.Primary\\)\" })",
+      "PowerShell(npx vitest run src/renderer/arenaBackground.test.js src/renderer/worldTransform.test.js 2>&1)",
+      "PowerShell(npx playwright test e2e/letterbox.spec.js e2e/boot.spec.js e2e/pause.spec.js 2>&1)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\l.bolender\\boids-survival-runner\\boids-survival-runner\\frontend"
     ]
   }
 }
