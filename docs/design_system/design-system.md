@@ -268,3 +268,159 @@ nicht angehalten, du bist nur raus.
 Highscore und letzte Runde kommen aus `localStorage` (`bsr.best.score`, `bsr.best.wave`,
 `bsr.best.timeSeconds`, `bsr.last.*`) — geschrieben beim Rundenende in der Runden-Buchführung,
 gelesen von Menü und Game-Over-Karte. Kein Backend, keine Engine-Berührung.
+
+---
+
+## 10) Dash-Schweif — „Ion Streak"
+
+Der Dash ist die einzige Bewegung im Spiel, die schneller als normal ist — er bekommt
+deshalb das einzige Bewegungs-Vokabular: ein Band hinter dem Objekt. Gleiches Motiv für
+Spieler und Boid, unterschieden nur durch Farbe und Größe. Kein zweiter Effekt, keine
+Extra-Farbe.
+
+### Aufbau
+
+Drei Teile, in dieser Zeichenreihenfolge, alle **hinter** Boids und Spieler und **vor**
+den Hindernissen:
+
+1. **Band.** Geschlossenes Polygon entlang der letzten 22 Positionen. Breit am Objekt
+   (Halbbreite = Objektradius: 15 px Spieler, 8 px Boid), zur Spitze auslaufend
+   (`halbbreite = basis * alter^0.8 * stärke`), Deckkraft `0.5 * alter * stärke`.
+   Farbe = Besitzer: Spieler `#38BDF8`, Boid seine Tier-Farbe.
+2. **Kern.** Dasselbe Band nochmal, in Weiß, ein Drittel so breit und mit deutlich
+   steilerem Abfall (`alter^2.2`) — bleibt dadurch ein kurzer heller Streifen direkt
+   hinter dem Objekt. **Kein** Stroke: eine gestrichene Linie behält ihre Breite bis zum
+   Ende und liest sich als Speer, nicht als Schweif.
+3. **Absprung-Ring.** Ein Kreis in der Besitzerfarbe am Startpunkt, 0,3 s lang, von 10 px
+   auf 90 px, Deckkraft linear von 0,7 auf 0. Er markiert den Moment des Impulses — das
+   ist die Information, die dem Spieler bei einem Boid-Stoß fehlt: _von wo_ kam er.
+
+### Wann ein Schweif existiert
+
+Nur oberhalb der Normalgeschwindigkeit:
+
+```
+stärke_spieler = clamp((v - v_max * 0.6) / (v_dash - v_max), 0, 1)
+stärke_boid    = min(1, 0.35 + |dash_phase|)      nur bei dash_phase < 0
+```
+
+Damit endet der Schweif von allein, wenn der Impuls abgebaut ist — **kein Trail-Timer**,
+der mit der Dash-Dauer synchron gehalten werden müsste. Beim Boid zählt `dash_phase` den
+Dash herunter, der Schweif ist also am Absprung am stärksten und dünnt zum Ende aus: er
+zeigt, woher der Stoß kam, nicht wo er ausläuft.
+
+Der Aufladepuls bleibt unverändert (`dashPulse.js`). Der Schweif setzt erst am Absprung
+ein — Vorwarnung und Ausführung bleiben zwei getrennte Signale.
+
+### Keine Engine-Änderung
+
+`dash_phases[i] < 0` ist bereits das Signal „dasht gerade"; der Spieler-Schweif ist reine
+Präsentation aus Position und Geschwindigkeit, die das Frontend ohnehin hält.
+`playerController.js` und die WASM-Grenze bleiben unangetastet.
+
+### Hot Path
+
+- Historie als **ein** `Float32Array`-Ringpuffer für 12 Trails × 22 Samples × 5 Werte,
+  beim Modulladen allokiert. Pro Frame nur Schreiben an den Kopfindex — kein `push`, kein
+  `shift`, kein Objekt pro Sample.
+- 12 Slots = Spieler + die harte Obergrenze der Engine von 11 gleichzeitigen Dashern
+  (`spec-s05-dash.md` §3). Findet ein Dash keinen Slot, wird er ohne Schweif gezeichnet.
+- Deckkraft über `globalAlpha`, Farben sind feste Strings — dieselbe Regel wie bei der
+  Glow-Tabelle in `canvasRenderer.js`.
+- **Sprung > 200 px** zwischen zwei Samples setzt den Puffer des Slots zurück. Das fängt
+  beides: Wrapping am Weltrand und Index-Neuvergabe bei Wellenstart. Ohne die Prüfung zieht
+  ein Schweif quer über die Arena. 200 px liegt weit über dem größten ehrlichen Schritt
+  (18,7 px pro Simulationsschritt, bis zu 5 Schritte pro Frame).
+- Ein Trail, der in einem Frame nicht beschrieben wurde, verliert sein **ältestes** Sample:
+  das Ende wird eingezogen statt in einem Frame zu verschwinden.
+- `dashTrails.reset()` gehört in `beginRound()`, neben das Neuseeden des Dash-Cooldowns —
+  dort werden die Boid-Indizes neu vergeben.
+
+---
+
+## 11) Power-ups — „Aegis" und „Overdrive"
+
+### Die vierte Form
+
+Die Arena kennt drei Formen: **Dreieck** = Boid, **Kreis** = Spieler, **Kapsel** = Hindernis.
+Power-ups bekommen die vierte und letzte: das **Sechseck**. Es ist die einzige gebaute,
+symmetrische Form im Spiel und liest sich dadurch sofort als Gegenstand statt als Kreatur
+oder Terrain. Kommt ein drittes Power-up dazu, ist es wieder ein Hex mit anderem Icon —
+**keine neue Form**.
+
+Die Farben sind bereits vergeben und werden nicht erweitert:
+
+| Power-up      | Farbe           | Warum diese Farbe                                                                    |
+| ------------- | --------------- | ------------------------------------------------------------------------------------ |
+| **Aegis**     | Amber `#FBBF24` | §1 weist Amber „Unverwundbarkeit" schon zu, und Amber ist per Definition temporär    |
+| **Overdrive** | Cyan `#38BDF8`  | Cyan ist „du und dein Können" — Tempo ist eine Verstärkung von dir, kein Fremdkörper |
+
+Damit Cyan nicht mit dem Spieler verwechselt wird: der Overdrive-Marker ist **hohl**. Der
+Spieler ist und bleibt die einzige gefüllte cyane Fläche im Spiel.
+
+### Der Marker in der Arena
+
+- Radius **18 px**, Aufsammelradius **26 px** — großzügiger als die Optik, damit ein Streifen
+  beim Dash zählt.
+- Kern mit `rgba(11,13,18,.85)` gefüllt, sonst läuft das Grid durch das Icon.
+- Kontur 2px in der Power-up-Farbe, Glow atmet über 1,6 s.
+- **3 px Sinus-Hub** (2,2 s) und **0,25 U/s Rotation**. Rotation ist das einzige, was sich in
+  der Arena dreht — das macht einen Marker zwischen 90 Boids findbar, **ohne** heller zu sein
+  als alles andere. Wer den Marker schlechter findet, dreht nicht am Glow.
+- Das **Icon innen dreht sich nicht mit**. Ein rotierendes Glyph liest sich als Trümmerteil.
+  Aegis: ein zweites Hex mit Kern — „Hülle um etwas". Overdrive: Doppel-Chevron.
+- Spawn: 450 ms Scale-in. Ein Marker erscheint nie einfach.
+
+### Aktiv am Spieler
+
+**Aegis** legt dasselbe Hex um den Spieler, Radius **30 px** (frei vom 16-px-Körper und
+seinem Glow — enger löst sich die Sechseck-Silhouette im Glow auf und der Schild wird ein
+Klecks), 0,5 U/s. Dass die Form vom Boden auf dich wandert, **ist** die Erklärung des
+Effekts — kein Icon, kein Text.
+
+**Overdrive hat keinen eigenen Effekt.** Der Ion-Streak-Schweif aus §10 läuft dauerhaft statt
+nur beim Dash. Technisch: die Schwellengeschwindigkeit sinkt auf `PLAYER_MAX_SPEED * 0.55`,
+also zieht normale Bewegung plötzlich einen Schweif. Tempo hat im Spiel schon eine Sprache;
+Overdrive schaltet sie nur an.
+
+### Restzeit — ein Motiv für beide
+
+Ein 2px-Bogen um den Spieler, der im Uhrzeigersinn von zwölf Uhr leerläuft. **Aegis auf
+Radius 36, Overdrive auf 42** — beide können damit gleichzeitig laufen und bleiben
+unterscheidbar. In der letzten Sekunde blinkt der Bogen mit **4 Hz**; das ist die einzige
+Warnung, kein Ton und kein Text in der Arena.
+
+Der Bogen sitzt bewusst **am Spieler** und nicht im HUD: in Welle 5 schaut niemand an den
+Bildrand. Das HUD bekommt die Buffs trotzdem — unten Mitte über der Dash-Bar, Hex-Glyph plus
+62-px-Balken, nach oben gestapelt — aber als Zweitinformation.
+
+### Ende
+
+Aegis endet auf zwei Arten. Bogen läuft aus → Hex verblasst. Treffer wird gefressen → weißer
+Blitz, das Hex zerspringt in sechs Splitter nach außen (0,35 s). Der Treffer **muss** sichtbar
+teuer aussehen, sonst merkt niemand, dass der Schild verbraucht ist, und der nächste Treffer
+kommt als Überraschung.
+
+Restzeit und Ladung sind **derselbe Zustand**: ein Schild, das abfängt, ist vorbei, egal was
+sein Bogen noch anzeigte.
+
+### Aufsammeln
+
+Derselbe Ring wie beim Dash-Absprung (§10), 0,3 s, 10 → 90 px, in der Farbe des Power-ups.
+Kein Partikelregen, kein Textpopup. „Hier ist gerade etwas passiert" bleibt **eine** visuelle
+Idee, nicht zwei.
+
+### Was das für die Engine heißt
+
+Anders als Schweif und Hazard Tape ist das **keine reine Präsentation** — Spawn, Kollision
+und Wirkung sind Gameplay. Zwei Erleichterungen:
+
+- **Aegis** ist kein zweiter Schutzmechanismus. Die Unverwundbarkeit nach einem Treffer gibt
+  es bereits (`playerInvulnerable` im renderState) — Aegis ist derselbe Zustand, nur früher
+  ausgelöst und mit eigener Optik.
+- **Overdrive** ist ein Faktor auf `PLAYER_MAX_SPEED`, **nie** auf `PLAYER_DASH_SPEED`. Der
+  Dash ist mit 1100 px/s ohnehin der schnellste Zustand; ihn zusätzlich zu skalieren tunnelt
+  durch Hindernisse.
+
+Zahlen (6,5 s / 6 s / ×1,6 / alle 9 s / max. 2 Marker) sind Vorschläge, keine Designregel —
+die Optik hält jede Dauer aus. Details: `powerup-integration.md`.

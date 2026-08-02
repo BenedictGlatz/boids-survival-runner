@@ -1,18 +1,28 @@
 # SIGNAL — Handoff für Claude Code
 
 Designsystem für **Boids Survival Runner**. Ausgewählte Kombination: Hauptmenü
-**„Command Deck"** + Hindernis-Optik **„Hazard Tape"**. Verworfene Varianten sind aus
-diesem Paket entfernt — was hier liegt, ist die eine zu bauende Richtung.
+**„Command Deck"** + Hindernis-Optik **„Hazard Tape"** + Dash-Schweif **„Ion Streak"** +
+Power-ups **„Aegis"** und **„Overdrive"**.
+Verworfene Varianten sind aus diesem Paket entfernt — was hier liegt, ist die eine zu
+bauende Richtung.
 
 ## Dateien
 
-| Datei              | Zweck                                                                                         |
-| ------------------ | --------------------------------------------------------------------------------------------- |
-| `design-system.md` | Die Regeln: Farbsemantik, Typo, Form, Motion, HUD- und Hindernis-Spezifikation. Zuerst lesen. |
-| `tokens.css`       | Kanonische Werte als Custom Properties + fertige Komponentenklassen. Nach `styles/` kopieren. |
-| `menu-markup.html` | Referenz-Markup des Hauptmenüs. **Kein** einzubindendes File — die Vorlage für `menu.js`.     |
-| `obstacleLayer.js` | Drop-in-Ersatz für `frontend/src/renderer/obstacleLayer.js`.                                  |
-| `menuBackdrop.js`  | Neues Modul `frontend/src/ui/menuBackdrop.js`: Boid-Schwarm hinter dem Menü.                  |
+| Datei                       | Zweck                                                                                         |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| `design-system.md`          | Die Regeln: Farbsemantik, Typo, Form, Motion, HUD- und Hindernis-Spezifikation. Zuerst lesen. |
+| `tokens.css`                | Kanonische Werte als Custom Properties + fertige Komponentenklassen. Nach `styles/` kopieren. |
+| `menu-markup.html`          | Referenz-Markup des Hauptmenüs. **Kein** einzubindendes File — die Vorlage für `menu.js`.     |
+| `obstacleLayer.js`          | Drop-in-Ersatz für `frontend/src/renderer/obstacleLayer.js`.                                  |
+| `menuBackdrop.js`           | Neues Modul `frontend/src/ui/menuBackdrop.js`: Boid-Schwarm hinter dem Menü.                  |
+| `dashTrail.js`              | Neues Modul `frontend/src/renderer/dashTrail.js`: Trail-Historie + Schweif-Mathematik.        |
+| `trailLayer.js`             | Neues Modul `frontend/src/renderer/trailLayer.js`: zeichnet die Schweife.                     |
+| `dashTrail.test.js`         | Vitest-Suite für die Schweif-Mathematik. Nach `frontend/src/renderer/` kopieren.              |
+| `dash-trail-integration.md` | Die vier Einbaustellen in `canvasRenderer.js` und `round/` — mit Code.                        |
+| `powerups.js`               | Neues Modul `frontend/src/powerups/powerups.js`: Spawn, Einsammeln, Buff-Zustand.             |
+| `powerupLayer.js`           | Neues Modul `frontend/src/renderer/powerupLayer.js`: zeichnet Marker, Schild, Bögen.          |
+| `powerups.test.js`          | Vitest-Suite für Spawn, Einsammeln, Aegis-Ladung, Overdrive-Faktor.                           |
+| `powerup-integration.md`    | Die vier Einbaustellen für die Power-ups — mit Code und Zahlentabelle.                        |
 
 ## Einbauen
 
@@ -20,6 +30,12 @@ diesem Paket entfernt — was hier liegt, ist die eine zu bauende Richtung.
 cp handoff/tokens.css              frontend/styles/tokens.css
 cp handoff/obstacleLayer.js        frontend/src/renderer/obstacleLayer.js
 cp handoff/menuBackdrop.js         frontend/src/ui/menuBackdrop.js
+cp handoff/dashTrail.js            frontend/src/renderer/dashTrail.js
+cp handoff/trailLayer.js           frontend/src/renderer/trailLayer.js
+cp handoff/dashTrail.test.js       frontend/src/renderer/dashTrail.test.js
+cp handoff/powerupLayer.js         frontend/src/renderer/powerupLayer.js
+cp handoff/powerups.js             frontend/src/powerups/powerups.js
+cp handoff/powerups.test.js        frontend/src/powerups/powerups.test.js
 ```
 
 `frontend/index.html`, vor `main.css` (die Fonts liegen bewusst als `<link>` im Dokument,
@@ -53,6 +69,12 @@ nicht als `@import` in der CSS — ein `@import` blockiert das Rendering der gan
 6. **Menü.** `menu.js` nach `menu-markup.html` umbauen. `optionGroup.js` bleibt
    unverändert nutzbar — es ändert sich nur dessen CSS (`.segmented`).
 7. **Backdrop.** `menuBackdrop.js` beim Menü-Öffnen starten, beim Rundenstart stoppen.
+8. **Dash-Schweif.** `dashTrail.js` + `trailLayer.js` kopieren und die vier Stellen aus
+   `dash-trail-integration.md` einbauen. Unabhängig von 1–7 und in beliebiger Reihenfolge
+   machbar; `npm test` deckt die Mathematik ab, den Rest die manuelle Liste am Ende der Datei.
+9. **Power-ups.** `powerups.js` + `powerupLayer.js` kopieren und `powerup-integration.md`
+   folgen. **Als letztes bauen**: es ist der einzige Schritt, der Gameplay anfasst, und
+   Overdrive setzt auf dem Dash-Schweif aus Schritt 8 auf.
 
 ## Projektregeln, die das Handoff einhält
 
