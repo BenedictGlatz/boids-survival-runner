@@ -9,6 +9,7 @@ import {
 import { drawArena, drawLetterboxMargins, drawWorldEdge } from './arenaLayer.js';
 import { dashPulseScale } from './dashPulse.js';
 import { dashTrails } from './dashTrailHistory.js';
+import { DrawCallCounter } from './drawCallCounter.js';
 import {
   BOID_COLORS,
   glowColorForBoid,
@@ -83,7 +84,39 @@ export class CanvasRenderer {
     this._height = 0;
     this._pixelRatio = 1;
     this._view = { scale: 1, offsetX: 0, offsetY: 0 };
+    this._drawCalls = new DrawCallCounter();
     this.resize(window.innerWidth, window.innerHeight);
+  }
+
+  /**
+   * How many drawing operations the last frame issued.
+   *
+   * The counter attaches itself on the first read, so nothing pays for it until something
+   * asks — and the only caller is the opt-in frametime overlay. That also means the first
+   * read of a session reports `0`, which is one frame of honest ignorance rather than a
+   * wrong number.
+   *
+   * Read this **after** the frame was drawn and understand what it is: a count of
+   * operations, not of GPU work. It is the number batching moves, and it says nothing
+   * about how much area each of those operations covered — see `drawCallCounter.js`.
+   * @returns {number} Drawing operations since the previous read.
+   */
+  readDrawCalls() {
+    this._drawCalls.attach(this._ctx);
+
+    return this._drawCalls.readAndReset();
+  }
+
+  /**
+   * Pixels in the canvas backing store — the size of the surface every full-canvas pass
+   * writes, and therefore the single number most of the GPU cost scales with.
+   *
+   * Device pixels, not CSS pixels: it is `devicePixelRatio` squared that makes a modest
+   * window expensive, and reporting CSS pixels would hide exactly that.
+   * @returns {number} Width times height of the backing store.
+   */
+  backingStorePixels() {
+    return this._canvas.width * this._canvas.height;
   }
 
   /**

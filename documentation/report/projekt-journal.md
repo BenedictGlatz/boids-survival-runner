@@ -81,7 +81,42 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-02 | 4,0 | S-02 | Absturz aus dem Playtest (`RuntimeError: index out of bounds` aus `tick()`) diagnostiziert und behoben: Art der Trap gemessen statt geraten (provozierter Rust-Panic meldet `unreachable`, Summe aller Stapelrahmen 1,5 kB), damit Bereichsfehler und Stapelüberlauf ausgeschlossen; Ursache ist ein zweiter nebenläufiger `initEngine`-Aufruf, der eine zweite WebAssembly-Instanz baut, weil der generierte Loader nur gegen ein abgeschlossenes Laden prüft; `engine-bridge.js` teilt jetzt das Lade-Promise, `startGame()` in `index.js` verweigert einen zweiten Start während des ersten; neuer E2E-Flow `engine-instance.spec.js` zählt die Instanziierungen in der Seite (zwei Tests, der erste fällt ohne die Behebung durch) |
 
+| 2026-08-02 | 2,5 | T-08 | Messgrundlage für die GPU-Last gebaut, bevor irgendetwas optimiert wird: `backdrop-filter` aus `.frame-time-graph` entfernt (einziger GPU-Effekt während einer Runde, lag über der Fläche, die jedes Bild neu gezeichnet wird, und verfälschte damit die eigene Messgröße); dritte Textzeile im Overlay mit gezeichneten Bildern/Sekunde, Zeichenoperationen/Bild und Backing-Store-Pixeln, aus den neuen Modulen `renderer/drawCallCounter.js` (einmaliger Methoden-Ersatz am Kontext, kein Pfadaufbau gezählt), `ui/drawnFrameRate.js` (Sekundenfenster) und `formatLoadRow` in `ui/frameGraphScale.js`; Overlay-Verdrahtung wegen der 400-Zeilen-Grenze aus `index.js` nach `ui/frameGraphOverlay.js` gezogen (`index.js` 399 → 396, `frameTimeGraph.js` blieb bei 394 nur durch die Auslagerung der Textmontage); Messprotokoll und Werkzeugliste als Kap. 8.6, T-08 in `specs-overview.md` aufgenommen (Budget 168,5 → 177,5 h); 27 neue Unit-Tests, eine E2E-Zusicherung auf die Panelhöhe |
+
 ## Entscheidungen
+
+### 2026-08-02 — Vor der GPU-Optimierung wird eine Messgrundlage gebaut, nicht optimiert
+
+**Gewählt:** T-08 wird in zwei Stufen geschnitten. Stufe 0 ändert an der Zeichnung nichts
+und liefert nur Messbarkeit: `backdrop-filter` aus dem Frametime-Overlay entfernt, eine
+dritte Textzeile mit gezeichneten Bildern pro Sekunde, Zeichenoperationen pro Bild und
+Backing-Store-Pixeln, dazu ein schriftliches Messprotokoll in Kap. 8.6. Stufe 1 wird erst
+nach den Zahlen priorisiert.
+
+**Verworfen:** direkt die naheliegenden Hebel umsetzen — Obergrenze für
+`devicePixelRatio`, statischer Hintergrund als Cache, kein Neuzeichnen stehender Bilder.
+Alle drei sind vermutlich richtig, und genau das ist das Problem: „vermutlich" ist die
+Aussage, die der Bericht in Kap. 8 nicht tragen kann. Ebenfalls verworfen: ein
+WebGL-Backend. Die `Renderer`-Fassade ist dafür gebaut und lädt dazu ein, aber der Aufwand
+sprengt die Restkapazität bis zum Code-Freeze, und die Ursache liegt nicht in Canvas2D als
+Technik, sondern in der Menge geschriebener Pixel.
+
+**Warum:** Das Projekt konnte über Laufzeitkosten bis hierher keine prüfbare Aussage
+machen. Der Frametime-Graph misst Skriptzeit; ein `fill()` kehrt sofort zurück, die
+Rasterisierung wird danach und außerhalb des Hauptthreads bezahlt. Der Graph kann also 2 ms
+anzeigen, während die GPU ausgelastet ist. Dazu kam ein Befund über das Werkzeug selbst:
+`.frame-time-graph` trug einen `backdrop-filter` und lag über der einzigen Fläche, die in
+jedem Bild neu gezeichnet wird — das Diagnosewerkzeug war der einzige GPU-Effekt, der
+während einer Runde lief, und veränderte damit genau die Größe, die es berichten soll.
+
+**Konsequenz:** Drei neue, unter Vitest prüfbare Module statt Instrumentierung quer durch
+die Zeichenschichten: `renderer/drawCallCounter.js` ersetzt die zeichnenden Methoden des
+Kontexts einmalig durch weiterleitende Zähler, `ui/drawnFrameRate.js` zählt Bilder über ein
+Sekundenfenster, `formatLoadRow` in `ui/frameGraphScale.js` setzt die Zeile zusammen. Die
+Zeile sagt ausdrücklich nicht, sie messe GPU-Zeit; die kommt aus dem Profiler des Browsers.
+Pfadaufbau wird bewusst nicht mitgezählt, sonst sähe ein gebündelter Pfad genauso teuer aus
+wie ein ungebündelter.
+→ Kap. 8
 
 ### 2026-08-02 — Der Modul-Ladevorgang wird als Promise geteilt, nicht als Flag geprüft
 

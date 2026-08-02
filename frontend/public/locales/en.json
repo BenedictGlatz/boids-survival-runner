@@ -37,7 +37,7 @@
     "fpsHint": "Limited to what your display can show",
     "hertz": "Hz detected",
     "frameTimeGraph": "Frametime Graph",
-    "frameTimeGraphHint": "Shows simulation and draw time per frame in the top-left corner. The dashed line is the frame budget of the selected target FPS. Measures script work only, not GPU time.",
+    "frameTimeGraphHint": "Shows simulation and draw time per frame in the top-left corner. The dashed line is the frame budget of the selected target FPS. Measures script work only, not GPU time. The bottom row adds the load figures: frames actually drawn per second, drawing operations per frame, and canvas pixels. Those explain GPU cost but still do not measure it — read GPU time in the browser's own profiler.",
     "frameTimeGraphMode": "Graph Curves",
     "frameTimeGraphModeHint": "Separate plots simulation and draw time as their own curve; combined plots one curve for the whole frame.",
     "frameGraphSeparate": "Separate",
@@ -64,6 +64,10 @@
     "average": "avg",
     "max": "max",
     "scale": "top",
-    "milliseconds": "ms"
+    "milliseconds": "ms",
+    "framesPerSecond": "fps",
+    "drawCalls": "draws",
+    "pixels": "px",
+    "millionsShort": "M"
   }
 }

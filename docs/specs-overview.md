@@ -87,12 +87,23 @@ nicht enthalten. Sie werden schrittweise nachgezogen und dabei dokumentiert.
 | T-05              | CI/CD: GitHub-Actions-Pipeline (build, test, lint, fmt)      |        5 h |
 | T-06              | Deployment auf GitHub Pages (inkl. `vite.config.js`)         |        3 h |
 | T-07              | Unit-Test-Lücken schließen (FE-Module + WASM-Buffer-Vertrag) |        6 h |
-| **Summe Tooling** |                                                              | **31,5 h** |
+| T-08              | GPU-Last des Renderers: messen, dann senken                  |        9 h |
+| **Summe Tooling** |                                                              | **40,5 h** |
 
 T-03 war ursprünglich mit 2 h nur als Vitest-Coverage geplant. Die Erweiterung auf
 `cargo llvm-cov` kostet 1,5 h mehr und ist es wert: Die Engine ist das gewählte
 Fokus-Thema und enthält den Großteil der Logik, eine Coverage-Aussage, die genau
 diese Hälfte nicht misst, wäre die schwächere Aussage.
+
+T-08 ist ebenfalls neu und geht auf eine Beobachtung im Spielbetrieb zurück: Die
+GPU-Auslastung während einer Runde ist hoch, obwohl das Bild einfach ist. Die Maßnahme
+liegt in §3.2 und nicht als Spec, weil sie kein Verhalten hinzufügt — bei
+pixelgleichem Bild soll dieselbe Runde weniger Rechenwerk kosten. Sie ist in zwei
+Stufen geschnitten, und die erste ist ausdrücklich keine Optimierung: ~3 h für eine
+Messgrundlage, weil der vorhandene Frametime-Graph Skriptzeit misst und über GPU-Zeit
+strukturell nichts aussagen kann (Kap. 8.6). Die zweite Stufe (~6 h) wird erst nach
+den Zahlen priorisiert. Der einzige Teil mit sichtbarer Wirkung für Spieler ist eine
+Einstellung für die Render-Auflösung, deren Standardwert das heutige Bild ist.
 
 T-07 ist neu und war in der ursprünglichen Aufstellung nicht enthalten. Der Katalog
 nennt „Unit Tests aufsetzen" eigenständig neben dem Coverage-Report, und „Hohe
@@ -111,12 +122,12 @@ Hälfte.
 | Block              |                 Aufwand |
 | ------------------ | ----------------------: |
 | Specs S-01…S-07    |                 ≈ 115 h |
-| Tooling T-01…T-07  |                ≈ 31,5 h |
+| Tooling T-01…T-08  |                ≈ 40,5 h |
 | Dokumentation D-01 |                  ≈ 22 h |
-| **Gesamt**         | **≈ 168,5 h (≈ 21 PT)** |
+| **Gesamt**         | **≈ 177,5 h (≈ 22 PT)** |
 
 Bis zur Abgabe am **03.09.2026** stehen realistisch ~5 Wochen zur Verfügung. Das
-Gesamtbudget von ≈ 165,5 h liegt damit über der verfügbaren Kapazität, weshalb
+Gesamtbudget von ≈ 177,5 h liegt damit über der verfügbaren Kapazität, weshalb
 bewusst gekürzt wird:
 
 - **Slow-Time aus S-05 entfällt.** Es wäre das einzige der drei angedachten
@@ -147,20 +158,31 @@ bewusst gekürzt wird:
   Fokusverlust schließt das, und die Karte fällt dabei als das Billigste an, was das
   Feature enthält. Sie bringt zusätzlich den vierten Freeze-Fall des festen Zeitschritts
   in den Bericht, also einen weiteren belegbaren Fall zur tragenden Invariante.
+- **T-08 kommt mit ~9 h dazu** und ist damit der teuerste Nachzügler nach S-07. Was
+  ihn trägt, ist nicht der GPU-Gewinn, sondern der Umstand, dass das Projekt bis
+  hierher **keine** Aussage über Laufzeitkosten machen konnte, die einer Prüfung
+  standhält: Der Frametime-Graph misst Skriptzeit, und das Overlay, das ihn zeigt,
+  verfälschte durch seinen eigenen `backdrop-filter` genau die Größe, um die es geht.
+  Das ist ein Befund über das Werkzeug, nicht über das Spiel, und Kapitel 8 kann ihn
+  belegen. Die zweite Stufe ist zusätzlich der einzige Ort im Projekt, an dem eine
+  Optimierung gegen eine Vorher-Messung gestellt wird statt gegen ein Gefühl.
 - **Code-Freeze am 24.08.2026**; die restlichen ~10 Tage sind für Prosa,
   Diagramme und Layout reserviert.
 
 Die Überbuchung ist mit T-03 und T-07 um 7,5 h, mit S-07 um weitere 19 h, mit S-05b um
-noch einmal ~7 h und mit S-04b um ~3 h **gewachsen**, und sie wird hier nicht durch eine
-Gegenkürzung wegdefiniert. Was sie
+noch einmal ~7 h, mit S-04b um ~3 h und mit T-08 um ~9 h **gewachsen**, und sie wird hier
+nicht durch eine Gegenkürzung wegdefiniert. Was sie
 trägt, ist die Reihenfolge: Die Qualitätsmaßnahmen liegen vor T-02, T-05 und T-06,
 weil sie zwei Kriterien gleichzeitig bedienen (_Qualität_ als Kapitel und „hohe
 Testabdeckung" als Code-Kriterium), während TypeScript und Deployment je nur eines
 bedienen. S-07 liegt aus demselben Grund vor diesen drei: ein spielbares Feature mit
 einer beweisbaren Invariante und einer Erweiterung des Fokus-Themas trägt mehr zum
-Bericht bei als eine Deployment-Pipeline. Reicht die Kapazität am Ende nicht für alle
-sieben Maßnahmen, fällt die Entscheidung am hinteren Ende der Liste und wird dort
-begründet — nicht am vorderen. Der bereits im Journal festgehaltene Notausgang gilt
+Bericht bei als eine Deployment-Pipeline. T-08 liegt hinter S-07, aber vor T-02 und
+T-06: Seine erste Stufe ist billig und macht Kapitel 8 belegbar, seine zweite hängt an
+Zahlen, die es erst selbst erzeugt — reicht die Kapazität nicht, fällt genau diese
+zweite Stufe, und die erste bleibt als Befund stehen. Reicht die Kapazität am Ende
+nicht für alle acht Maßnahmen, fällt die Entscheidung am hinteren Ende der Liste und
+wird dort begründet — nicht am vorderen. Der bereits im Journal festgehaltene Notausgang gilt
 weiter: ein Werkzeug weglassen und seine Absenz in drei ehrlichen Sätzen begründen
 kostet 10 min statt 4 h Setup plus einer Seite Prosa.
 

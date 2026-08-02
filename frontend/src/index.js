@@ -19,6 +19,7 @@ import { Menu } from './ui/menu.js';
 import { MenuBackdrop } from './ui/menuBackdrop.js';
 import { MenuSettings } from './ui/menuSettings.js';
 import { FrameTimeGraph } from './ui/frameTimeGraph.js';
+import { drawFrameGraph, resetFrameGraphLoad } from './ui/frameGraphOverlay.js';
 import { loadLocale } from './ui/i18n.js';
 import { FrameScheduler } from './loop/frameScheduler.js';
 import { buildFrozenRenderState, buildRenderState } from './loop/renderState.js';
@@ -104,6 +105,7 @@ function showStartMenu() {
   // the deck would otherwise open with the HUD and the frametime graph still drawn over it.
   hud.hide();
   frameTimeGraph.hide();
+  resetFrameGraphLoad();
 
   // Back to the menu state, so the renderer stops drawing the frozen frame of the round
   // that just ended: that picture belongs to the game-over card, not to the start screen.
@@ -215,12 +217,7 @@ function loop(timestamp) {
     }
 
     // Drawn after the measurement closes, so the graph never reports its own cost.
-    if (settings.frameGraphEnabled) {
-      frameTimeGraph.draw(frameMetrics, {
-        mode: settings.frameGraphMode,
-        targetFps: settings.targetFps,
-      });
-    }
+    drawFrameGraph(frameTimeGraph, frameMetrics, settings, renderer, timestamp);
   }
 
   requestAnimationFrame(loop);

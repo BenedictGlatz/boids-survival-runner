@@ -90,6 +90,19 @@ test.describe('start-menu settings', () => {
     await startRound(page);
 
     await expect(page.locator('#frame-time-graph')).toBeVisible();
+
+    // The load row's contents live inside the canvas and cannot be read from here, but the
+    // room it needs can: the panel is one text row taller than the two-row version, and the
+    // backing store follows the device pixel ratio. Shrinking the panel back without dropping
+    // the row would draw it over the plot, which no other assertion would catch.
+    const panel = await page.evaluate(() => {
+      const graph = document.getElementById('frame-time-graph');
+
+      return { cssHeight: graph.style.height, backingHeight: graph.height };
+    });
+
+    expect(panel.cssHeight).toBe('109px');
+    expect(panel.backingHeight).toBeGreaterThanOrEqual(109);
   });
 
   test('leaves the frametime graph hidden by default', async ({ page }) => {

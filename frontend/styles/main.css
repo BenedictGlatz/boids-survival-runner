@@ -52,13 +52,18 @@ body {
 /* The only framed thing left in the interface, and deliberately so: the frametime graph
    is a diagnostic overlay, not part of the game's own HUD. No padding — on a <canvas>
    padding grows the element box around the drawing surface and would break the 1:1
-   mapping the graph relies on. Its size comes from the canvas attributes. */
+   mapping the graph relies on. Its size comes from the canvas attributes.
+
+   Opaque, and it used to be `rgba(8, 10, 14, 0.58)` plus `backdrop-filter: blur(6px)`.
+   The blur was the only GPU effect running during a round, and it sat over the one surface
+   in the whole page that is dirty on every single frame — so the compositor re-blurred that
+   region as often as the game drew. A diagnostic overlay that costs GPU time falsifies the
+   very measurement it exists to report, which is a worse fault than looking plainer. */
 .frame-time-graph {
   position: absolute;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: rgba(8, 10, 14, 0.58);
-  backdrop-filter: blur(6px);
+  background: var(--void);
 }
 
 .top-center {

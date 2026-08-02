@@ -272,3 +272,79 @@ Die Regel ohne Werkzeug hielt also gerade dort nicht, wo sie am wichtigsten war.
 > abbilden — insbesondere: Accessibility-Befunde einer Canvas-Anwendung sind
 > strukturell begrenzt, und der Tastatur-Trade-off aus Kap. 3.2.2 ist hier
 > anschlussfähig.
+
+## 8.6 GPU-Last: Messgrundlage vor Optimierung (T-08)
+
+Anlass war eine Beobachtung, kein Messwert: Die GPU-Auslastung während einer Runde ist
+hoch, obwohl das Bild aus einem Gitter, einigen hundert kleinen Pfeilen und ein paar
+Kapseln besteht. Der erste Schritt ist deshalb keine Optimierung, sondern die Frage, ob
+überhaupt gemessen werden kann — und die Antwort war zunächst nein.
+
+### 8.6.1 Warum der Frametime-Graph diese Frage nicht beantwortet
+
+Der Graph aus Kap. 8.1 misst **Skriptzeit**. Ein `fill()` kehrt fast sofort zurück; die
+Rasterisierung, die es in die Warteschlange stellt, wird danach und außerhalb des
+Hauptthreads bezahlt. Der Graph kann also einen komfortablen 2-ms-Frame anzeigen, während
+die GPU ausgelastet ist, ohne sich dabei zu widersprechen — er hat nie etwas anderes
+behauptet, und sein Hinweistext im Menü sagt das seit jeher.
+
+Schlimmer: Das Overlay verfälschte die Messung, die es tragen soll. `.frame-time-graph`
+trug `backdrop-filter: blur(6px)` und lag über der einzigen Fläche der Seite, die in
+jedem Frame neu gezeichnet wird — der Compositor musste diesen Bereich also so oft neu
+weichzeichnen, wie das Spiel zeichnete. Es war zugleich der **einzige** GPU-Effekt, der
+während einer laufenden Runde aktiv war. Ein Diagnosewerkzeug, das die eigene Messgröße
+verändert, ist der schwerere Mangel gegenüber einem, das schlichter aussieht; die Fläche
+ist jetzt deckend.
+
+### 8.6.2 Was hinzugekommen ist: die Lastzeile
+
+Der Graph hat eine dritte Textzeile bekommen, mit den drei Größen, die das Frontend
+ehrlich selbst zählen kann. Jede einzelne für sich lädt zur falschen Schlussfolgerung
+ein, weshalb sie zusammen stehen:
+
+| Größe                      | Beantwortet                                     |
+| -------------------------- | ----------------------------------------------- |
+| Gezeichnete Bilder/Sekunde | Hält die FPS-Einstellung, was sie verspricht?   |
+| Zeichenoperationen/Bild    | Die Zahl, die Bündelung senkt (Boids, Schweife) |
+| Backing-Store-Pixel        | Die Zahl, die `devicePixelRatio` quadriert      |
+
+**Keine der drei ist GPU-Zeit**, und der Hinweistext im Menü sagt genau das. Sie erklären
+GPU-Kosten, sie messen sie nicht. Die Zeichenoperationen zählt `renderer/drawCallCounter.js`,
+indem es die zeichnenden Methoden des Kontexts einmalig durch weiterleitende Zähler
+ersetzt — einmalig und beim ersten Lesen, sodass nur zahlt, wer das Overlay einschaltet.
+Pfadaufbau (`beginPath`, `lineTo`, `arc`) wird bewusst _nicht_ gezählt: Er kostet CPU,
+gibt aber nichts zum Zeichnen ab, und ihn mitzuzählen ließe einen gebündelten Pfad genauso
+teuer aussehen wie einen ungebündelten — das Gegenteil dessen, wofür die Zahl da ist.
+
+Die gezeichnete Bildrate wird gezählt, nicht aus einer Frame-Dauer abgeleitet
+(`ui/drawnFrameRate.js`). Unter einem Gate, das Bilder ungleichmäßig durchlässt, sagen
+diese beiden Wege Verschiedenes, und die Zählung ist die, die ein Spieler wiedererkennt.
+
+### 8.6.3 Was von außen gemessen wird
+
+| Werkzeug                                     | Liefert                                      |
+| -------------------------------------------- | -------------------------------------------- |
+| `chrome://gpu`                               | ob Canvas überhaupt hardwarebeschleunigt ist |
+| DevTools → Performance, GPU-Track            | GPU-Zeit pro Bild — die eigentliche Kennzahl |
+| DevTools → Rendering → Frame Rendering Stats | GPU-Speicher, live                           |
+| Windows-Task-Manager, GPU-Spalte             | die Zahl, die den Anlass gegeben hat         |
+
+`chrome://gpu` steht bewusst an erster Stelle: Fällt Canvas2D auf Software-Rendering
+zurück — in virtuellen Maschinen und mit manchen Treiberversionen nicht selten —, dann
+bedeutet jede weitere Zahl etwas anderes, und die Ursache liegt nicht im Code.
+
+**Protokoll**, damit zwei Messungen vergleichbar sind: feste Fenstergröße, festes
+Vollbild-Verhalten, feste FPS-Einstellung, Frametime-Overlay aus, je 20 s in Wave 1,
+Wave 5 und Wave 10, drei Durchläufe je Konfiguration. Berichtet wird **GPU-Zeit in ms pro
+Bild**, nie Prozent — Prozent hängt vom Taktzustand der GPU ab.
+
+Die schnellste Vorab-Diagnose braucht überhaupt kein Werkzeug: das Fenster auf die halbe
+Kantenlänge ziehen. Das ist ein Viertel der Pixel bei unveränderter Zahl an
+Zeichenoperationen. Fällt die Last stark, ist sie füllratenbegrenzt; bleibt sie, ist sie
+zeichenaufrufbegrenzt. Die Antwort entscheidet, welche der beiden Maßnahmengruppen aus
+T-08 überhaupt lohnt.
+
+> TODO: Basis- und Nachher-Tabelle eintragen, sobald die Messungen nach diesem Protokoll
+> vorliegen. Ohne Zahlen bleibt jede Optimierung darunter eine Vermutung, und ein
+> gemessener Performance-Gewinn ohne Zahl im Bericht ist die eine Behauptung, die dieses
+> Kapitel nicht tragen kann.

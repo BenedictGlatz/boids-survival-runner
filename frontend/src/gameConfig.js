@@ -205,11 +205,17 @@ export const FRAME_GRAPH_SAMPLE_COUNT = 120;
 
 /** Panel size in CSS pixels. */
 export const FRAME_GRAPH_WIDTH = 184;
-export const FRAME_GRAPH_HEIGHT = 96;
+export const FRAME_GRAPH_HEIGHT = 109;
 export const FRAME_GRAPH_PADDING = 6;
 
-/** Vertical space above the plot reserved for the two text rows. */
-export const FRAME_GRAPH_TEXT_HEIGHT = 30;
+/**
+ * Vertical space above the plot reserved for the three text rows.
+ *
+ * The third row is the load row — drawn frames per second, drawing operations and backing
+ * store pixels. The panel grew by exactly one row rather than the plot shrinking, because
+ * the plot height is what makes a millisecond readable as a height.
+ */
+export const FRAME_GRAPH_TEXT_HEIGHT = 43;
 
 /**
  * How much taller the vertical axis is than the frame budget of the selected

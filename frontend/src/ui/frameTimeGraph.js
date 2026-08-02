@@ -1,5 +1,5 @@
 import { t } from './i18n.js';
-import { resolveAxis } from './frameGraphScale.js';
+import { formatLoadRow, resolveAxis } from './frameGraphScale.js';
 import {
   DEFAULT_TARGET_FPS,
   FRAME_GRAPH_AREA_ALPHA,
@@ -39,6 +39,8 @@ const TITLE_FONT = '700 11px "Segoe UI", Arial, sans-serif';
 const LEGEND_FONT = '600 10px "Segoe UI", Arial, sans-serif';
 const TITLE_BASELINE_Y = 11;
 const LEGEND_BASELINE_Y = 24;
+/** The load row: what the frame *costs the GPU*, as opposed to what it costs the script. */
+const LOAD_BASELINE_Y = 37;
 const LEGEND_SWATCH_SIZE = 7;
 const LEGEND_SWATCH_GAP = 4;
 const LEGEND_ENTRY_GAP = 10;
@@ -89,9 +91,11 @@ export class FrameTimeGraph {
 
   /**
    * @param {import('../loop/frameMetrics.js').FrameMetrics} metrics - The window to plot.
-   * @param {{mode?: string, targetFps?: number}} [options] - `mode` is one of
-   *   `FRAME_GRAPH_MODE`; `targetFps` is the framerate the renderer aims for and
-   *   sets both the budget line and the top of the axis.
+   * @param {{mode?: string, targetFps?: number, drawnFps?: ?number, drawCalls?: number,
+   *   pixels?: number}} [options] - `mode` is one of `FRAME_GRAPH_MODE`; `targetFps` is the
+   *   framerate the renderer aims for and sets both the budget line and the top of the axis.
+   *   The remaining three are the load row and may be omitted, in which case it reads as
+   *   unknown rather than as zero.
    */
   draw(metrics, options = {}) {
     const mode = options.mode ?? FRAME_GRAPH_MODE.SEPARATE;
@@ -109,6 +113,7 @@ export class FrameTimeGraph {
     const axis = resolveAxis(targetFps, FRAME_GRAPH_HEADROOM_FACTOR);
 
     this._drawHeader(summary, axis.topMs, peakMs, combined);
+    this._drawLoadRow(options);
     this._drawCurves(metrics, axis.topMs, combined);
     // Last, so it stays readable where the curves cross it — which is precisely
     // where the line is worth looking at.
@@ -183,6 +188,28 @@ export class FrameTimeGraph {
       legendX,
       RENDER_COLOR,
       `${t('perf.render')} ${formatMilliseconds(summary.averageRenderMs)}`,
+    );
+  }
+
+  /**
+   * The load row. Plain text and no swatch, because these three are not curves and must not
+   * read as if they were. See `formatLoadRow` for what each figure is and is not.
+   */
+  _drawLoadRow(options) {
+    const ctx = this._ctx;
+
+    ctx.font = LEGEND_FONT;
+    ctx.fillStyle = MUTED_TEXT_COLOR;
+    ctx.textAlign = 'left';
+    ctx.fillText(
+      formatLoadRow(options, {
+        framesPerSecond: t('perf.framesPerSecond'),
+        drawCalls: t('perf.drawCalls'),
+        pixels: t('perf.pixels'),
+        millions: t('perf.millionsShort'),
+      }),
+      FRAME_GRAPH_PADDING,
+      LOAD_BASELINE_Y,
     );
   }
 

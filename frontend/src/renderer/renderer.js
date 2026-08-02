@@ -42,4 +42,20 @@ export class Renderer {
   resize(width, height) {
     this._impl.resize(width, height);
   }
+
+  /**
+   * Drawing operations the last frame issued. A proxy for draw cost, never GPU time.
+   * @returns {number} Operations since the previous read.
+   */
+  readDrawCalls() {
+    return this._impl.readDrawCalls();
+  }
+
+  /**
+   * Device pixels in the backing store — what a full-canvas pass has to write.
+   * @returns {number} Width times height of the backing store.
+   */
+  backingStorePixels() {
+    return this._impl.backingStorePixels();
+  }
 }
