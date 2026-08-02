@@ -52,3 +52,26 @@ export function fitWorldToCanvas(canvasWidth, canvasHeight, worldWidth, worldHei
     offsetY: (usableHeight - worldHeight * scale) * 0.5,
   };
 }
+
+/**
+ * Composes the two mappings a canvas needs into the single matrix `setTransform` takes.
+ *
+ * Both are affine, so their composition is one matrix: world to CSS pixels is
+ * `css = world * scale + offset`, CSS to device pixels is `device = css * ratio`, hence
+ * `device = ratio * scale * world + ratio * offset`. The offsets are in CSS pixels and
+ * therefore get multiplied by the ratio as well — that is the part that is easy to get wrong,
+ * and the reason this is a tested function rather than six arguments spelled out twice.
+ *
+ * Twice, because there are now two surfaces that carry the same world transform: the visible
+ * canvas and the offscreen one the static arena background is baked into. If those two
+ * disagreed by so much as a rounding step, the baked background would sit a fraction of a
+ * pixel away from everything drawn live on top of it.
+ * @param {number} pixelRatio - Device pixels per CSS pixel.
+ * @param {{scale: number, offsetX: number, offsetY: number}} view - From `fitWorldToCanvas`.
+ * @returns {number[]} The six arguments of `setTransform`, in order: `a, b, c, d, e, f`.
+ */
+export function worldTransformMatrix(pixelRatio, view) {
+  const combinedScale = pixelRatio * view.scale;
+
+  return [combinedScale, 0, 0, combinedScale, pixelRatio * view.offsetX, pixelRatio * view.offsetY];
+}

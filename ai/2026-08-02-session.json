@@ -4,5 +4,11 @@
     "prompt": "Mir ist aufgefallen dass trotz der simplen Optik meine GPU Auslastung während des Spiels sehr hoch ist, bitte erstelle einen Plan um den GPU-Ressourcenverbrauch des Spiels zu optimieren.",
     "topic": "frontend-ui",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Wie würdest du jetzt weiter vorgehen? Ich bestehe nicht auf >60fps support",
+    "topic": "frontend-ui",
+    "use": "impl"
   }
 ]

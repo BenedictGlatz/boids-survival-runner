@@ -6,7 +6,7 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from '../gameConfig.js';
-import { drawArena, drawLetterboxMargins, drawWorldEdge } from './arenaLayer.js';
+import { ArenaBackground } from './arenaBackground.js';
 import { dashPulseScale } from './dashPulse.js';
 import { dashTrails } from './dashTrailHistory.js';
 import { DrawCallCounter } from './drawCallCounter.js';
@@ -22,7 +22,7 @@ import { drawObstacles } from './obstacleLayer.js';
 import { drawPlayerBuffs, drawPowerupMarkers } from './powerupLayer.js';
 import { drawDashTrails } from './trailLayer.js';
 import { sampleDashTrails } from './trailSampling.js';
-import { fitWorldToCanvas } from './worldTransform.js';
+import { fitWorldToCanvas, worldTransformMatrix } from './worldTransform.js';
 
 const BOID_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.22)';
 const BOID_OUTLINE_WIDTH = 1.5;
@@ -79,12 +79,19 @@ export class CanvasRenderer {
   /** @param {HTMLCanvasElement} canvas */
   constructor(canvas) {
     this._canvas = canvas;
-    this._ctx = canvas.getContext('2d');
+    // Opaque. The arena background covers every pixel of this surface on every frame, so
+    // there is nothing for transparency to reveal — and declaring that spares the compositor
+    // a full-screen blend of the canvas against the page once per frame, which on an
+    // integrated GPU is a real share of the cost. It is only honoured on the first
+    // `getContext` for an element, which is here.
+    this._ctx = canvas.getContext('2d', { alpha: false });
     this._width = 0;
     this._height = 0;
     this._pixelRatio = 1;
     this._view = { scale: 1, offsetX: 0, offsetY: 0 };
     this._drawCalls = new DrawCallCounter();
+    // Built before the first resize, because resize is what bakes it.
+    this._background = new ArenaBackground();
     this.resize(window.innerWidth, window.innerHeight);
   }
 
@@ -120,18 +127,26 @@ export class CanvasRenderer {
   }
 
   /**
-   * Wipes the canvas without painting the arena background over it.
+   * Takes the game canvas out of the picture, so the menu's swarm backdrop — a canvas of its
+   * own, further back — is what the deck sits on.
    *
-   * The menu needs this: its swarm backdrop is a canvas of its own, further back, and an
-   * opaque arena background drawn here would hide it completely — which is also why the
-   * wipe has to run in screen space and cover the letterbox margins. Clearing only the
-   * world rectangle would leave the margins painted in front of the menu backdrop.
+   * This replaces a `clear()` that wiped the surface to transparency for the same purpose,
+   * and the replacement is what makes `{ alpha: false }` possible: on an opaque canvas
+   * `clearRect` paints black rather than nothing, so the backdrop would have vanished behind
+   * a black rectangle. Hiding the element sidesteps that and is strictly cheaper — a hidden
+   * canvas is neither composited nor wiped once per frame.
    * @returns {void}
    */
-  clear() {
-    this._inScreenSpace((ctx, screenWidth, screenHeight) => {
-      ctx.clearRect(0, 0, screenWidth, screenHeight);
-    });
+  hide() {
+    this._canvas.style.display = 'none';
+  }
+
+  /**
+   * Puts the game canvas back in front of the menu backdrop, for a round.
+   * @returns {void}
+   */
+  show() {
+    this._canvas.style.display = 'block';
   }
 
   /**
@@ -164,6 +179,9 @@ export class CanvasRenderer {
     // sits inside it.
     this._view = fitWorldToCanvas(width, height, WORLD_WIDTH, WORLD_HEIGHT);
     this._applyWorldTransform();
+    // The one moment any of the background's inputs can change, so the one moment it is
+    // baked. Everything it contains is constant for as long as this size holds.
+    this._background.rebuild(this._canvas.width, this._canvas.height, pixelRatio, this._view);
   }
 
   /**
@@ -175,14 +193,13 @@ export class CanvasRenderer {
   drawFrame(frame, playerPosition, renderState = {}) {
     const ctx = this._ctx;
 
-    // The wipe and the margins are the two things that have to reach outside the world.
+    // The arena floor, its margins, both lattices and the world edge, as one opaque blit that
+    // covers the whole surface. It is therefore also the wipe — there is deliberately no
+    // `clearRect` in front of it, because clearing pixels that are about to be overwritten is
+    // a second full pass over the canvas for no visible effect.
     this._inScreenSpace((screenCtx, screenWidth, screenHeight) => {
-      screenCtx.clearRect(0, 0, screenWidth, screenHeight);
-      drawLetterboxMargins(screenCtx, screenWidth, screenHeight);
+      this._background.draw(screenCtx, screenWidth, screenHeight);
     });
-
-    drawArena(ctx);
-    drawWorldEdge(ctx, this._view.scale);
     // Under the boids and the player, so an obstacle reads as terrain they move over
     // rather than as something in front of them.
     drawObstacles(ctx, frame);
@@ -213,24 +230,12 @@ export class CanvasRenderer {
   }
 
   /**
-   * Composes the two mappings the canvas needs into the single transform it can hold.
-   *
-   * Both are affine, so their composition is one `setTransform`:
-   * world to CSS pixels is `css = world * scale + offset`, CSS to device pixels is
-   * `device = css * dpr`, hence `device = dpr * scale * world + dpr * offset`. The offsets
-   * are in CSS pixels and therefore get multiplied by the ratio as well — that is the part
-   * that is easy to get wrong.
+   * Puts the composed world transform on the context. The arithmetic itself lives in
+   * `worldTransform.js`, because the offscreen background canvas has to carry the identical
+   * matrix — see the note there.
    */
   _applyWorldTransform() {
-    const combinedScale = this._pixelRatio * this._view.scale;
-    this._ctx.setTransform(
-      combinedScale,
-      0,
-      0,
-      combinedScale,
-      this._pixelRatio * this._view.offsetX,
-      this._pixelRatio * this._view.offsetY,
-    );
+    this._ctx.setTransform(...worldTransformMatrix(this._pixelRatio, this._view));
   }
 
   /**

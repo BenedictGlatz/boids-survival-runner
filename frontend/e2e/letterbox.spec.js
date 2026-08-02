@@ -69,6 +69,36 @@ test.describe('the fixed world inside a wider window', () => {
     await expect(page.locator('#hud-score')).toBeVisible();
   });
 
+  test('repaints a paused round after a resize', async ({ page }) => {
+    // The one case the still-frame gate cannot see for itself. A paused round is drawn once
+    // and then skipped, but a resize reallocates the canvas backing store — which wipes it —
+    // without changing the state. Without `invalidate()` in handleResize the arena would
+    // stay wiped for as long as the card is up, and the assertion below is what catches it:
+    // on a blank canvas the margin and the arena floor read the same, and they must not.
+    await openStartMenu(page);
+    await startRound(page);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#btn-resume')).toBeVisible();
+
+    await page.setViewportSize({ width: 1500, height: 700 });
+    await page.waitForTimeout(500);
+
+    const canvasSize = await page.evaluate(() => {
+      const canvas = document.getElementById('game-canvas');
+
+      return { width: canvas.width, height: canvas.height };
+    });
+
+    const insideMargin = await readPixel(page, 2, Math.floor(canvasSize.height / 2));
+    const insideWorld = await readPixel(
+      page,
+      Math.floor(canvasSize.width / 2),
+      Math.floor(canvasSize.height / 4),
+    );
+
+    expect(insideMargin).not.toEqual(insideWorld);
+  });
+
   test('plays in a window smaller than the world', async ({ page }) => {
     // At 1000x600 the render scale drops to ~0.52 and every world unit is drawn at about
     // half a pixel. Nothing is clipped — the whole world stays on screen, which is the

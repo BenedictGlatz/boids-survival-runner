@@ -22,7 +22,7 @@ import { FrameTimeGraph } from './ui/frameTimeGraph.js';
 import { drawFrameGraph, resetFrameGraphLoad } from './ui/frameGraphOverlay.js';
 import { loadLocale } from './ui/i18n.js';
 import { FrameScheduler } from './loop/frameScheduler.js';
-import { buildFrozenRenderState, buildRenderState } from './loop/renderState.js';
+import { createStateRenderer } from './loop/stateRenderer.js';
 import { runSimulationStep } from './loop/simulationStep.js';
 import { FrameMetrics } from './loop/frameMetrics.js';
 import { measureRefreshRateHz } from './loop/refreshRate.js';
@@ -46,6 +46,7 @@ let menuBackdrop;
 let frameTimeGraph;
 let canvas;
 let gameData;
+let stateRenderer;
 // True from the moment a round is asked for until it is actually running. See startGame().
 let startingRound = false;
 
@@ -85,6 +86,7 @@ async function bootstrap() {
   frameTimeGraph = new FrameTimeGraph();
   menu = new Menu();
   menuBackdrop = new MenuBackdrop();
+  stateRenderer = createStateRenderer({ state, renderer, player, hud, powerups });
 
   window.addEventListener('resize', handleResize);
   handleResize();
@@ -105,6 +107,7 @@ function showStartMenu() {
   // the deck would otherwise open with the HUD and the frametime graph still drawn over it.
   hud.hide();
   frameTimeGraph.hide();
+  renderer.hide();
   resetFrameGraphLoad();
 
   // Back to the menu state, so the renderer stops drawing the frozen frame of the round
@@ -164,6 +167,7 @@ async function openRound() {
   input.setGameplayActive(true);
   menu.hide();
   menuBackdrop.stop();
+  renderer.show();
   hud.show();
 
   // Dropped so the graph opens on this round's frames instead of the idle menu
@@ -210,7 +214,7 @@ function loop(timestamp) {
     scheduler.markRendered(timestamp);
 
     const renderStartedAt = performance.now();
-    renderCurrentState(timestamp, renderDeltaSeconds);
+    stateRenderer.render(gameData, timestamp, renderDeltaSeconds);
 
     if (measured) {
       frameMetrics.commitRenderedFrame(performance.now() - renderStartedAt);
@@ -244,44 +248,6 @@ function advanceSimulation(timestamp) {
       return;
     }
   }
-}
-
-function renderCurrentState(timestamp, renderDeltaSeconds) {
-  // Behind both cards the last frame keeps being drawn, dimmed by the card's own scrim: the
-  // swarm and the obstacles that killed you — or that you walked away from for a moment —
-  // stay on screen instead of the arena going empty. Nothing advances: the simulation
-  // stopped, and the picture says so.
-  //
-  // Two states spelled out rather than inverting PLAYING, because this branch runs first and
-  // MENU must not reach it — a round left behind is still lying in `gameData`. The countdown
-  // glyph is deliberately lost here (the frozen state carries no `countdownSeconds`): a
-  // ticking countdown behind a pause card would be a lie, and a frozen one would be noise
-  // under a card that brings its own title.
-  if (state.is(STATE.GAME_OVER) || state.is(STATE.PAUSED)) {
-    const frozen = buildFrozenRenderState(gameData, powerups);
-    renderer.drawFrame(gameData.currentFrame, player.getPosition(), frozen);
-    return;
-  }
-
-  // On the menu the game canvas only gets out of the way: the swarm behind the deck comes
-  // from `ui/menuBackdrop.js`, on a canvas further back, and drawing an opaque arena
-  // background here would hide it.
-  if (!state.is(STATE.PLAYING)) {
-    renderer.clear();
-    return;
-  }
-
-  const playerPosition = player.getPosition();
-  // Built once and handed to both the renderer and the HUD: the dash bar moved into the
-  // HUD, but the player's own state is still drawn on the canvas, and they have to agree
-  // within a frame.
-  const renderState = buildRenderState(gameData, player, powerups, {
-    renderDeltaSeconds,
-    timestamp,
-  });
-
-  renderer.drawFrame(gameData.currentFrame, playerPosition, renderState);
-  hud.update(gameData, renderState);
 }
 
 function advanceCountdown(timestamp) {
@@ -388,6 +354,9 @@ function endRound() {
  */
 function handleResize() {
   renderer.resize(window.innerWidth, window.innerHeight);
+  // A resize changes the picture without changing the state, which is the one case the
+  // still-frame gate cannot see: a paused game would keep the old image at the old scale.
+  stateRenderer.invalidate();
   // Its size is fixed, but a window moved to another monitor can change the
   // device pixel ratio, which would leave the graph blurry.
   frameTimeGraph.resize();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WORLD_HEIGHT, WORLD_WIDTH } from '../gameConfig.js';
-import { fitWorldToCanvas } from './worldTransform.js';
+import { fitWorldToCanvas, worldTransformMatrix } from './worldTransform.js';
 
 /**
  * Canvas sizes that are deliberately not all 16:9 and not all round numbers — the shapes a
@@ -120,5 +120,74 @@ describe('fitWorldToCanvas', () => {
     expect(view.scale).toBeCloseTo(800 / WORLD_WIDTH, 10);
     expect(WORLD_HEIGHT * view.scale).toBeLessThan(1400);
     expect(view.offsetY).toBeGreaterThan(0);
+  });
+});
+
+describe('worldTransformMatrix', () => {
+  /** Applies the matrix to a world point the way a canvas would. */
+  function project([a, b, c, d, e, f], x, y) {
+    return { x: a * x + c * y + e, y: b * x + d * y + f };
+  }
+
+  it('scales by the ratio and the fit together', () => {
+    const matrix = worldTransformMatrix(2, { scale: 0.75, offsetX: 0, offsetY: 0 });
+
+    expect(matrix[0]).toBeCloseTo(1.5, 10);
+    expect(matrix[3]).toBeCloseTo(1.5, 10);
+  });
+
+  it('multiplies the offsets by the ratio as well', () => {
+    // The part that is easy to get wrong: the offsets come out of `fitWorldToCanvas` in CSS
+    // pixels, so leaving them unscaled would place the world a whole margin off on a 2x panel.
+    const matrix = worldTransformMatrix(2, { scale: 1, offsetX: 45, offsetY: 90 });
+
+    expect(matrix[4]).toBeCloseTo(90, 10);
+    expect(matrix[5]).toBeCloseTo(180, 10);
+  });
+
+  it('never shears or rotates', () => {
+    const matrix = worldTransformMatrix(1.5, { scale: 0.4, offsetX: 7, offsetY: 3 });
+
+    expect(matrix[1]).toBe(0);
+    expect(matrix[2]).toBe(0);
+  });
+
+  it('puts the world origin at the top-left corner of the fitted area', () => {
+    const view = fitWorldToCanvas(1440, 900, WORLD_WIDTH, WORLD_HEIGHT);
+    const matrix = worldTransformMatrix(2, view);
+    const origin = project(matrix, 0, 0);
+
+    expect(origin.x).toBeCloseTo(2 * view.offsetX, 10);
+    expect(origin.y).toBeCloseTo(2 * view.offsetY, 10);
+  });
+
+  it('lands the far corner of the world inside the backing store', () => {
+    // 1440x900 CSS at ratio 2 is the 2880x1800 panel this was first measured on. The world is
+    // 16:9 and the window 16:10, so the fit binds on width and leaves vertical margins.
+    const view = fitWorldToCanvas(1440, 900, WORLD_WIDTH, WORLD_HEIGHT);
+    const matrix = worldTransformMatrix(2, view);
+    const corner = project(matrix, WORLD_WIDTH, WORLD_HEIGHT);
+
+    expect(corner.x).toBeCloseTo(2880, 6);
+    expect(corner.y).toBeLessThan(1800);
+    expect(corner.y).toBeCloseTo(1800 - 2 * view.offsetY, 6);
+  });
+
+  it('reproduces the composition the renderer used to spell out inline', () => {
+    // A regression guard for the extraction: `_applyWorldTransform` carried these six
+    // expressions by hand before the baked background needed the same matrix. An odd canvas
+    // size and a non-integer ratio, because a mistake in the offset term hides at ratio 1.
+    const view = fitWorldToCanvas(1287, 733, WORLD_WIDTH, WORLD_HEIGHT);
+    const pixelRatio = 1.25;
+    const combinedScale = pixelRatio * view.scale;
+
+    expect(worldTransformMatrix(pixelRatio, view)).toEqual([
+      combinedScale,
+      0,
+      0,
+      combinedScale,
+      pixelRatio * view.offsetX,
+      pixelRatio * view.offsetY,
+    ]);
   });
 });

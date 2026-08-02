@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { STRINGS, openStartMenu, watchForBrowserProblems } from './support/game.js';
+import { STRINGS, openStartMenu, startRound, watchForBrowserProblems } from './support/game.js';
 
 test.describe('booting the built game', () => {
   test('loads the WASM engine and shows an interactive start menu', async ({ page }) => {
@@ -7,9 +7,24 @@ test.describe('booting the built game', () => {
 
     await openStartMenu(page);
 
-    await expect(page.locator('#game-canvas')).toBeVisible();
     await expect(page.locator('#btn-start')).toBeEnabled();
     expect(problems).toEqual([]);
+  });
+
+  test('keeps the game canvas out of the way of the menu', async ({ page }) => {
+    // The canvas is opaque (`{ alpha: false }`), so it cannot be wiped to transparency any
+    // more — it is hidden instead, which is what lets the menu's swarm backdrop show. Both
+    // halves are asserted, because hiding it and never bringing it back would leave a round
+    // running behind a blank screen with the HUD still updating over it.
+    await openStartMenu(page);
+
+    await expect(page.locator('#game-canvas')).toBeHidden();
+    await expect(page.locator('#menu-backdrop')).toBeVisible();
+
+    await startRound(page);
+
+    await expect(page.locator('#game-canvas')).toBeVisible();
+    await expect(page.locator('#menu-backdrop')).toBeHidden();
   });
 
   test('sizes the canvas to the window', async ({ page }) => {
@@ -17,7 +32,11 @@ test.describe('booting the built game', () => {
     // letterboxes *inside* this canvas. What the assertion guards now is that the canvas
     // itself still spans the whole viewport, because it is the reference surface the HUD
     // and every CSS overlay position themselves against (`position: fixed; inset: 0`).
+    //
+    // Measured during a round rather than on the menu: `boundingBox()` returns null for a
+    // hidden element, and the canvas is hidden while the deck is up.
     await openStartMenu(page);
+    await startRound(page);
 
     const canvas = await page.locator('#game-canvas').boundingBox();
     const viewport = page.viewportSize();

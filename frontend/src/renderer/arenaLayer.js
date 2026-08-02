@@ -49,8 +49,13 @@ const WORLD_EDGE_COLOR = 'rgba(255, 255, 255, 0.16)';
  *
  * Must be called in screen space — it is the one thing that has to reach *outside* the
  * world, which the world transform by definition cannot. Painting everything and letting
- * the arena cover the middle is both simpler and cheaper than computing two margin bars,
- * and it doubles as the wipe for the margin region.
+ * the arena cover the middle is simpler than computing two margin bars, and it doubles as
+ * the wipe for the margin region.
+ *
+ * That it paints the whole surface to cover two thin bars used to be the wasteful part of
+ * this function. It is not any more: `arenaBackground.js` calls it once per resize while
+ * baking, so the redundant pass happens a handful of times in a session rather than sixty
+ * times a second, and trimming it to the actual bars would now save nothing measurable.
  * @param {CanvasRenderingContext2D} ctx - Context with its transform reset to screen space.
  * @param {number} screenWidth - Full canvas width in device pixels.
  * @param {number} screenHeight - Full canvas height in device pixels.

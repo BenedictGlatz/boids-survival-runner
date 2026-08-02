@@ -83,7 +83,56 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-02 | 2,5 | T-08 | Messgrundlage für die GPU-Last gebaut, bevor irgendetwas optimiert wird: `backdrop-filter` aus `.frame-time-graph` entfernt (einziger GPU-Effekt während einer Runde, lag über der Fläche, die jedes Bild neu gezeichnet wird, und verfälschte damit die eigene Messgröße); dritte Textzeile im Overlay mit gezeichneten Bildern/Sekunde, Zeichenoperationen/Bild und Backing-Store-Pixeln, aus den neuen Modulen `renderer/drawCallCounter.js` (einmaliger Methoden-Ersatz am Kontext, kein Pfadaufbau gezählt), `ui/drawnFrameRate.js` (Sekundenfenster) und `formatLoadRow` in `ui/frameGraphScale.js`; Overlay-Verdrahtung wegen der 400-Zeilen-Grenze aus `index.js` nach `ui/frameGraphOverlay.js` gezogen (`index.js` 399 → 396, `frameTimeGraph.js` blieb bei 394 nur durch die Auslagerung der Textmontage); Messprotokoll und Werkzeugliste als Kap. 8.6, T-08 in `specs-overview.md` aufgenommen (Budget 168,5 → 177,5 h); 27 neue Unit-Tests, eine E2E-Zusicherung auf die Panelhöhe |
 
+| 2026-08-02 | 3,5 | T-08 | Pixelpaket umgesetzt, nachdem die Hardware ausgemessen war (AMD Radeon 860M als integrierte GPU, Panel 2880×1800, Windows-Skalierung 200 % ⇒ `devicePixelRatio` 2, aktuell 60 Hz): Arena, beide Gitter und Weltkante werden in `renderer/arenaBackground.js` einmal je Resize in ein Offscreen-Canvas in Gerätepixeln gebacken und pro Bild als ein `drawImage` ausgegeben — aus drei Vollflächen-Durchgängen plus 66 Gitterstrichen wird ein Blit; die zusammengesetzte Transformation dafür als `worldTransformMatrix` aus `canvasRenderer._applyWorldTransform` nach `renderer/worldTransform.js` gezogen, weil sichtbares und gebackenes Canvas dieselbe Matrix tragen müssen; `{ alpha: false }` auf dem Spiel-Canvas, wofür der `clear()`-Vertrag durch `hide()`/`show()` ersetzt wurde (auf deckendem Canvas malt `clearRect` schwarz statt nichts, der Menü-Hintergrund wäre verschwunden); stehende Bilder werden nur noch einmal gezeichnet (`loop/staticFrameGate.js` mit Signatur statt Boolean, damit Pause → Game-Over von selbst neu zeichnet), `renderCurrentState` dafür nach `loop/stateRenderer.js` ausgelagert (`index.js` 396 → 365); `handleResize` invalidiert das Gate, sonst bliebe eine pausierte Runde nach einem Resize schwarz; 19 neue Unit-Tests, zwei E2E-Tests umgeschrieben, zwei neue (Canvas-Sichtbarkeit über den Rundenwechsel, Pixelsonde nach Resize in der Pause) |
+
 ## Entscheidungen
+
+### 2026-08-02 — Die Simulationsrate wird nicht an die Bildwiederholrate gekoppelt
+
+**Gewählt:** Der feste Zeitschritt von 60 Schritten/s bleibt unangetastet. Gegen zu viel
+Zeichenarbeit hilft der Deckel auf der Renderseite, nicht mehr Simulation.
+
+**Verworfen:** die Simulation auf die Bildwiederholrate mitziehen, damit Bilder oberhalb
+von 60 fps neue Information tragen.
+
+**Warum:** Der Vorschlag löst das Problem in die falsche Richtung — ein Schritt ist O(n²)
+über den Schwarm, 120 Schritte/s verdoppeln also die CPU-Last, während die GPU weiter 120
+Bilder zeichnet. Dazu kommt, dass in der Engine jede Dauer in **Schritten** zählt und nicht
+in Millisekunden: Dash-Phasen, Wellenfortschritt und vor allem `dash_selection.rs`, das per
+Integer-Hash aus `Flock::step_counter` ableitet, wer als Nächstes losstürmt. Es gibt bewusst
+kein `rand`. Eine an den Monitor gekoppelte Schrittzahl macht dieselbe Runde auf zwei
+Rechnern unterschiedlich und zwingt dazu, jede schrittbasierte Konstante samt Tests
+umzurechnen — der feste Zeitschritt ist eine der beiden tragenden Invarianten des Projekts.
+
+**Konsequenz:** Der Gedanke dahinter bleibt richtig und wird umgekehrt genutzt: Ändert sich
+die Welt nur 60-mal pro Sekunde, ist jedes weitere Bild dasselbe Bild noch einmal. Die
+Konsequenz daraus ist ein Deckel beim Zeichnen, kein Anheben der Simulation.
+→ Kap. 4, 5
+
+### 2026-08-02 — Der Arena-Hintergrund wird gebacken, nicht in einen zweiten Canvas gelegt
+
+**Gewählt:** ein Offscreen-Canvas in Gerätepixelgröße, das bei jedem Resize neu bemalt und
+pro Bild mit einem `drawImage` in Screen-Space auf das Spiel-Canvas geblittet wird.
+
+**Verworfen:** ein zweites `<canvas>`-Element hinter dem Spiel-Canvas, das den Hintergrund
+statisch hält und nie neu gezeichnet wird. Das klingt billiger, ist es aber nicht: Es
+verbietet `{ alpha: false }` auf dem Spiel-Canvas — das müsste durchsichtig bleiben, damit
+der Hintergrund durchscheint — und tauscht damit einen günstigen Blit innerhalb eines
+Canvas gegen eine Vollbild-Mischung im **Compositor** pro Bild.
+
+**Warum:** Das Ergebnis muss pixelgleich sein, und das ist es nur, weil beide Flächen
+dieselbe zusammengesetzte Transformation tragen und das Bild anschließend bei
+Identitätstransformation auf `0, 0` geblittet wird — nirgends wird resampelt. Genau deshalb
+liegt die Matrix jetzt als geteilte, getestete Funktion in `worldTransform.js` statt zweimal
+ausgeschrieben: Wichen die beiden um einen Rundungsschritt voneinander ab, säße der gebackene
+Hintergrund einen Bruchteil eines Pixels neben allem, was live darüber gezeichnet wird.
+
+**Konsequenz:** Der Blit ist deckend und überdeckt die ganze Fläche, ist also zugleich der
+Wisch — das vorherige `clearRect` entfällt ersatzlos, denn Pixel zu löschen, die unmittelbar
+danach überschrieben werden, ist ein zweiter Vollflächen-Durchgang ohne Wirkung. Zur
+Absicherung dient die vorhandene Pixelsonde in `letterbox.spec.js`: Sie liest echte
+Canvas-Pixel und würde einen falsch platzierten Hintergrund sofort melden.
+→ Kap. 3, 8
 
 ### 2026-08-02 — Vor der GPU-Optimierung wird eine Messgrundlage gebaut, nicht optimiert
 

@@ -20,11 +20,19 @@ export class Renderer {
   }
 
   /**
-   * Leaves the canvas transparent, so whatever sits behind it shows through.
+   * Takes the canvas out of the picture, so whatever sits behind it shows through.
    * @returns {void}
    */
-  clear() {
-    this._impl.clear();
+  hide() {
+    this._impl.hide();
+  }
+
+  /**
+   * Puts the canvas back in front of whatever sits behind it.
+   * @returns {void}
+   */
+  show() {
+    this._impl.show();
   }
 
   /**
