@@ -10,5 +10,11 @@
     "prompt": "Die Dash Cooldown Anzeige ist aktuell am unteren Bildschirmrand, bitte füge auch noch eine Dashanzeige direkt unter dem Spieler zu, so wie die Lebensanzeige unter dem Spieler, da sie dort im Gefect besser sichtbar ist. Sie sollte nicht zu groß sein, aber klar erkennbar",
     "topic": "frontend-ui",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Bitte setze um dass man am Bildschirmrand sieht wo genau die neue Welle Boids spawnen wird, damit sie nicht direkt vor oder im Spieler spawnen. Verwende erstmal eine Placeholder Graphic, beispielsweise ein simples rotes Leuchten",
+    "topic": "engine",
+    "use": "impl"
   }
 ]

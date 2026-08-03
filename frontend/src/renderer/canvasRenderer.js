@@ -21,6 +21,7 @@ import {
 import { drawObstacles } from './obstacleLayer.js';
 import { drawPlayerStatusBars } from './playerStatusBars.js';
 import { drawPlayerBuffs, drawPowerupMarkers } from './powerupLayer.js';
+import { drawSpawnMarkers } from './spawnMarkerLayer.js';
 import { drawDashTrails } from './trailLayer.js';
 import { sampleDashTrails } from './trailSampling.js';
 import { fitWorldToCanvas, worldTransformMatrix } from './worldTransform.js';
@@ -196,6 +197,10 @@ export class CanvasRenderer {
     // A marker lies on the ground: over the obstacles, under everything that moves. Its spin
     // and bob run on wall time, because they are presentation and follow the frame rate.
     drawPowerupMarkers(ctx, renderState, renderState.wallClockSeconds ?? 0);
+    // Where the next wave will come in, on the ground for the same reason: nothing is
+    // standing there yet, so it must not draw over anything that is. Also on wall time,
+    // but only for its flicker — the ring that says *when* comes from the engine.
+    drawSpawnMarkers(ctx, frame, renderState.wallClockSeconds ?? 0);
     // The order is the statement: a dash trail sits over the obstacles, because it is
     // movement rather than terrain, and under the boids and the player, because it is their
     // exhaust rather than an object of its own. Sampling happens first, so a ribbon and its

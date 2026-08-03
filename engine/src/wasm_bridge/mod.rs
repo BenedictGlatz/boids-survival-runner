@@ -1,32 +1,38 @@
+mod boid_factory;
 pub mod response;
 
+use self::boid_factory::{build_boid, create_boid_for_wave, difficulty_tier_for_wave};
 use self::response::FrameResponse;
 use crate::constants::{
-    DEFAULT_ALIGNMENT_WEIGHT, DEFAULT_COHESION_WEIGHT, DEFAULT_MAX_ACCELERATION, DEFAULT_MAX_SPEED,
-    DEFAULT_OBSTACLE_AVOID_WEIGHT, DEFAULT_PERCEPTION_RADIUS, DEFAULT_SEPARATION_WEIGHT,
-    DEFAULT_TARGET_SEEK_WEIGHT, INITIAL_BOID_COUNT, MAX_BOID_DIFFICULTY_TIER,
-    PLAYER_COLLISION_RADIUS, WAVE_BOID_INCREMENT,
+    DEFAULT_MAX_SPEED, INITIAL_BOID_COUNT, PLAYER_COLLISION_RADIUS, WAVE_BOID_INCREMENT,
+    WAVE_SPAWN_GATE_COUNT, WAVE_SPAWN_WARNING_STEPS,
 };
 use crate::math::vector::Vec2;
-use crate::simulation::boid::{Boid, BoidProperties};
-use crate::simulation::dash::{dash_properties_for_difficulty_tier, dash_render_phase};
+use crate::simulation::dash::dash_render_phase;
 use crate::simulation::flock::Flock;
 use crate::simulation::obstacle_arming::obstacle_render_phase;
 use crate::simulation::obstacle_collision::resolve_player_movement;
 use crate::simulation::obstacle_field::ObstacleField;
+use crate::simulation::wave_spawn::{wave_spawn_warning_progress, PendingSpawn, WaveSpawnQueue};
+use crate::simulation::wave_spawn_placement::{
+    gate_perimeter_offset, gate_spawn_position, inward_velocity,
+};
 use wasm_bindgen::prelude::*;
-
-const GOLDEN_ANGLE: f32 = 2.399_963_1;
 
 /// Values per obstacle in the obstacle buffer. Kept in step with the frontend's
 /// OBSTACLE_STRIDE, and asserted on in the WASM boundary tests.
 const OBSTACLE_STRIDE: usize = 7;
+
+/// Values per announced spawn in the spawn-marker buffer. Kept in step with the
+/// frontend's SPAWN_MARKER_STRIDE, and asserted on in the WASM boundary tests.
+const SPAWN_MARKER_STRIDE: usize = 3;
 
 /// Browser-facing simulation engine.
 #[wasm_bindgen]
 pub struct GameEngine {
     flock: Flock,
     obstacle_field: ObstacleField,
+    wave_spawns: WaveSpawnQueue,
     world_width: f32,
     world_height: f32,
     initial_boid_count: u32,
@@ -36,6 +42,7 @@ pub struct GameEngine {
     tiers_buffer: Vec<u32>,
     dash_phases_buffer: Vec<f32>,
     obstacles_buffer: Vec<f32>,
+    spawn_markers_buffer: Vec<f32>,
 }
 
 #[wasm_bindgen]
@@ -54,6 +61,11 @@ impl GameEngine {
 
         let mut flock = Flock::new();
 
+        // The very first flock is placed straight into the world rather than announced at
+        // the gates every later wave comes through. It is the one wave that needs no
+        // warning: it is already there when the round's countdown starts, so the player
+        // can see the whole arena before moving, and a gate would be announcing boids the
+        // player is looking at.
         for index in 0..spawn_count {
             flock.add(create_boid_for_wave(
                 index,
@@ -67,6 +79,7 @@ impl GameEngine {
         Self {
             flock,
             obstacle_field: ObstacleField::new(),
+            wave_spawns: WaveSpawnQueue::new(),
             world_width,
             world_height,
             initial_boid_count: spawn_count,
@@ -76,6 +89,7 @@ impl GameEngine {
             tiers_buffer: Vec::with_capacity(spawn_count as usize),
             dash_phases_buffer: Vec::with_capacity(spawn_count as usize),
             obstacles_buffer: Vec::new(),
+            spawn_markers_buffer: Vec::new(),
         }
     }
 
@@ -113,6 +127,10 @@ impl GameEngine {
             self.obstacle_field.obstacles[index].mark_player_hit();
         }
 
+        // Before the flock steps, so a boid that arrives this step is part of the swarm
+        // its neighbours steer against straight away rather than a step later.
+        self.release_due_wave_spawns();
+
         // Obstacles age and spawn before the flock steps, so a boid never steers
         // against an obstacle that has already gone.
         self.obstacle_field.update(
@@ -145,7 +163,18 @@ impl GameEngine {
         self.build_frame_response(0)
     }
 
-    /// Ensures all boids for the requested wave have been spawned.
+    /// Announces every boid the requested wave owes, at the gates it will arrive through.
+    ///
+    /// **This does not add anything to the world.** The boids enter
+    /// `WAVE_SPAWN_WARNING_STEPS` later, one gate's worth at a time, as `tick()` works
+    /// the queue down — until then they are only the markers in the spawn-marker buffer.
+    /// A caller that wants them present has to keep ticking; `entity_count` deliberately
+    /// lags the wave number for the length of the warning, because that is the truth
+    /// about how many boids are actually in the arena.
+    ///
+    /// The player position decides where the gates open, so it is asked for here rather
+    /// than when the boids arrive: the warning is only honest if it is drawn at the place
+    /// the wave really comes from, which means the place has to be fixed up front.
     pub fn set_wave(&mut self, wave: u32, player_x: f32, player_y: f32) {
         if wave <= self.current_wave {
             return;
@@ -155,7 +184,7 @@ impl GameEngine {
 
         while self.current_wave < wave {
             self.current_wave += 1;
-            self.spawn_wave_boids(self.current_wave, player_position);
+            self.announce_wave_boids(self.current_wave, player_position);
         }
     }
 
@@ -183,17 +212,86 @@ impl GameEngine {
 }
 
 impl GameEngine {
-    fn spawn_wave_boids(&mut self, wave: u32, player_position: Vec2) {
+    /// Splits a wave across its gates and announces every boid of it.
+    ///
+    /// The count is measured against the flock *plus* what is already announced. Reading
+    /// the flock alone would announce the same wave again on the next call, because its
+    /// boids have not arrived yet.
+    fn announce_wave_boids(&mut self, wave: u32, player_position: Vec2) {
         let target_count = self.initial_boid_count + (wave - 1) * WAVE_BOID_INCREMENT;
+        let accounted_for = (self.flock.len() + self.wave_spawns.len()) as u32;
 
-        while self.flock.len() < target_count as usize {
-            let index = self.flock.len() as u32;
-            self.flock.add(create_boid_for_wave(
-                index,
+        if accounted_for >= target_count {
+            return;
+        }
+
+        let arriving = target_count - accounted_for;
+        let difficulty_tier = difficulty_tier_for_wave(wave);
+        let gate_count = WAVE_SPAWN_GATE_COUNT.max(1);
+        // Half the default top speed, the same pace the very first flock is launched at.
+        let launch_speed = DEFAULT_MAX_SPEED * 0.5;
+
+        for gate_index in 0..gate_count {
+            // The remainder is handed to the first gates one boid each, so a wave of ten
+            // across three gates becomes 4/3/3 rather than 3/3/3 and a lost boid.
+            let mut slots_in_gate = arriving / gate_count;
+            if gate_index < arriving % gate_count {
+                slots_in_gate += 1;
+            }
+
+            if slots_in_gate == 0 {
+                continue;
+            }
+
+            let gate_offset = gate_perimeter_offset(
                 wave,
+                gate_index,
                 self.world_width,
                 self.world_height,
                 player_position,
+            );
+
+            for slot in 0..slots_in_gate {
+                let position = gate_spawn_position(
+                    gate_offset,
+                    slot,
+                    slots_in_gate,
+                    self.world_width,
+                    self.world_height,
+                );
+                let velocity = inward_velocity(
+                    position,
+                    slot,
+                    launch_speed,
+                    self.world_width,
+                    self.world_height,
+                );
+
+                self.wave_spawns.announce(PendingSpawn::new(
+                    position,
+                    velocity,
+                    difficulty_tier,
+                    WAVE_SPAWN_WARNING_STEPS,
+                ));
+            }
+        }
+    }
+
+    /// Ages the announcements by one step and lets in whatever that made due.
+    fn release_due_wave_spawns(&mut self) {
+        // The ordinary case. A wave is only pending for two of the thirty seconds between
+        // waves, so the vast majority of steps have nothing to age at all.
+        if self.wave_spawns.is_empty() {
+            return;
+        }
+
+        self.wave_spawns.advance_one_step();
+
+        while let Some(spawn) = self.wave_spawns.take_next_due() {
+            self.flock.add(build_boid(
+                spawn.position,
+                spawn.velocity,
+                spawn.difficulty_tier,
             ));
         }
     }
@@ -204,11 +302,15 @@ impl GameEngine {
         self.tiers_buffer.clear();
         self.dash_phases_buffer.clear();
         self.obstacles_buffer.clear();
-        // Unlike the boid buffers this one cannot be sized once at construction: the
-        // obstacle count changes as they come and go. Reserving here keeps it from
-        // regrowing on the frames where a new obstacle appears.
+        self.spawn_markers_buffer.clear();
+        // Unlike the boid buffers these two cannot be sized once at construction: the
+        // obstacle count changes as they come and go, and the marker count is zero for
+        // most of a wave. Reserving here keeps them from regrowing on the frames where
+        // something new appears.
         self.obstacles_buffer
             .reserve(self.obstacle_field.len() * OBSTACLE_STRIDE);
+        self.spawn_markers_buffer
+            .reserve(self.wave_spawns.len() * SPAWN_MARKER_STRIDE);
 
         for boid in &self.flock.boids {
             self.positions_buffer.push(boid.position.x);
@@ -235,6 +337,18 @@ impl GameEngine {
             self.obstacles_buffer.push(obstacle.hit_flash());
         }
 
+        // SPAWN_MARKER_STRIDE values each: where a boid of the next wave will enter, and
+        // how far through its warning that announcement is. One entry per announced boid
+        // rather than one per gate — the boids of a gate stand close enough together that
+        // the glows the frontend draws merge into a single arc, so the marker is literally
+        // the spot each boid appears at and the gate needs no separate concept here.
+        for spawn in &self.wave_spawns.pending {
+            self.spawn_markers_buffer.push(spawn.position.x);
+            self.spawn_markers_buffer.push(spawn.position.y);
+            self.spawn_markers_buffer
+                .push(wave_spawn_warning_progress(spawn));
+        }
+
         FrameResponse {
             entity_count: self.flock.len() as u32,
             hit_count,
@@ -244,6 +358,8 @@ impl GameEngine {
             dash_phases: self.dash_phases_buffer.clone(),
             obstacle_count: self.obstacle_field.len() as u32,
             obstacles: self.obstacles_buffer.clone(),
+            spawn_marker_count: self.wave_spawns.len() as u32,
+            spawn_markers: self.spawn_markers_buffer.clone(),
             // Filled in by tick(). A snapshot moves nobody, so there is nothing to
             // correct and nothing to report.
             player_x: 0.0,
@@ -252,148 +368,5 @@ impl GameEngine {
             block_normal_x: 0.0,
             block_normal_y: 0.0,
         }
-    }
-}
-
-fn create_boid_for_wave(
-    index: u32,
-    wave: u32,
-    world_width: f32,
-    world_height: f32,
-    player_position: Vec2,
-) -> Boid {
-    let difficulty_tier = difficulty_tier_for_wave(wave);
-    let position = find_spawn_position(index, wave, world_width, world_height, player_position);
-    let angle = (index as f32 + wave as f32 * 11.0) * GOLDEN_ANGLE;
-    let velocity = Vec2::new(angle.cos(), angle.sin()).scale(DEFAULT_MAX_SPEED * 0.5);
-
-    if difficulty_tier == 0 {
-        return Boid::new(position, velocity);
-    }
-
-    Boid::with_variant(
-        position,
-        velocity,
-        properties_for_difficulty_tier(difficulty_tier),
-        difficulty_tier,
-    )
-}
-
-fn properties_for_difficulty_tier(difficulty_tier: u32) -> BoidProperties {
-    let tier = difficulty_tier as f32;
-
-    BoidProperties {
-        max_speed: DEFAULT_MAX_SPEED + tier * 0.45,
-        max_acceleration: DEFAULT_MAX_ACCELERATION + tier * 0.02,
-        perception_radius: DEFAULT_PERCEPTION_RADIUS + tier * 8.0,
-        separation_weight: DEFAULT_SEPARATION_WEIGHT + tier * 0.2,
-        alignment_weight: DEFAULT_ALIGNMENT_WEIGHT,
-        cohesion_weight: DEFAULT_COHESION_WEIGHT,
-        target_seek_weight: DEFAULT_TARGET_SEEK_WEIGHT + tier * 0.045,
-        // Flat across all tiers on purpose. Avoiding an obstacle is competence, not
-        // difficulty — a later boid that were worse at it would look broken rather
-        // than harder. The difficulty ramp for obstacles sits in their density.
-        obstacle_avoid_weight: DEFAULT_OBSTACLE_AVOID_WEIGHT,
-        dash: dash_properties_for_difficulty_tier(difficulty_tier),
-    }
-}
-
-fn difficulty_tier_for_wave(wave: u32) -> u32 {
-    wave.saturating_sub(1).min(MAX_BOID_DIFFICULTY_TIER)
-}
-
-fn find_spawn_position(
-    index: u32,
-    wave: u32,
-    world_width: f32,
-    world_height: f32,
-    player_position: Vec2,
-) -> Vec2 {
-    let safe_distance = safe_spawn_distance(world_width, world_height);
-
-    for attempt in 0..32 {
-        let seed = index as f32 + wave as f32 * 37.0 + attempt as f32 * 17.0;
-        let x = (seed * 97.0 + 31.0) % world_width;
-        let y = (seed * 53.0 + 47.0) % world_height;
-        let candidate = Vec2::new(x, y);
-
-        if candidate.distance_to(player_position) >= safe_distance {
-            return candidate;
-        }
-    }
-
-    let angle = (index as f32 + wave as f32 * 19.0) * GOLDEN_ANGLE;
-    Vec2::new(
-        wrap_coordinate(player_position.x + angle.cos() * safe_distance, world_width),
-        wrap_coordinate(
-            player_position.y + angle.sin() * safe_distance,
-            world_height,
-        ),
-    )
-}
-
-fn safe_spawn_distance(world_width: f32, world_height: f32) -> f32 {
-    let minimum_dimension = world_width.min(world_height);
-    let desired_distance = (minimum_dimension * 0.34).max(180.0);
-    let maximum_reasonable_distance = (minimum_dimension * 0.48).max(80.0);
-
-    desired_distance.min(maximum_reasonable_distance)
-}
-
-fn wrap_coordinate(value: f32, maximum: f32) -> f32 {
-    if maximum <= 0.0 {
-        return 0.0;
-    }
-
-    value.rem_euclid(maximum)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn starting_boids_spawn_away_from_the_player() {
-        let world_width = 1000.0;
-        let world_height = 800.0;
-        let player_position = Vec2::new(500.0, 400.0);
-        let safe_distance = safe_spawn_distance(world_width, world_height);
-
-        for index in 0..20 {
-            let boid = create_boid_for_wave(index, 1, world_width, world_height, player_position);
-            assert!(boid.position.distance_to(player_position) >= safe_distance);
-        }
-    }
-
-    #[test]
-    fn later_wave_boids_are_faster_and_tagged_with_higher_tiers() {
-        let player_position = Vec2::new(500.0, 400.0);
-        let first_wave_boid = create_boid_for_wave(0, 1, 1000.0, 800.0, player_position);
-        let later_wave_boid = create_boid_for_wave(0, 5, 1000.0, 800.0, player_position);
-
-        assert!(later_wave_boid.difficulty_tier > first_wave_boid.difficulty_tier);
-        assert!(later_wave_boid.properties.max_speed > first_wave_boid.properties.max_speed);
-        assert!(
-            later_wave_boid.properties.max_acceleration
-                > first_wave_boid.properties.max_acceleration
-        );
-    }
-
-    #[test]
-    fn boids_from_the_first_two_waves_cannot_dash() {
-        let player_position = Vec2::new(500.0, 400.0);
-
-        for wave in 1..=2 {
-            let boid = create_boid_for_wave(0, wave, 1000.0, 800.0, player_position);
-            assert!(!boid.properties.dash.can_dash);
-        }
-    }
-
-    #[test]
-    fn boids_from_the_third_wave_onward_can_dash() {
-        let player_position = Vec2::new(500.0, 400.0);
-        let boid = create_boid_for_wave(0, 3, 1000.0, 800.0, player_position);
-
-        assert!(boid.properties.dash.can_dash);
     }
 }

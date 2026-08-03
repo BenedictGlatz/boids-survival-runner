@@ -18,6 +18,8 @@ pub struct FrameResponse {
     pub(crate) dash_phases: Vec<f32>,
     pub(crate) obstacle_count: u32,
     pub(crate) obstacles: Vec<f32>,
+    pub(crate) spawn_marker_count: u32,
+    pub(crate) spawn_markers: Vec<f32>,
     pub(crate) player_x: f32,
     pub(crate) player_y: f32,
     pub(crate) obstacle_hit: bool,
@@ -99,6 +101,31 @@ impl FrameResponse {
     /// highlight.
     pub fn obstacles(&self) -> Float32Array {
         Float32Array::from(self.obstacles.as_slice())
+    }
+
+    /// Number of spawn markers packed into the spawn-marker buffer.
+    #[wasm_bindgen(getter)]
+    pub fn spawn_marker_count(&self) -> u32 {
+        self.spawn_marker_count
+    }
+
+    /// Returns the announced spawns as a flat buffer of three values each:
+    /// `[x, y, warning_progress]`.
+    ///
+    /// One entry per boid of the next wave that has been announced but has **not entered
+    /// the world yet**: this buffer is the warning, and while an entry is in it there is
+    /// nothing at that position to collide with. The entry disappears on the step the
+    /// boid appears in the position buffer instead.
+    ///
+    /// `warning_progress` runs from `0.0` the step the wave is announced towards `1.0` as
+    /// the arrival approaches, and the frontend scales the marker's intensity by it. There
+    /// is deliberately no "nothing to draw" value and no sign trick as in `dash_phases` or
+    /// an obstacle's `render_phase`: an entry only exists while it is pending, so
+    /// `spawn_marker_count` already says how many markers there are and every value in the
+    /// buffer is a real one. Exactly `1.0` never arrives here, because a boid with no
+    /// warning left joins the flock in the same step it would have reached it.
+    pub fn spawn_markers(&self) -> Float32Array {
+        Float32Array::from(self.spawn_markers.as_slice())
     }
 
     /// The player's position after the engine resolved the move against the

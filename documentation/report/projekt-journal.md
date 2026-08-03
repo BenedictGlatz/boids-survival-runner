@@ -89,7 +89,54 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-03 | 0,5 | S-03 | Dash-Cooldown zusätzlich unter dem Spieler angezeigt, weil der Blick auf die HUD-Bar am unteren Bildschirmrand im Gefecht ein Blick weg vom Schwarm ist: Lebensanzeige und neue Dash-Bar liegen jetzt gemeinsam als Stapel in `renderer/playerStatusBars.js` (`statusStackLayout` klemmt gegen die Weltkanten, ein Backdrop für beide Balken), `canvasRenderer.js` gab dafür `drawPlayerHealth` ab und fiel von 382 auf 339 Zeilen; `buildFrozenRenderState` trägt `dashCooldownProgress` jetzt mit, sonst verschwindet der Balken im eingefrorenen Bild unter einer stehenden Lebensanzeige; Farben aus `styles/hud.css` übernommen statt neu gewählt; 15 neue Unit-Zusicherungen auf Geometrie, Füllstand und Zeichenreihenfolge, Sichtprüfung über einen temporären Playwright-Screenshot in drei Cooldown-Zuständen |
 
+| 2026-08-03 | 2,5 | S-04 | Wellen kündigen sich am Weltrand an, statt irgendwo in der Arena zu erscheinen: zwei neue Engine-Module — `simulation/wave_spawn_placement.rs` (Perimeter als **eine** Zahl im Uhrzeigersinn, `gate_perimeter_offset` schiebt ein Tor entlang der Kante, bis es `safe_spawn_distance` zum Spieler hält, `inward_velocity` mit alternierendem Seitenanteil) und `simulation/wave_spawn.rs` (`WaveSpawnQueue`, Warnfenster in Simulationsschritten, `wave_spawn_warning_progress`), nach demselben Schnitt wie `obstacle_spawn.rs`/`obstacle_field.rs`; `set_wave` **spawnt nicht mehr**, sondern kündigt an, `tick()` lässt die Boids nach `WAVE_SPAWN_WARNING_STEPS` = 120 Schritten (2 s) herein — `entity_count` hinkt der Wellennummer damit bewusst zwei Sekunden nach; siebter Buffer `spawn_markers` mit Stride 3 (`[x, y, warning_progress]`), ohne Vorzeichentrick, weil ein Eintrag nur existiert, solange er anhängig ist; `safe_spawn_distance` aus `wasm_bridge` in das Platzierungsmodul verschoben und die Tier-Verzweigung als `build_boid` zusammengeführt, damit die freie Platzierung der ersten Flock und die Tore nicht auseinanderlaufen; Frontend zeichnet den Platzhalter (`renderer/spawnMarkerLayer.js` plus importfreie Arithmetik in `spawnMarkerPulse.js`), Ring **schrumpft** hier statt zu wachsen wie beim Hindernis; 24 neue Rust-Zusicherungen, 11 neue WASM-Vertragstests in `wasm_wave_spawn_tests.rs`, 19 neue Frontend-Zusicherungen, Sichtprüfung über einen temporären Playwright-Screenshot bei 00:30 und 00:32 |
+
 ## Entscheidungen
+
+### 2026-08-03 — Die Welle wird angekündigt, statt nur weiter weg zu spawnen
+
+**Gewählt:** Jede Welle ab der zweiten betritt die Welt durch drei Tore auf dem
+Weltrand, und jedes Tor wird 120 Simulationsschritte (2 s) vorher gezeichnet, bevor
+irgendetwas darin existiert. `set_wave` kündigt nur an; die Boids kommen aus einer
+Warteschlange, die `tick()` abarbeitet.
+
+**Verworfen — die Sperrscheibe um den Spieler vergrößern.** Die naheliegende Antwort auf
+„ein Boid ist vor mir erschienen" ist ein größerer `safe_spawn_distance`. Sie hilft
+nicht, und zwar aus einem Grund, der sich nicht durch einen größeren Wert beheben lässt:
+Der Abstand wird **im Moment des Spawns** gemessen, der Spieler bewegt sich aber weiter.
+Wer mit Dash auf die Stelle zufliegt, ist eine halbe Sekunde später dort — bei jedem
+Radius. Zusätzlich ist die Scheibe in einer 1920×1080-Arena schon bei 340 px ein
+erheblicher Teil der Fläche; groß genug, um das Problem wirklich zu lösen, wäre sie
+größer als die Arena.
+
+**Verworfen — nur eine Warnzeit, Platzierung wie bisher.** Ein Marker mitten in der
+Arena beantwortet „wo" erst, wenn man ihn gefunden hat. Bei bis zu neunzig bewegten
+Boids ist das genau die Suche, die die Warnzeit auffressen würde. Auf dem Rand liegt der
+Marker dagegen dort, wo die Aufmerksamkeit ohnehin peripher ist, und die Richtung ist
+ohne Suchen ablesbar.
+
+**Verworfen — ein Marker pro Tor statt pro Boid.** Wäre weniger Zeichenarbeit, sagt aber
+nur „hier ungefähr". Die Boids eines Tores stehen ~28 px auseinander, der Glow reicht
+34 px — die Marker überlappen von sich aus zu einem Bogen, und der helle Punkt in jedem
+markiert weiterhin die exakte Position. Das Tor braucht damit auf keiner Seite der
+Grenze ein eigenes Konzept.
+
+**Warum:** Die beiden Fragen „wo" und „wann" werden von derselben Mechanik beantwortet,
+und beide brauchen, dass die Position **vor** dem Spawn festgelegt wird. Genau daran
+scheitern die Alternativen: Solange die Position erst beim Erscheinen entsteht, kann man
+sie nicht vorher zeigen.
+
+**Folge:** `entity_count` hinkt der Wellennummer zwei Sekunden nach — die HUD-Zahl zeigt
+während der Warnung die alte Anzahl. Das ist keine Ungenauigkeit, sondern die Wahrheit
+darüber, wie viele Boids in der Arena sind, und der Vertrag von `spawn_markers` sagt es
+ausdrücklich. Zweite Folge: Das Warnfenster zählt in Simulationsschritten, nicht in
+Wandzeit, und erbt damit alle vier Freeze-Fälle gratis — eine pausierte Runde hält ihre
+Ankündigung, statt die Welle im Hintergrund hereinzulassen. Dritte Folge: `resize()`
+verschiebt anhängige Marker **nicht**; sie liegen für höchstens zwei Sekunden am alten
+Rand, und die Boids werden beim ersten Schritt vom Welt-Wrap hereingeholt. Das Spiel ruft
+`resize()` nicht auf, und ein Umplatzieren wäre Code für einen Fall, den es nicht gibt.
+
+→ Kap. 4, 5
 
 ### 2026-08-03 — Der Dash-Cooldown steht zweimal im Bild, das Label nur einmal
 

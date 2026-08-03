@@ -15,3 +15,6 @@ pub mod overlap;
 pub mod physics;
 pub mod rules;
 pub mod steering;
+pub mod wave_spawn;
+pub mod wave_spawn_placement;
+pub mod world_edge;

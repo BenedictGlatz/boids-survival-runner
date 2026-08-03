@@ -98,7 +98,13 @@ export function snapshot() {
 }
 
 /**
- * Advances to a new wave: spawns its boid variants away from the player.
+ * Announces a new wave at the gates on the world edge it will arrive through.
+ *
+ * Nothing enters the world here. The engine holds the wave for a warning window during
+ * which it is only the markers in `frame.spawnMarkers`, and lets the boids in as the
+ * simulation steps on — so `frame.entityCount` deliberately lags the wave number for
+ * about two seconds. The player position decides where the gates open, which is why it
+ * has to be the current one.
  * @param {number} wave - The new wave number.
  * @param {{x: number, y: number}} playerPosition - Current player position.
  */
@@ -119,6 +125,11 @@ function normalizeFrameResponse(response, attemptedPosition) {
     dashPhases: response.dash_phases(),
     obstacleCount: response.obstacle_count,
     obstacles: response.obstacles(),
+    // Where the next wave will come in, for as long as it has not come in yet. Empty on
+    // almost every frame — a wave is only announced for about two of the thirty seconds
+    // between waves.
+    spawnMarkerCount: response.spawn_marker_count,
+    spawnMarkers: response.spawn_markers(),
     obstacleHit: response.obstacle_hit,
     // Falls back to the attempted position for a snapshot, which resolves nothing, so
     // callers never have to check which kind of frame they are holding.

@@ -26,9 +26,10 @@ cd engine && cargo llvm-cov --lib --html      # engine/target/llvm-cov/html/inde
 # A single Rust test
 cd engine && cargo test update_wraps_boids_at_world_edges
 
-# WASM boundary tests in engine/tests/ — the four-buffer contract (wasm_tests.rs) and
-# the obstacle buffer plus player collision (wasm_obstacle_tests.rs).
-# `cargo test` reports 0 tests for this file; only wasm-pack actually runs it.
+# WASM boundary tests in engine/tests/ — the four-buffer contract (wasm_tests.rs), the
+# obstacle buffer plus player collision (wasm_obstacle_tests.rs), and the wave spawn
+# warning (wasm_wave_spawn_tests.rs).
+# `cargo test` reports 0 tests for these files; only wasm-pack actually runs them.
 cd engine && wasm-pack test --headless --firefox
 cd engine && wasm-pack test --headless --chrome   # if Firefox is unavailable
 
@@ -118,7 +119,8 @@ modules and out of `engine/tests/`, which only ever runs under `wasm-pack`.
 about the WASM boundary, and that is exactly how `wasm_tests.rs` sat as an empty stub for two months
 without any signal. The boundary is only checked by `wasm-pack test`. Second, `cargo llvm-cov`
 instruments the host target, so those tests do **not** raise the Rust coverage figure:
-`wasm_bridge/response.rs` still reports 0 % while being covered by 21 browser tests. The number understates reality there, and any report of it has to
+`wasm_bridge/response.rs` still reports 0 % while every buffer it returns is covered by the browser
+tests in `engine/tests/`. The number understates reality there, and any report of it has to
 say so rather than leaving the two facts side by side looking contradictory.
 
 ## Architecture
@@ -144,6 +146,13 @@ Owns _all_ simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
   (`Idle → Charging → Dashing → Cooling`), its tuning, the per-tier ramp, and `dash_render_phase`,
   the single number the frontend draws the warning pulse from. Durations count in **simulation
   steps**, never milliseconds.
+- `simulation/wave_spawn.rs` + `wave_spawn_placement.rs` — every wave after the first is
+  **announced before it exists**. Placement puts three gates on the world edge (the perimeter
+  is one number walked clockwise, so a gate slides along it and rounds corners by addition)
+  and keeps each clear of the player; the queue holds the boids for `WAVE_SPAWN_WARNING_STEPS`
+  and hands them over once that has elapsed. `set_wave` therefore adds **nothing** to the
+  world — `entity_count` deliberately lags the wave number by the warning window, because
+  that is how many boids are actually in the arena.
 - `simulation/dash_selection.rs` — who dashes next, derived deterministically from
   `Flock::step_counter` with the same integer-hash trick as `find_spawn_position`. There is no `rand`
   dependency anywhere in the engine, and adding one would break reproducibility.
@@ -155,9 +164,16 @@ Owns _all_ simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
   advances each boid's dash state, applies weighted rules (a dashing boid gets separation only —
   cohesion, alignment and seeking are off, which is what makes it break out of the swarm),
   integrates, wraps at world edges, relaxes overlaps, then counts player hits. O(n²) in the boid count.
-- `wasm_bridge/` — the only `#[wasm_bindgen]` surface. `GameEngine` owns the flock, world bounds,
-  wave state, and reusable output buffers; `create_boid_for_wave` / `properties_for_difficulty_tier`
-  derive per-wave variants; `find_spawn_position` keeps new boids a safe distance from the player.
+- `wasm_bridge/` — the only `#[wasm_bindgen]` surface. `GameEngine` owns the flock, the obstacle
+  field, the wave spawn queue, world bounds, wave state, and the reusable output buffers.
+  `boid_factory.rs` sits beside it and answers the one question none of the simulation modules do —
+  given a wave number, what kind of boid is that: `difficulty_tier_for_wave` /
+  `properties_for_difficulty_tier` are the design ramp, `build_boid` is the single place a tier
+  becomes a boid (shared by the first flock and the spawn gates, so they cannot drift), and
+  `find_spawn_position` is the free placement **only the first flock** still uses.
+- `simulation/world_edge.rs` — the world border as one number walked clockwise, plus
+  `safe_spawn_distance`. Shared by both placement rules and testable by walking the whole perimeter
+  without a wave number in sight.
 
 ### Frontend — `frontend/src/` (ES modules, Vite)
 
@@ -175,6 +191,11 @@ Owns rendering, input, game state, and UI. Contains **no** simulation math.
   impulse survives the per-step speed clamp by temporarily raising the limit.
 - `player/dashCooldown.js`, `renderer/dashPulse.js` — the dash's import-free arithmetic, split out so
   it is testable under Vitest in the same way `loop/frameGraphScale.js` is.
+- `renderer/spawnMarkerLayer.js` + `spawnMarkerPulse.js` — the gates the next wave will arrive
+  through, decoded from `frame.spawnMarkers`. The graphic is an explicit **placeholder** (a red
+  glow); the arithmetic is split out for Vitest the same way `dashPulse.js` is. Its ring
+  _shrinks_ onto the spawn point, the inverse of the obstacle spawn ring, because an obstacle is
+  already where it will be and a marker points at somewhere still empty.
 - `renderer/renderer.js` → `renderer/canvasRenderer.js` — indirection so a WebGL backend could
   replace the canvas one without touching callers.
 - `loop/simulationStep.js` — the body of one fixed step. The only module in `loop/` without a unit
@@ -215,6 +236,15 @@ index-aligned, four buffers in total. Keep the interface minimal and strongly ty
 objects or per-entity structs across. `dash_phases` shows the pattern for packing a per-boid render
 state into one number: `0` means nothing to draw, a positive value is charge-up progress and a
 negative one is dash-remaining, so the sign carries the state and no second buffer is needed.
+
+Two further buffers are **not** index-aligned with those four, because there is no relationship
+between the boid count and how many of them exist: `obstacles` (`OBSTACLE_STRIDE` = 7) and
+`spawn_markers` (`SPAWN_MARKER_STRIDE` = 3). Each carries its own count. Their strides are
+duplicated in `gameConfig.js` and asserted on by the boundary tests, which is the point of the
+duplication. The sign trick is deliberately _absent_ from `spawn_markers`: an entry only exists
+while that spawn is pending, so the count already says how many there are and every value in the
+buffer is real — reach for the sign only when one number has to encode a state _and_ a "nothing
+here".
 
 Note that `INITIAL_BOID_COUNT` is duplicated in `engine/src/constants.rs` and
 `frontend/src/gameConfig.js` — keep the two in sync when changing it.

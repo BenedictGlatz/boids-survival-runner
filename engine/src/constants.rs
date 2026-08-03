@@ -41,6 +41,68 @@ pub const WAVE_BOID_INCREMENT: u32 = 12;
 /// Maximum difficulty tier used for boid variants and colours.
 pub const MAX_BOID_DIFFICULTY_TIER: u32 = 4;
 
+// ---------------------------------------------------------------------------
+// Wave spawn gates
+//
+// Every wave after the first arrives through a handful of gates on the world edge,
+// and each gate is announced before it opens. Two problems are solved by the same
+// mechanism, which is why it replaced the old free placement rather than being added
+// next to it:
+//
+//  - *Where.* A wave used to appear anywhere in the world that was far enough from
+//    the player. "Far enough" is measured at the instant of spawning, so a player
+//    already flying towards that spot met a boid that had materialised in front of
+//    them. On the edge there is nothing for the player to be flying into: they are
+//    inside the arena, and a boid coming in from the border always approaches from
+//    somewhere the player can see it come.
+//  - *When.* The gate is drawn for the length of the warning window below while
+//    nothing is there yet, so the arrival is announced instead of happening.
+//
+// Durations count in simulation steps for the same reason the dash and obstacle ones
+// do: tick() advances exactly one fixed step and never scales by delta time.
+// ---------------------------------------------------------------------------
+
+/// How long a gate is shown before its boids appear (2 seconds at 60 steps/second).
+///
+/// Deliberately longer than `OBSTACLE_ARMING_STEPS`: an obstacle is one thing to
+/// steer around, a gate is a dozen boids to be somewhere else for.
+pub const WAVE_SPAWN_WARNING_STEPS: u32 = 120;
+
+/// How many places along the world edge one wave arrives from.
+///
+/// A single gate would let the player park on the far side of the arena and wait; one
+/// gate per boid would be a ring of markers rather than a readable warning. Three
+/// splits the wave into groups small enough to dodge and spread far enough apart that
+/// no corner of the world is safe.
+pub const WAVE_SPAWN_GATE_COUNT: u32 = 3;
+
+/// How far along the edge the boids of one gate are spread out.
+///
+/// Wide enough that they do not all launch from one point, narrow enough that the
+/// glow of the announcement still reads as a single gate.
+pub const WAVE_SPAWN_GATE_SPREAD: f32 = 84.0;
+
+/// How far inside the world edge a gate sits.
+///
+/// Not zero, so a boid is fully inside the arena on its first step and is drawn whole
+/// rather than half over the border.
+pub const WAVE_SPAWN_EDGE_INSET: f32 = 10.0;
+
+/// Positions tried along the perimeter before a gate settles for the best it found.
+///
+/// A gate has to keep the safe spawn distance from the player, and a player standing
+/// against a wall is exactly where that fails. Nudging the gate along the edge is what
+/// resolves it; this is how many nudges are tried.
+pub const WAVE_SPAWN_GATE_PLACEMENT_ATTEMPTS: u32 = 16;
+
+/// How far the launch direction of a boid is bent sideways off the straight line into
+/// the world.
+///
+/// Zero would send every boid of a gate along parallel tracks, which reads as a
+/// formation rather than a swarm. Alternating the sign fans the group out over its
+/// first second of flight.
+pub const WAVE_SPAWN_LATERAL_SHARE: f32 = 0.35;
+
 /// Radius used to keep boids from visually stacking on top of each other.
 ///
 /// The relaxation holds twice this value between two boid centres, so 6 means a

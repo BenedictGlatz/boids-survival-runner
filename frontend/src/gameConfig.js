@@ -113,6 +113,67 @@ export const OBSTACLE_STRIDE = 7;
  */
 export const OBSTACLE_FADE_SHARE = 0.06;
 
+// ---------------------------------------------------------------------------
+// Wave spawn markers
+//
+// Every wave after the first is announced at the world edge before it arrives, and the
+// engine owns all of that: where a gate opens, how long the warning lasts, and when the
+// boids are let in. What is left here is only what the renderer needs to decode and draw
+// the announcement.
+//
+// The look is a placeholder — a plain red glow, deliberately not a SIGNAL design-system
+// component yet. It is here to make the mechanic visible and testable; the final graphic
+// replaces the drawing in `renderer/spawnMarkerLayer.js` without touching anything else.
+// ---------------------------------------------------------------------------
+
+/**
+ * Values per marker in the engine's spawn-marker buffer: `[x, y, warningProgress]`.
+ *
+ * Duplicated in `engine/src/wasm_bridge/mod.rs` and asserted on by the WASM boundary
+ * tests, the same way `OBSTACLE_STRIDE` is — keep the two in sync.
+ */
+export const SPAWN_MARKER_STRIDE = 3;
+
+/**
+ * How far the glow of one marker reaches, in world units.
+ *
+ * Chosen against the engine's `WAVE_SPAWN_GATE_SPREAD` (84) and the four boids a gate
+ * usually holds: at roughly 28 units apart, glows this wide overlap into a single arc
+ * along the edge, which is what makes a gate read as one arrival rather than as four
+ * separate dots. It is therefore the one value here that must not be lowered without
+ * looking at that spread again.
+ */
+export const SPAWN_MARKER_RADIUS = 34;
+
+/**
+ * How much of the glow is already there when a wave is announced.
+ *
+ * A marker that started at nothing would be invisible for the first half of exactly the
+ * window it exists to fill. It ramps from here to full over the warning instead, so the
+ * arrival still reads as approaching.
+ */
+export const SPAWN_MARKER_MINIMUM_INTENSITY = 0.35;
+
+/**
+ * How much larger the marker's outer ring is than the glow at the moment of announcement,
+ * and how far it has closed in by the time the boids arrive.
+ *
+ * The ring collapsing onto the spawn point is the part that carries *when*: a glow alone
+ * brightens, which reads as intensity rather than as a countdown.
+ */
+export const SPAWN_MARKER_RING_START_SCALE = 2.2;
+export const SPAWN_MARKER_RING_END_SCALE = 1;
+
+/**
+ * Beats per second of the marker's flicker, and how much of its brightness that flicker
+ * takes away at the trough.
+ *
+ * Presentation rather than simulation, so it runs on wall time like the power-up spin —
+ * the warning's actual timing is the ring, which comes from the engine.
+ */
+export const SPAWN_MARKER_PULSE_HZ = 2.4;
+export const SPAWN_MARKER_PULSE_DEPTH = 0.22;
+
 /**
  * How much of the velocity that ran into an obstacle comes back the other way when the
  * player hits it.
