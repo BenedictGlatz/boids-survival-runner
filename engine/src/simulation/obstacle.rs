@@ -20,6 +20,14 @@ pub struct Obstacle {
     /// Steps left of the red flash that tells the player they just hit this obstacle.
     /// Zero means there is nothing to highlight.
     pub hit_flash_steps: u32,
+    /// Steps this obstacle spends materialising before it becomes solid, and how many
+    /// of them are left. Both zero means it is solid straight away.
+    ///
+    /// The state lives here and the rules that read it live in `obstacle_arming.rs`,
+    /// the same split the boid dash uses: `Boid` holds `dash_state` while `dash.rs`
+    /// owns the machine.
+    pub arming_steps: u32,
+    pub remaining_arming_steps: u32,
 }
 
 /// Where a point sits relative to an obstacle's surface.
@@ -33,7 +41,11 @@ pub struct SurfaceContact {
 }
 
 impl Obstacle {
-    /// Creates an obstacle with a full lifetime ahead of it.
+    /// Creates a solid obstacle with a full lifetime ahead of it.
+    ///
+    /// Solid from the first step: the materialising window is not part of the geometry
+    /// and is put on afterwards by `begin_arming`, which is what every obstacle that
+    /// joins the world through `ObstacleField` goes through.
     pub fn new(spine_start: Vec2, spine_end: Vec2, radius: f32, lifetime_steps: u32) -> Self {
         Self {
             spine_start,
@@ -42,6 +54,8 @@ impl Obstacle {
             lifetime_steps,
             remaining_steps: lifetime_steps,
             hit_flash_steps: 0,
+            arming_steps: 0,
+            remaining_arming_steps: 0,
         }
     }
 
@@ -50,11 +64,12 @@ impl Obstacle {
         Self::new(centre, centre, radius, lifetime_steps)
     }
 
-    /// Counts one simulation step off this obstacle's remaining life, and off the
-    /// hit flash if one is running.
+    /// Counts one simulation step off this obstacle's remaining life, off the hit
+    /// flash if one is running, and off the materialising window if it is still open.
     pub fn age_one_step(&mut self) {
         self.remaining_steps = self.remaining_steps.saturating_sub(1);
         self.hit_flash_steps = self.hit_flash_steps.saturating_sub(1);
+        self.remaining_arming_steps = self.remaining_arming_steps.saturating_sub(1);
     }
 
     /// Starts the red flash that signals the player just ran into this obstacle.

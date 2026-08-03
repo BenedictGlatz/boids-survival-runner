@@ -154,8 +154,23 @@ pub const MAXIMUM_DASH_SELECTION_DISTANCE: f32 = 340.0;
 // tick() advances exactly one fixed step and never scales by delta time.
 // ---------------------------------------------------------------------------
 
-/// How long an obstacle stays in the world (30 seconds at 60 steps per second).
+/// How long an obstacle stays in the world (40 seconds at 60 steps per second).
 pub const DEFAULT_OBSTACLE_LIFETIME_STEPS: u32 = 2400;
+
+/// How long a new obstacle spends materialising before it can be collided with
+/// (1.5 seconds at 60 steps per second).
+///
+/// **This is the fair-play window.** An obstacle is placed at a distance from the
+/// player, but nothing stops the player from flying towards that spot, so an obstacle
+/// that was solid the instant it appeared could take a life away for a move the player
+/// had already committed to. For the length of this window it is drawn but inert: the
+/// spawn animation the frontend runs off `obstacle_render_phase` is exactly this window,
+/// which is what makes the warning honest rather than decorative.
+///
+/// Long enough to be seen and steered away from at full speed even at the lowest
+/// supported frame rate, and short enough to stay a small share of the lifetime above —
+/// an obstacle that stayed passable for long would be a shortcut rather than a warning.
+pub const OBSTACLE_ARMING_STEPS: u32 = 90;
 
 /// The narrowest gap ever left between two obstacles, and between an obstacle and
 /// a world edge.

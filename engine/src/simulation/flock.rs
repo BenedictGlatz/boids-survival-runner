@@ -2,7 +2,7 @@ use super::boid::Boid;
 use super::dash::{advance_dash_state, begin_dash_charge, is_dashing, step_speed_limit};
 use super::dash_selection::select_dash_group;
 use super::obstacle::Obstacle;
-use super::obstacle_collision::push_boids_out_of_obstacles;
+use super::obstacle_pushout::push_boids_out_of_obstacles;
 use super::overlap::{resolve_boid_overlaps, wrap_position};
 use super::physics::{aabb_overlap, clamp_force, integrate};
 use super::steering::{dash_steering, flocking_steering};

@@ -27,11 +27,12 @@ const COLOR_TOLERANCE = 16;
 const ENOUGH_PIXELS = 250;
 
 /**
- * Time for a new obstacle to finish fading in, plus slack.
+ * Time for a new obstacle to finish materialising, plus slack.
  *
- * An obstacle ramps up to full opacity over the first slice of its life, so sampling
- * the moment the countdown ends would find it still translucent and blended halfway
- * towards the background — nowhere near the colour this spec looks for.
+ * An obstacle ramps up to full opacity over the engine's arming window — 90 simulation
+ * steps, 1.5 seconds — and is not solid until it ends. Sampling the moment the countdown
+ * ends would find it still translucent and blended halfway towards the background,
+ * nowhere near the colour this spec looks for.
  */
 const FADE_IN_MS = 2500;
 

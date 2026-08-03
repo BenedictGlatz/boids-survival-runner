@@ -1,9 +1,11 @@
 use super::obstacle::Obstacle;
+use super::obstacle_arming::begin_arming;
 use super::obstacle_density::obstacle_density_for_wave;
 use super::obstacle_rules::candidate_is_acceptable;
 use super::obstacle_spawn::build_spawn_candidate;
 use crate::constants::{
-    DEFAULT_OBSTACLE_LIFETIME_STEPS, MINIMUM_CORRIDOR_WIDTH, OBSTACLE_SPAWN_ATTEMPTS,
+    DEFAULT_OBSTACLE_LIFETIME_STEPS, MINIMUM_CORRIDOR_WIDTH, OBSTACLE_ARMING_STEPS,
+    OBSTACLE_SPAWN_ATTEMPTS,
 };
 use crate::math::vector::Vec2;
 
@@ -60,7 +62,7 @@ impl ObstacleField {
         let spawn_round = (step_counter / density.spawn_interval_steps) as u64;
 
         for attempt in 0..OBSTACLE_SPAWN_ATTEMPTS {
-            let candidate = build_spawn_candidate(
+            let mut candidate = build_spawn_candidate(
                 spawn_round,
                 attempt,
                 world_width,
@@ -75,6 +77,12 @@ impl ObstacleField {
                 world_width,
                 world_height,
             ) {
+                // Every obstacle joins the world materialising rather than solid, so the
+                // spawn animation is a real warning: the player cannot lose a life to
+                // something that appeared in front of them a moment ago. The window is
+                // opened here, at the one place an obstacle enters the world, and not in
+                // `build_spawn_candidate`, which is only about geometry.
+                begin_arming(&mut candidate, OBSTACLE_ARMING_STEPS);
                 self.obstacles.push(candidate);
                 return;
             }
@@ -100,6 +108,7 @@ impl ObstacleField {
 mod tests {
     use super::*;
     use crate::constants::{DEFAULT_OBSTACLE_SPAWN_INTERVAL_STEPS, MAXIMUM_CONCURRENT_OBSTACLES};
+    use crate::simulation::obstacle_arming::is_armed;
 
     const WORLD_WIDTH: f32 = 1600.0;
     const WORLD_HEIGHT: f32 = 900.0;
@@ -131,6 +140,32 @@ mod tests {
 
         run_steps(&mut field, 1, DEFAULT_OBSTACLE_SPAWN_INTERVAL_STEPS);
         assert!(field.len() > 0);
+    }
+
+    #[test]
+    fn a_freshly_spawned_obstacle_is_not_solid_yet_and_turns_solid_on_its_own() {
+        // The fair-play window seen from the field: whatever the spawn rule produces
+        // enters the world inert, and nothing has to be done for it to become solid.
+        let mut field = ObstacleField::new();
+
+        run_steps(&mut field, 1, DEFAULT_OBSTACLE_SPAWN_INTERVAL_STEPS);
+        assert!(field.len() > 0, "no obstacle appeared to check");
+        for obstacle in &field.obstacles {
+            assert!(!is_armed(obstacle));
+        }
+
+        // Continuing from where the run above stopped, so the ageing is not restarted.
+        for step in 1..=OBSTACLE_ARMING_STEPS {
+            field.update(
+                DEFAULT_OBSTACLE_SPAWN_INTERVAL_STEPS + step,
+                1,
+                PLAYER,
+                WORLD_WIDTH,
+                WORLD_HEIGHT,
+            );
+        }
+
+        assert!(is_armed(&field.obstacles[0]));
     }
 
     #[test]

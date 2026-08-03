@@ -1,5 +1,6 @@
 use super::boid::Boid;
 use super::obstacle::Obstacle;
+use super::obstacle_arming::is_armed;
 use crate::constants::{OBSTACLE_LOOK_AHEAD_SHARE, OBSTACLE_TANGENT_SHARE};
 use crate::math::vector::Vec2;
 
@@ -134,6 +135,13 @@ pub fn avoid_obstacles(boid: &Boid, obstacles: &[Obstacle]) -> Vec2 {
     }
 
     for obstacle in obstacles {
+        // An obstacle that is still materialising is not in the world yet. Steering
+        // around it early would have the flock part in front of empty space, and it
+        // would tell the player the thing is solid before it is.
+        if !is_armed(obstacle) {
+            continue;
+        }
+
         let contact = obstacle.contact_with_point(boid.position, 0.0);
 
         if contact.surface_distance >= look_ahead {
@@ -167,6 +175,7 @@ pub fn avoid_obstacles(boid: &Boid, obstacles: &[Obstacle]) -> Vec2 {
 mod tests {
     use super::*;
     use crate::simulation::boid::BoidProperties;
+    use crate::simulation::obstacle_arming::begin_arming;
 
     #[test]
     fn separation_uses_the_current_boids_perception_radius() {
@@ -264,6 +273,16 @@ mod tests {
         let boid = boid_flying_right(Vec2::zero());
 
         assert_eq!(avoid_obstacles(&boid, &[wall_at(400.0)]), Vec2::zero());
+    }
+
+    #[test]
+    fn avoid_obstacles_ignores_an_obstacle_that_is_still_materialising() {
+        // It is not in the world yet, so the flock must not part in front of it.
+        let boid = boid_flying_right(Vec2::zero());
+        let mut appearing = wall_at(60.0);
+        begin_arming(&mut appearing, 90);
+
+        assert_eq!(avoid_obstacles(&boid, &[appearing]), Vec2::zero());
     }
 
     #[test]

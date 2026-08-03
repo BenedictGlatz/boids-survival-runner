@@ -11,6 +11,7 @@ use crate::math::vector::Vec2;
 use crate::simulation::boid::{Boid, BoidProperties};
 use crate::simulation::dash::{dash_properties_for_difficulty_tier, dash_render_phase};
 use crate::simulation::flock::Flock;
+use crate::simulation::obstacle_arming::obstacle_render_phase;
 use crate::simulation::obstacle_collision::resolve_player_movement;
 use crate::simulation::obstacle_field::ObstacleField;
 use wasm_bindgen::prelude::*;
@@ -221,15 +222,16 @@ impl GameEngine {
         // OBSTACLE_STRIDE values each, in this order. There is no shape flag: a
         // circular obstacle has both spine points in the same place, which the
         // frontend draws as a round line cap without a branch of its own. The last two
-        // values are the two render states an obstacle can be in — fading over its
-        // life, and flashing red after a hit — one float each.
+        // values are the render states an obstacle can be in — materialising, fading
+        // out at the end of its life, and flashing red after a hit — one float each,
+        // the first of them signed the way the dash phase is.
         for obstacle in &self.obstacle_field.obstacles {
             self.obstacles_buffer.push(obstacle.spine_start.x);
             self.obstacles_buffer.push(obstacle.spine_start.y);
             self.obstacles_buffer.push(obstacle.spine_end.x);
             self.obstacles_buffer.push(obstacle.spine_end.y);
             self.obstacles_buffer.push(obstacle.radius);
-            self.obstacles_buffer.push(obstacle.life_fraction());
+            self.obstacles_buffer.push(obstacle_render_phase(obstacle));
             self.obstacles_buffer.push(obstacle.hit_flash());
         }
 

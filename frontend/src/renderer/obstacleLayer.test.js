@@ -35,8 +35,8 @@ function makeContextStub() {
 
 /**
  * A frame holding obstacles built from
- * `[startX, startY, endX, endY, radius, life, hitFlash]`. A shorter array leaves the
- * values it omits at zero, so an obstacle nobody hit is written without a flash.
+ * `[startX, startY, endX, endY, radius, renderPhase, hitFlash]`. A shorter array leaves
+ * the values it omits at zero, so an obstacle nobody hit is written without a flash.
  */
 function frameWith(...obstacles) {
   const buffer = new Float32Array(obstacles.length * OBSTACLE_STRIDE);
@@ -49,8 +49,11 @@ function frameWith(...obstacles) {
 const SOLID = 0.5;
 /** Inside the closing fade window (`OBSTACLE_FADE_SHARE` is 0.06), halfway through it. */
 const EXPIRING = 0.03;
-/** Inside the opening fade window, halfway through it. */
-const SPAWNING = 0.97;
+/**
+ * Halfway through the engine's arming window: the render phase is negative for as long
+ * as an obstacle is still materialising, and -0.5 is halfway along that ramp.
+ */
+const SPAWNING = -0.5;
 
 /** Wide enough for the darkened core, and thin enough to lose it. */
 const THICK_RADIUS = 30;
@@ -208,6 +211,18 @@ describe('drawObstacles', () => {
     const widths = widthsOf(ctx);
     expect(widths).toHaveLength(5);
     expect(widths[0]).toBeGreaterThan(THICK_RADIUS * 2);
+  });
+
+  it('draws no spawn ring for a solid obstacle at the start of its life', () => {
+    // The guard on the phase itself: a render phase just under 1 used to mean "appearing"
+    // and now means "solid and fresh". Announcing this one would put the halo on an
+    // obstacle that already costs a life, and take it off the window that does not.
+    const ctx = makeContextStub();
+
+    drawObstacles(ctx, frameWith([100, 200, 400, 200, THICK_RADIUS, 1]));
+
+    expect(widthsOf(ctx)).toHaveLength(3);
+    expect(widthsOf(ctx)[0]).toBe(THICK_RADIUS * 2);
   });
 
   it('draws no extra strokes for an obstacle nobody hit', () => {

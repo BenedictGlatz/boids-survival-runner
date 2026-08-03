@@ -6,28 +6,30 @@ const FADE_SHARE = 0.1;
 
 describe('obstacleFadeLevel', () => {
   it('starts invisible the instant an obstacle appears', () => {
-    // The life fraction is exactly 1 on the first frame, so a fade that already
+    // The render phase is exactly -1 on the first frame, so a fade that already
     // returned 1 there would pop the obstacle in rather than announce it.
-    expect(obstacleFadeLevel(1, FADE_SHARE)).toBe(0);
+    expect(obstacleFadeLevel(-1, FADE_SHARE)).toBe(0);
   });
 
-  it('is fully solid once the fade-in has finished', () => {
-    // toBeCloseTo exactly on the boundary: 1 - 0.1 is not representable, so the
-    // division lands a few bits under 1. Anywhere past it the result is exact.
-    expect(obstacleFadeLevel(1 - FADE_SHARE, FADE_SHARE)).toBeCloseTo(1, 6);
+  it('ramps up over the materialising window', () => {
+    // What the player reads as the warning. The window belongs to the engine, so the
+    // ramp has to follow the phase alone and ignore the fade share entirely.
+    const early = obstacleFadeLevel(-0.75, FADE_SHARE);
+    const later = obstacleFadeLevel(-0.25, FADE_SHARE);
+
+    expect(early).toBeCloseTo(0.25, 6);
+    expect(later).toBeCloseTo(0.75, 6);
+    expect(later).toBeGreaterThan(early);
+  });
+
+  it('is fully solid as soon as the obstacle stops materialising', () => {
+    // The two phases have to meet at full opacity, or the obstacle would flicker on the
+    // step it becomes solid — which is the step it starts costing a life.
+    expect(obstacleFadeLevel(1, FADE_SHARE)).toBe(1);
     expect(obstacleFadeLevel(0.5, FADE_SHARE)).toBe(1);
   });
 
-  it('ramps up over the first slice of the lifetime', () => {
-    const early = obstacleFadeLevel(1 - FADE_SHARE * 0.25, FADE_SHARE);
-    const later = obstacleFadeLevel(1 - FADE_SHARE * 0.75, FADE_SHARE);
-
-    expect(early).toBeGreaterThan(0);
-    expect(later).toBeGreaterThan(early);
-    expect(later).toBeLessThan(1);
-  });
-
-  it('ramps back down over the last slice', () => {
+  it('ramps back down over the last slice of the lifetime', () => {
     const fading = obstacleFadeLevel(FADE_SHARE * 0.5, FADE_SHARE);
 
     expect(fading).toBeCloseTo(0.5, 6);
@@ -36,29 +38,24 @@ describe('obstacleFadeLevel', () => {
 
   it('is invisible once the obstacle has expired', () => {
     expect(obstacleFadeLevel(0, FADE_SHARE)).toBe(0);
-    expect(obstacleFadeLevel(-0.5, FADE_SHARE)).toBe(0);
   });
 
   it('never reports more than fully solid, whatever it is handed', () => {
-    // The engine promises a value in (0, 1], but an opacity above 1 would throw off
-    // every colour built from it rather than simply looking wrong.
-    expect(obstacleFadeLevel(4, FADE_SHARE)).toBeLessThanOrEqual(1);
+    // The engine promises a value in [-1, 1] without 0, but an opacity above 1 would
+    // throw off every colour built from it rather than simply looking wrong.
+    expect(obstacleFadeLevel(4, FADE_SHARE)).toBe(1);
+    expect(obstacleFadeLevel(-4, FADE_SHARE)).toBe(0);
   });
 
-  it('draws solid throughout when there is no fade configured', () => {
+  it('draws solid throughout when there is no closing fade configured', () => {
     expect(obstacleFadeLevel(1, 0)).toBe(1);
     expect(obstacleFadeLevel(0.5, 0)).toBe(1);
   });
 
-  it('survives a fade share so long the two ramps overlap', () => {
-    // With a fade share above one half the obstacle is always fading at one end or
-    // the other. It should stay in range rather than exceeding 1 in the middle.
-    for (let life = 0; life <= 1; life += 0.05) {
-      const level = obstacleFadeLevel(life, 0.9);
-
-      expect(level).toBeGreaterThanOrEqual(0);
-      expect(level).toBeLessThanOrEqual(1);
-    }
+  it('still fades a materialising obstacle in without a closing fade', () => {
+    // The two ends are independent now: the appearing ramp is the engine's window and
+    // must survive a fade share of zero.
+    expect(obstacleFadeLevel(-0.5, 0)).toBeCloseTo(0.5, 6);
   });
 
   it('treats missing numbers as nothing to draw', () => {

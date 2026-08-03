@@ -85,7 +85,39 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-02 | 3,5 | T-08 | Pixelpaket umgesetzt, nachdem die Hardware ausgemessen war (AMD Radeon 860M als integrierte GPU, Panel 2880×1800, Windows-Skalierung 200 % ⇒ `devicePixelRatio` 2, aktuell 60 Hz): Arena, beide Gitter und Weltkante werden in `renderer/arenaBackground.js` einmal je Resize in ein Offscreen-Canvas in Gerätepixeln gebacken und pro Bild als ein `drawImage` ausgegeben — aus drei Vollflächen-Durchgängen plus 66 Gitterstrichen wird ein Blit; die zusammengesetzte Transformation dafür als `worldTransformMatrix` aus `canvasRenderer._applyWorldTransform` nach `renderer/worldTransform.js` gezogen, weil sichtbares und gebackenes Canvas dieselbe Matrix tragen müssen; `{ alpha: false }` auf dem Spiel-Canvas, wofür der `clear()`-Vertrag durch `hide()`/`show()` ersetzt wurde (auf deckendem Canvas malt `clearRect` schwarz statt nichts, der Menü-Hintergrund wäre verschwunden); stehende Bilder werden nur noch einmal gezeichnet (`loop/staticFrameGate.js` mit Signatur statt Boolean, damit Pause → Game-Over von selbst neu zeichnet), `renderCurrentState` dafür nach `loop/stateRenderer.js` ausgelagert (`index.js` 396 → 365); `handleResize` invalidiert das Gate, sonst bliebe eine pausierte Runde nach einem Resize schwarz; 19 neue Unit-Tests, zwei E2E-Tests umgeschrieben, zwei neue (Canvas-Sichtbarkeit über den Rundenwechsel, Pixelsonde nach Resize in der Pause) |
 
+| 2026-08-03 | 1,5 | S-07 | Hindernisse werden erst nach ihrer Spawn-Animation wirksam, weil ein direkt vor dem Spieler erscheinendes Hindernis bisher sofort ein Leben kosten konnte: neues `simulation/obstacle_arming.rs` (`begin_arming`, `is_armed`, `obstacle_render_phase`) nach dem Vorbild von `dash.rs` — der Zustand liegt als `arming_steps`/`remaining_arming_steps` am `Obstacle`, die Regeln daneben; `OBSTACLE_ARMING_STEPS` = 90 Schritte (1,5 s), abgefragt in `resolve_player_movement`, `push_boids_out_of_obstacles` und `avoid_obstacles`, bewusst **nicht** in der Platzierungsregel; der sechste Buffer-Wert ist von `life_fraction` auf ein vorzeichenbehaftetes `render_phase` umgestellt (negativ = erscheint, positiv = Restlebensdauer), damit die Einblendzeit der Engine gehoert und `OBSTACLE_FADE_SHARE` im Frontend nur noch das Ausblenden steuert; `obstacle_collision.rs` lief mit den neuen Tests auf 412 Zeilen und wurde entlang der im Kopfkommentar schon beschriebenen Naht geteilt (`obstacle_pushout.rs`); 13 neue Rust-Zusicherungen, zwei neue WASM-Vertragstests, Frontend-Fade-Tests auf die neue Signatur umgeschrieben |
+
 ## Entscheidungen
+
+### 2026-08-03 — Die Vorwarnzeit eines Hindernisses gehört der Engine, nicht dem Renderer
+
+**Gewählt:** Ein neues Hindernis betritt die Welt in einem Zustand „erscheint" und ist erst
+nach `OBSTACLE_ARMING_STEPS` fest. Diese Spanne liegt als Zustand am `Obstacle` und wird über
+das Vorzeichen des sechsten Buffer-Werts nach außen gegeben: negativ heißt „wird gerade
+eingeblendet und ist noch nicht fest", positiv ist die Restlebensdauer. Das Frontend blendet
+genau über diesen Bereich ein.
+
+**Verworfen:** die Einblendzeit weiter im Frontend zu rechnen (`OBSTACLE_FADE_SHARE` als
+Anteil der Lebensdauer) und in der Engine eine zweite, unabhängige Konstante für die
+Vorwarnzeit einzuführen. Ebenfalls verworfen: ein achter Buffer-Wert für den Zustand.
+
+**Warum:** Zwei Konstanten für dieselbe Zeitspanne sind genau der Fehler, den diese Änderung
+behebt, nur eine Ebene höher. Weichen sie voneinander ab, wird ein Hindernis fest, bevor es
+fest aussieht — die Animation wäre wieder Dekoration statt Zusicherung. Umgekehrt wäre eine
+Engine-Konstante ohne Wirkung auf die Darstellung ebenso wertlos. Das Vorzeichen genügt als
+Träger, weil `dash_phases` dasselbe seit S-05 vormacht und der Wert exakt `0` nie auftritt:
+ein erscheinendes Hindernis hat mindestens einen Arming-Schritt übrig, ein stehendes
+mindestens einen Lebensschritt. Damit bleibt es bei sieben Werten pro Hindernis, ohne
+einen weiteren Wert über die Grenze zu schicken.
+
+**Konsequenz:** Die Abfrage sitzt an den drei Stellen, an denen ein Hindernis _wirkt_ —
+Spielerkollision, Boid-Ausweichen, Herausschieben eines Boids — und bewusst **nicht** in der
+Platzierungsregel: Ein erscheinendes Hindernis belegt seinen Platz weiterhin, sonst könnte
+während der Animation ein zweites darauf gesetzt werden und die Korridor-Invariante fällt.
+Der Preis ist ein Fenster von 1,5 s, in dem ein sichtbares Hindernis durchflogen werden kann.
+Das ist die gewollte Seite des Tauschs, solange das Fenster klein gegen die Lebensdauer von
+40 s bleibt; ein längeres wäre eine Abkürzung statt einer Warnung.
+→ Kap. 4, 5
 
 ### 2026-08-02 — Die Simulationsrate wird nicht an die Bildwiederholrate gekoppelt
 

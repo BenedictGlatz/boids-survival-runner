@@ -94,7 +94,7 @@ export const PLAYER_DASH_COOLDOWN_MS = 1400;
 
 /**
  * Values per obstacle in the engine's obstacle buffer:
- * `[spineStartX, spineStartY, spineEndX, spineEndY, radius, lifeFraction, hitFlash]`.
+ * `[spineStartX, spineStartY, spineEndX, spineEndY, radius, renderPhase, hitFlash]`.
  *
  * Duplicated in `engine/src/wasm_bridge/mod.rs` and asserted on by the WASM boundary
  * tests, the same way `INITIAL_BOID_COUNT` is duplicated — keep the two in sync.
@@ -102,9 +102,14 @@ export const PLAYER_DASH_COOLDOWN_MS = 1400;
 export const OBSTACLE_STRIDE = 7;
 
 /**
- * Share of an obstacle's life spent fading in when it appears, and again fading out
- * before it goes. It has to be long enough to read as a warning rather than a pop,
- * and short enough that the obstacle is solid for most of its time on screen.
+ * Share of an obstacle's life spent fading out before it goes, so it warns instead of
+ * vanishing between two frames.
+ *
+ * The opening fade has no constant here on purpose: it runs over the engine's arming
+ * window (`OBSTACLE_ARMING_STEPS`) and is read straight off the sign of the render
+ * phase. A share chosen on this side could disagree with that window, and the obstacle
+ * would become solid before it looks solid — which is the whole thing the window
+ * prevents.
  */
 export const OBSTACLE_FADE_SHARE = 0.06;
 

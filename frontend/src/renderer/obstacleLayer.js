@@ -1,15 +1,19 @@
 /**
  * Obstacle rendering — the "Hazard Tape" look of the SIGNAL design system.
  *
- * Same buffer contract as before (`OBSTACLE_STRIDE`, `life_fraction`, `hit_flash`) and
- * the same single draw path: an obstacle is one round-capped stroke along its centre
- * line, so a circle is just a capsule whose line has zero length. No engine change.
+ * One buffer (`OBSTACLE_STRIDE`, `render_phase`, `hit_flash`) and one draw path: an
+ * obstacle is one round-capped stroke along its centre line, so a circle is just a
+ * capsule whose line has zero length.
  *
- * What is new is the stroke sequence, three instead of two:
+ * The stroke sequence is three deep:
  *  - a hatched body and a red danger edge instead of a plain slate rim,
  *  - a halo ring while it appears and an amber edge while it expires, both derived from
- *    `life_fraction` alone — no extra buffer value,
+ *    `render_phase` alone — no extra buffer value,
  *  - a white hit edge, because a red flash on an already red edge would be invisible.
+ *
+ * The appearing phase is not decoration. A negative `render_phase` means the engine has
+ * not made the obstacle solid yet, so what this draws during that window is the player's
+ * warning and the reason flying into it costs nothing.
  *
  * The hatching is the one signal that works without colour and tells an obstacle apart
  * from a hole in the ground, and it stays dark enough that the swarm keeps the visual
@@ -138,19 +142,19 @@ export function drawObstacles(ctx, frame) {
     const endX = obstacles[offset + 2];
     const endY = obstacles[offset + 3];
     const radius = obstacles[offset + 4];
-    const lifeFraction = obstacles[offset + 5];
+    const renderPhase = obstacles[offset + 5];
     const hitFlash = obstacles[offset + 6];
 
-    const fade = obstacleFadeLevel(lifeFraction, OBSTACLE_FADE_SHARE);
+    const fade = obstacleFadeLevel(renderPhase, OBSTACLE_FADE_SHARE);
     if (fade <= 0) {
       continue;
     }
 
-    // `life_fraction` is the remaining lifetime in (0, 1]: near 1 means it just appeared,
-    // near 0 means it is running out. Both phases are exactly the fade windows, so
-    // recognising them needs no further value and no state of its own.
-    const isSpawning = lifeFraction > 1 - OBSTACLE_FADE_SHARE;
-    const isExpiring = lifeFraction < OBSTACLE_FADE_SHARE;
+    // The sign of `render_phase` is the state: negative means the obstacle is still
+    // materialising and cannot be collided with, positive is the remaining lifetime of a
+    // solid one. Recognising both needs no further value and no state of its own.
+    const isSpawning = renderPhase < 0;
+    const isExpiring = renderPhase > 0 && renderPhase < OBSTACLE_FADE_SHARE;
     const shade = shadeFor(fade);
 
     if (isSpawning) {

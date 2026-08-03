@@ -78,7 +78,7 @@ impl FrameResponse {
     }
 
     /// Returns the obstacles as a flat buffer of seven values each:
-    /// `[spine_start_x, spine_start_y, spine_end_x, spine_end_y, radius, life_fraction,
+    /// `[spine_start_x, spine_start_y, spine_end_x, spine_end_y, radius, render_phase,
     /// hit_flash]`.
     ///
     /// An obstacle is a capsule — a centre line swept by a circle of that radius —
@@ -86,12 +86,17 @@ impl FrameResponse {
     /// deliberately no shape field: drawing a zero-length line with a round cap
     /// produces the circle, so both shapes are one drawing call rather than two.
     ///
-    /// `life_fraction` counts down from `1.0` to `0.0` over the obstacle's lifetime,
-    /// which is what the renderer fades it in and out by. `hit_flash` does the same for
-    /// the red flash after the player ran into this obstacle: `1.0` right after the hit,
-    /// down to `0.0`, and `0.0` whenever there is nothing to highlight. Like
-    /// `dash_phases` both pack a whole render state into one number, so no second buffer
-    /// has to cross.
+    /// `render_phase` carries the whole life cycle in one signed number, exactly as
+    /// `dash_phases` does for the boids. A value between `-1` and `0` means the obstacle
+    /// is still materialising and how much of that window is left, and it is **not solid
+    /// yet**: the renderer fades it in over this range, and the engine lets the player
+    /// and the flock pass straight through it. A value between `0` and `1` is the
+    /// remaining life of a solid obstacle, which the closing fade is drawn from. Exactly
+    /// `0.0` never occurs, so the sign is always meaningful.
+    ///
+    /// `hit_flash` packs its own state the same way: `1.0` right after the player ran
+    /// into this obstacle, down to `0.0`, and `0.0` whenever there is nothing to
+    /// highlight.
     pub fn obstacles(&self) -> Float32Array {
         Float32Array::from(self.obstacles.as_slice())
     }
