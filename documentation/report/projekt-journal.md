@@ -87,7 +87,41 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-03 | 1,5 | S-07 | Hindernisse werden erst nach ihrer Spawn-Animation wirksam, weil ein direkt vor dem Spieler erscheinendes Hindernis bisher sofort ein Leben kosten konnte: neues `simulation/obstacle_arming.rs` (`begin_arming`, `is_armed`, `obstacle_render_phase`) nach dem Vorbild von `dash.rs` — der Zustand liegt als `arming_steps`/`remaining_arming_steps` am `Obstacle`, die Regeln daneben; `OBSTACLE_ARMING_STEPS` = 90 Schritte (1,5 s), abgefragt in `resolve_player_movement`, `push_boids_out_of_obstacles` und `avoid_obstacles`, bewusst **nicht** in der Platzierungsregel; der sechste Buffer-Wert ist von `life_fraction` auf ein vorzeichenbehaftetes `render_phase` umgestellt (negativ = erscheint, positiv = Restlebensdauer), damit die Einblendzeit der Engine gehoert und `OBSTACLE_FADE_SHARE` im Frontend nur noch das Ausblenden steuert; `obstacle_collision.rs` lief mit den neuen Tests auf 412 Zeilen und wurde entlang der im Kopfkommentar schon beschriebenen Naht geteilt (`obstacle_pushout.rs`); 13 neue Rust-Zusicherungen, zwei neue WASM-Vertragstests, Frontend-Fade-Tests auf die neue Signatur umgeschrieben |
 
+| 2026-08-03 | 0,5 | S-03 | Dash-Cooldown zusätzlich unter dem Spieler angezeigt, weil der Blick auf die HUD-Bar am unteren Bildschirmrand im Gefecht ein Blick weg vom Schwarm ist: Lebensanzeige und neue Dash-Bar liegen jetzt gemeinsam als Stapel in `renderer/playerStatusBars.js` (`statusStackLayout` klemmt gegen die Weltkanten, ein Backdrop für beide Balken), `canvasRenderer.js` gab dafür `drawPlayerHealth` ab und fiel von 382 auf 339 Zeilen; `buildFrozenRenderState` trägt `dashCooldownProgress` jetzt mit, sonst verschwindet der Balken im eingefrorenen Bild unter einer stehenden Lebensanzeige; Farben aus `styles/hud.css` übernommen statt neu gewählt; 15 neue Unit-Zusicherungen auf Geometrie, Füllstand und Zeichenreihenfolge, Sichtprüfung über einen temporären Playwright-Screenshot in drei Cooldown-Zuständen |
+
 ## Entscheidungen
+
+### 2026-08-03 — Der Dash-Cooldown steht zweimal im Bild, das Label nur einmal
+
+**Gewählt:** Die HUD-Bar am unteren Bildschirmrand bleibt unverändert; unter dem Spieler
+kommt ein zweiter, kleinerer Balken ohne Label hinzu. Beide lesen denselben
+`dashCooldownProgress` aus demselben `renderState`, tragen dieselben zwei Cyantöne aus
+`styles/hud.css` und können deshalb nicht auseinanderlaufen. Der neue Balken liegt zusammen
+mit der Lebensanzeige in einem eigenen Modul `renderer/playerStatusBars.js`.
+
+**Verworfen:**
+
+| Alternative                                             | Grund der Ablehnung                                                                                                                                                                                                               |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Die HUD-Bar durch die Anzeige am Spieler ersetzen       | Das Label „Dash / bereit" ginge verloren, und mit ihm die Stelle, an der die Fähigkeit überhaupt erklärt wird. Am Spieler ist kein Platz für Text, und Text dort wäre genau die Neurasterung pro Frame, die S-03 abgeschafft hat. |
+| Den Balken im DOM über dem Spieler positionieren        | Er klebt am Spieler, nicht am Bildschirmrand — im DOM wäre das eine `style.transform`-Zuweisung pro Frame plus die Umrechnung der Weltkoordinate. Dieselbe Begründung, aus der die Lebensanzeige im Canvas geblieben ist.         |
+| Nur einen Ring/Bogen um den Spieler statt eines Balkens | Die Zeitbögen der Power-ups sind schon Ringe um den Spieler (Aegis innen, Overdrive außen). Ein dritter Ring wäre bei laufendem Buff nicht mehr zuzuordnen; ein Balken unter der Lebensanzeige ist die freie Form.                |
+| Den Balken nur zeigen, wenn der Cooldown läuft          | Dann sagt seine Abwesenheit „bereit" — eine Information, die man erst nach mehreren Runden liest. Sichtbar und voll ist unmittelbar verständlich, und ein 4 px hoher Balken kostet nichts an Übersicht.                           |
+
+**Warum:** Die Entscheidung vom 30.07. („Die Dash-Bar wandert vom Canvas ins DOM") wird
+damit nicht zurückgenommen, sondern präzisiert: Ins DOM gehörte das **Label**, weil ein
+String pro Bild neu gerastert wurde. Der Balken selbst ist ein `fillRect` und war nie das
+Problem. Die zwei Anzeigen bedienen zwei verschiedene Blicke — die HUD-Bar den zwischen den
+Wellen, die am Spieler den während eines Angriffs. Redundanz ist hier gewollt, weil sie eine
+Kopfdrehung ersetzt; gefährlich wäre nur eine zweite **Datenquelle**, und die gibt es nicht.
+
+**Konsequenz:** `canvasRenderer.js` gibt die Lebensanzeige mit ab und fällt von 382 auf 339
+Zeilen; die Geometrie ist damit erstmals unter Vitest prüfbar, statt im nicht ladbaren
+Renderer zu stehen. `buildFrozenRenderState` muss `dashCooldownProgress` mittragen — ohne das
+verschwindet der Balken hinter der Pause- und der Game-Over-Karte, während die Lebensanzeige
+darüber stehen bleibt. Der Wert kann dort nicht driften, weil er von der Simulationsuhr kommt,
+die im eingefrorenen Bild ebenfalls steht.
+→ Kap. 5, 7
 
 ### 2026-08-03 — Die Vorwarnzeit eines Hindernisses gehört der Engine, nicht dem Renderer
 

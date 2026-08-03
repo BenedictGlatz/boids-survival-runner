@@ -71,6 +71,10 @@ export function buildRenderState(roundData, player, powerups, timing) {
  * It carries no `countdownSeconds` either, which is what drops the countdown glyph behind a
  * pause taken before the round began. That is deliberate: the live builder would tick the
  * countdown down behind the card, and a card cannot say "paused" over a running clock.
+ *
+ * The dash cooldown, by contrast, *is* carried: the bar under the player would otherwise
+ * disappear from the frozen picture while the lives above it stayed, and the value cannot
+ * drift anyway — it is read off the simulation clock, which stands still here.
  * @param {object} roundData - The round state the run ended with.
  * @param {import('../powerups/powerups.js').PowerupField} powerups - Asked for its snapshot.
  * @returns {object} The render state to hand to `drawFrame`.
@@ -79,6 +83,7 @@ export function buildFrozenRenderState(roundData, powerups) {
   return {
     lives: roundData.lives,
     maxLives: roundData.maxLives,
+    dashCooldownProgress: playerDashCooldownProgress(roundData),
     ...powerups.snapshot(roundData.simulationTimeMs),
   };
 }

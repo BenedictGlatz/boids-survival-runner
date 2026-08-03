@@ -4,5 +4,11 @@
     "prompt": "Ich möchte dass du eine Verbesserung am Gameplay umsetzt:\n\nDie Hindernisse dürfen nicht sofort spawnen, sie dürfen erst wirksam werden wenn die animation abgeschlossen ist, da der spieler sonst in ein direkt vor ihm spawnendes Objet hineinfliegen kann. Die Spawn Animation der Objekte war ursprünglich sowieso dafür gedacht dem Spieler eine Vorwarnzeit zu geben. Bitte setze das um",
     "topic": "engine",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Die Dash Cooldown Anzeige ist aktuell am unteren Bildschirmrand, bitte füge auch noch eine Dashanzeige direkt unter dem Spieler zu, so wie die Lebensanzeige unter dem Spieler, da sie dort im Gefect besser sichtbar ist. Sie sollte nicht zu groß sein, aber klar erkennbar",
+    "topic": "frontend-ui",
+    "use": "impl"
   }
 ]

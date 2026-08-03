@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- The dash cooldown is now also shown directly under the player, as a thin bar right below the life segments. It carries nothing the bar at the bottom of the screen does not, and that is the point: during a fight the eyes are on the player, and a glance down at the HUD is a glance away from ninety boids. It is deliberately small — thinner than a life segment, because a spent dash comes back on its own and a lost life does not — and it uses the same two cyans as the HUD bar: dim while the cooldown recovers, the full player colour the moment the dash is available again. The labelled bar in the HUD stays where it is.
+
 - The frametime graph has a third row, reporting what a frame costs the graphics card rather than the script: frames actually drawn per second, drawing operations per frame, and the number of pixels the canvas is made of. The first tells you whether the framerate setting is holding — a setting of 120 on a 144 Hz display does not, and now says so. The second is the number that falls when drawing is batched. The third is the one that grows with the square of your display's pixel density and usually explains why a simple-looking picture keeps a graphics card busy. None of the three is a measurement of graphics-card time, and the setting's description says so plainly; they explain the cost, the browser's own profiler measures it.
 
 ### Changed

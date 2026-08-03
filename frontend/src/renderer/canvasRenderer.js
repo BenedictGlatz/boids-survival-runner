@@ -19,6 +19,7 @@ import {
   trailColorForTier,
 } from './entityPalette.js';
 import { drawObstacles } from './obstacleLayer.js';
+import { drawPlayerStatusBars } from './playerStatusBars.js';
 import { drawPlayerBuffs, drawPowerupMarkers } from './powerupLayer.js';
 import { drawDashTrails } from './trailLayer.js';
 import { sampleDashTrails } from './trailSampling.js';
@@ -26,17 +27,6 @@ import { fitWorldToCanvas, worldTransformMatrix } from './worldTransform.js';
 
 const BOID_OUTLINE_COLOR = 'rgba(255, 255, 255, 0.22)';
 const BOID_OUTLINE_WIDTH = 1.5;
-
-const HEALTH_BAR_WIDTH = 52;
-const HEALTH_BAR_HEIGHT = 7;
-const HEALTH_BAR_GAP = 3;
-const HEALTH_BAR_OFFSET = 10;
-/** How close to a world edge the bar may get before it is held back. */
-const HEALTH_BAR_EDGE_MARGIN = 4;
-const HEALTH_BAR_BACKDROP_COLOR = 'rgba(7, 8, 11, 0.72)';
-/** Green is reserved for life and used nowhere else in the whole interface. */
-const HEALTH_SEGMENT_COLOR = '#22c55e';
-const HEALTH_SEGMENT_EMPTY_COLOR = 'rgba(242, 244, 248, 0.18)';
 
 /**
  * The countdown is the one moment the arena is empty, so it is allowed to be large.
@@ -221,11 +211,12 @@ export class CanvasRenderer {
     drawBoids(ctx, frame);
     drawPlayer(ctx, playerPosition, renderState.playerInvulnerable === true);
     // A shell and its time arcs lie on the player, so they come after them — and before the
-    // health bar, which is the one thing that may never be drawn over.
+    // status bars, of which the lives are the one thing that may never be drawn over.
     drawPlayerBuffs(ctx, playerPosition, renderState, renderState.wallClockSeconds ?? 0);
-    drawPlayerHealth(ctx, playerPosition, renderState);
-    // The dash bar is not drawn here: it lives in the HUD (`ui/hud.js`), so its label is
-    // not re-rasterised on every frame.
+    drawPlayerStatusBars(ctx, playerPosition, renderState);
+    // The HUD keeps a dash bar of its own (`ui/hud.js`) — the labelled one, whose text is
+    // therefore not re-rasterised on every frame. The small unlabelled twin under the player
+    // is drawn just above, where the eyes are during a fight.
     this._drawCountdown(renderState.countdownSeconds);
   }
 
@@ -332,35 +323,6 @@ function drawPlayer(ctx, playerPosition, playerInvulnerable) {
 }
 
 /**
- * The bar is drawn in world space, like the player it belongs to: it sticks to the player
- * rather than to the screen, so it keeps the player's size at any window size and needs no
- * inverse transform. Its clamps are against the world edges for the same reason.
- */
-function drawPlayerHealth(ctx, playerPosition, renderState) {
-  if (!playerPosition || renderState.lives === undefined) return;
-
-  const maxLives = Math.max(1, renderState.maxLives ?? renderState.lives);
-  const filledLives = Math.max(0, Math.min(renderState.lives, maxLives));
-  const segmentWidth = (HEALTH_BAR_WIDTH - HEALTH_BAR_GAP * (maxLives - 1)) / maxLives;
-  const barX = clamp(
-    playerPosition.x - HEALTH_BAR_WIDTH * 0.5,
-    HEALTH_BAR_EDGE_MARGIN,
-    WORLD_WIDTH - HEALTH_BAR_WIDTH - HEALTH_BAR_EDGE_MARGIN,
-  );
-  const preferredY = playerPosition.y + PLAYER_VISUAL_RADIUS + HEALTH_BAR_OFFSET;
-  const barY = Math.min(preferredY, WORLD_HEIGHT - HEALTH_BAR_HEIGHT - HEALTH_BAR_EDGE_MARGIN);
-
-  ctx.fillStyle = HEALTH_BAR_BACKDROP_COLOR;
-  ctx.fillRect(barX - 3, barY - 3, HEALTH_BAR_WIDTH + 6, HEALTH_BAR_HEIGHT + 6);
-
-  for (let index = 0; index < maxLives; index += 1) {
-    const segmentX = barX + index * (segmentWidth + HEALTH_BAR_GAP);
-    ctx.fillStyle = index < filledLives ? HEALTH_SEGMENT_COLOR : HEALTH_SEGMENT_EMPTY_COLOR;
-    ctx.fillRect(segmentX, barY, segmentWidth, HEALTH_BAR_HEIGHT);
-  }
-}
-
-/**
  * The digit itself, in world space and centred on the world — it belongs to the arena the
  * round is about to start in, not to the window frame around it.
  */
@@ -374,8 +336,4 @@ function drawCountdownGlyph(ctx, countdownSeconds) {
   ctx.shadowBlur = COUNTDOWN_GLOW_BLUR;
   ctx.fillText(String(countdownSeconds), WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.5);
   ctx.restore();
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
 }
