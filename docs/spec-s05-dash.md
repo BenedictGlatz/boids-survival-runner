@@ -290,6 +290,36 @@ Buffer-Kopien pro Frame (3 → 5 statt 3 → 4) für Information, die in eine Za
 Sollte je ein weiterer Sichtzustand nötig werden („Dash abgebrochen"), ist das der
 Moment für den getrennten Zustands-Buffer — nicht jetzt.
 
+### Zweiter Buffer: die Vorwarnlinie
+
+Für die Richtung reicht eine Zahl pro Boid **nicht**, und index-gleich muss sie auch nicht
+sein: es laden höchstens ~15 von bis zu 156 Boids gleichzeitig auf. `dash_aims` ist deshalb
+ein Buffer mit eigener Anzahl wie `obstacles` und `spawn_markers` —
+`DASH_AIM_STRIDE = 5` Werte pro **ladendem** Boid:
+
+| Index | Wert                                                                |
+| ----- | ------------------------------------------------------------------- |
+| 0, 1  | Startpunkt: die Position des Boids                                  |
+| 2, 3  | Endpunkt: wohin der Dash führte, wenn er in diesem Schritt losginge |
+| 4     | Ladefortschritt, also derselbe Wert wie in `dash_phases`            |
+
+Ein Eintrag existiert nur während `Charging`. Damit ist der Vorzeichentrick hier so
+überflüssig wie bei `spawn_markers`: die Anzahl sagt schon, wie viele Linien es gibt, und
+jeder Wert im Buffer ist ein echter. Der Ladefortschritt steht trotz `dash_phases` ein
+zweites Mal drin, weil genau der Index fehlt, mit dem man ihn dort fände.
+
+Die Geometrie kommt aus `simulation/dash_aim.rs`, und das ist der Punkt der ganzen
+Konstruktion: `launch_direction` und `dash_distance` liegen dort, `launch_dash` in `dash.rs`
+benutzt dieselbe Funktion. Die Linie kann also keine Richtung versprechen, die der Absprung
+nicht nimmt. Ein im Frontend nachgerechnetes `normalize(player − boid)` plus eine dort
+gespiegelte Reichweitentabelle wären zwei Kopien von Simulationswissen, die beim nächsten
+Tuning auseinanderlaufen.
+
+`build_frame_response` braucht dafür die Spielerposition, `snapshot()` bekommt keine. Also
+merkt sich `GameEngine` die des letzten `tick` (`last_player_position`). Das ist keine
+Näherung: ein Snapshot zeichnet eine eingefrorene Welt (Countdown, Tod, Pause), in der sich
+seither nichts bewegt hat.
+
 ## 5) Vorwarnung im Frontend
 
 Der Puls braucht **keine Uhr**: die Phase aus der Engine treibt ihn allein, damit
@@ -314,6 +344,43 @@ zwischen Basisfarbe und Weiß. `dashGlowLevel` wird auf einen Index quantisiert.
 Bekannt und akzeptiert: Boids wickeln am Weltrand ohne Renderer-Clipping, ein Puls am
 Rand springt also mit — das gilt heute schon für die Pfeilform.
 
+### Die Linie: wohin
+
+Der Puls sagt _dass_ und _wann_. Die dritte Frage — _wohin_ — kann er nicht beantworten, und
+sie ist die, die über Ausweichen entscheidet. `renderer/dashAimLayer.js` zeichnet sie:
+je ladendem Boid eine dünne rote gestrichelte Linie vom Boid zum Endpunkt aus dem Buffer,
+`lineWidth` 1,5 Weltunits wie der Boid-Umriss, Strichmuster `[10, 8]`.
+
+```
+dashAimAlpha(p) = AIM_MINIMUM_ALPHA + (1 - AIM_MINIMUM_ALPHA) * p
+```
+
+Die Funktion liegt bei `dashPulseScale` und `dashGlowLevel` in `dashPulse.js` — dieselbe
+Eingabe, dieselbe Aufgabe, importfreies Modul. Drei Zahlen aus einer Phase.
+
+Vier Festlegungen und ihr Grund:
+
+- **Volle Länge von Anfang an, steigende Deckkraft.** Die Länge ist die Information
+  („so weit komme ich"), sie darf nicht animiert sein. Die Deckkraft steigt monoton statt
+  mitzupulsieren: der Boid pulst schon, zwei Animationen nebeneinander sind ein Signal zu viel.
+- **Untergrenze `0,25` statt Aufblenden aus Null.** Die Vorwarnung dauert 0,57–0,73 s; eine
+  Linie, die aus dem Nichts hochfährt, wäre ein Drittel davon unsichtbar. Dasselbe Argument
+  wie bei `SPAWN_MARKER_MINIMUM_INTENSITY`.
+- **Haarlinie und gestrichelt.** Bei einem Gruppenstoß liegen bis zu sechs Linien
+  gleichzeitig auf dem Spieler; sechs durchgezogene rote Striche lesen sich als Käfig statt
+  als Warnung. Rot ist trotzdem richtig — es ist die Farbe des Schwarms und alles, was
+  Leben kostet —, und die Hausregel verbietet große rote _Flächen_, nicht rote Striche.
+- **Zeichenreihenfolge:** über den Dash-Schweifen, unter allem, was sich bewegt. Die Linie
+  ist eine Aussage über den Boid an ihrem Anfang, also muss der Boid darauf liegen, und der
+  Spieler, auf den sie zeigt, ebenfalls.
+
+Die Linie **zielt mit**, statt beim Ladebeginn einzufrieren. Das ist die eigentliche
+Entscheidung dieses Features und folgt aus §3: die Richtung entsteht erst im Absprungschritt.
+Eine eingefrorene Richtung wäre ein Versprechen und ließe jeden bewegten Spieler jedem Dash
+entkommen — bei 0,57–0,73 s Vorwarnung und 222–277 px Reichweite wäre der Boid-Dash damit
+wirkungslos. Was die Linie stattdessen lesbar macht, ist die **Reichweite**: endet sie vor
+dem Spieler, kommt dieser Boid von dort nicht an; läuft sie über ihn hinaus, kommt er an.
+
 ## 6) Testfälle
 
 ### Engine (`cargo test`)
@@ -327,6 +394,12 @@ die Aufladung endet mit einem Absprung zum Spieler · die Richtung bleibt eingef
 wenn der Spieler wegläuft · ein Boid im Cooldown startet keinen zweiten Dash · der
 Cooldown endet in `Idle` · `dash_render_phase` ist 0 außerhalb des Dashs, in (0,1)
 beim Laden und dort monoton steigend, in [-1,0) beim Dashen.
+
+`dash_aim.rs` — die Distanz ist `dash_speed × dash_steps` · der Endpunkt liegt genau diese
+Distanz entfernt · die Richtung zeigt auf den Spieler · sie folgt ihm während des Aufladens ·
+Fallback auf das Heading, wenn der Spieler auf dem Boid steht, und auf `(1,0)`, wenn auch das
+fehlt · **die Linie lügt nicht**: das Ziel einen Schritt vor dem Absprung und die Richtung,
+die `launch_dash` dann schreibt, stimmen bei stehendem Spieler überein.
 
 `dash_selection.rs` — keine Auswahl zwischen Selektionsrunden · keine Auswahl wenn
 kein Boid dashen darf · zu nahe und zu ferne Boids werden nicht gewählt · keine
@@ -352,6 +425,18 @@ Limit durch.
 `wasm_bridge/mod.rs` — Boids aus Welle 1 und 2 können nicht dashen, ab Welle 3 schon.
 Das ist der Test, der die Design-Entscheidung an die Wellennummer nagelt.
 
+### WASM-Grenze (`wasm-pack test`, `engine/tests/wasm_dash_aim_tests.rs`)
+
+`cargo test` meldet für diese Datei **0 Tests** — sie läuft nur im Browser.
+
+Bufferlänge ist `dash_aim_count × 5` · Welle 1 und 2 kündigen nichts an · **eine Linie
+existiert genau so lange wie der Puls**: über 600 Ticks ist `dash_aim_count` immer gleich der
+Zahl der Boids mit `dash_phases[i] > 0`, also eine pro Ladendem und keine für einen, der schon
+dasht · jeder Startpunkt ist die Position eines Boids (der Stride-Fänger, weil dieser Buffer
+keine Index-Gleichheit hat) · jeder Ladefortschritt liegt in (0,1) · jede Strecke ist länger
+als ein Boid und kürzer als die Weltdiagonale, und alle Linien einer Welle sind gleich lang ·
+ein `snapshot` liefert dieselben Linien wie der `tick` davor.
+
 ### Frontend (`npm test`)
 
 Nur importfreie Logik ist unter Vitest (Node) abdeckbar; Simulationsmathematik wird
@@ -368,7 +453,18 @@ wird beim Laden nie kleiner als normal und nie unlesbar groß · ein dashender B
 größer als ein ruhender · der Glow bleibt im 0..1-Bereich, mit dem die Farbtabelle
 indexiert wird · ein dashender Boid ist durchgehend voll hell · **die Pulsfrequenz
 steigt** (mehr Nulldurchgänge in der zweiten Hälfte der Aufladung als in der ersten) ·
-die hellsten Spitzen liegen nahe am Absprung, nicht am Anfang.
+die hellsten Spitzen liegen nahe am Absprung, nicht am Anfang · `dashAimAlpha` ist 0 für einen
+nicht ladenden Boid (auch für einen dashenden — die zweite Sperre neben dem leeren Buffer),
+ist ab dem ersten Ladeschritt deutlich sichtbar, erreicht am Absprung 1, steigt monoton und
+klemmt einen Fortschritt, den die Engine nicht schicken sollte.
+
+`renderer/dashAimLayer.test.js` — nichts bei Anzahl 0 und bei fehlendem Buffer · jede Linie
+wird von ihrem eigenen Start- zu ihrem eigenen Endpunkt gezeichnet (der Stride-Fänger) · ein
+`stroke` pro ladendem Boid · `save`/`restore` als erster und letzter Aufruf, weil ein
+entwichenes Strichmuster jeden späteren Strich strichelt · das Muster wird einmal pro Ebene
+gesetzt, nicht pro Linie · später im Ladevorgang wird kräftiger gezeichnet als früh · zwei
+Linien gleichen Fortschritts bekommen denselben String, was zeigt, dass die vorberechnete
+Farbtabelle benutzt wird und nicht pro Frame ein `rgba(...)` entsteht.
 
 ### Manuell im Browser
 
@@ -378,6 +474,13 @@ die hellsten Spitzen liegen nahe am Absprung, nicht am Anfang.
 - Leertaste ohne Richtung verbraucht den Cooldown nicht; Nachdrücken im Cooldown tut nichts.
 - Dash gegen die Wand stirbt dort, teleportiert nicht.
 - Nach Game Over ist der Dash sofort wieder verfügbar, der Countdown öffnet ohne Nachhol-Schub.
+- Ab Welle 3 zieht jeder ladende Boid eine dünne rote gestrichelte Linie auf den Spieler, die
+  im Absprungmoment verschwindet und dem Ion-Streak Platz macht; ein Verband zeigt mehrere
+  zusammenlaufende Linien. Bewegt man sich, dreht die Linie mit. Weil Welle 3 in einem echten
+  Lauf selten erreicht wird, dafür `DASH_UNLOCK_DIFFICULTY_TIER = 1` setzen und
+  `WAVE_DURATION_SECONDS` kürzen — **nicht** Tier 0: `build_boid` gibt Tier 0 die
+  Default-Properties, deren `can_dash` fest `false` ist, der Unlock-Wert wird dort also gar
+  nicht gelesen.
 - Bis Welle 2 pulsiert nichts. Ab Welle 3 pulsieren einzelne Boids und kleine Verbände
   gleichfarbiger Boids zunehmend schneller und heller, stoßen geradlinig zu, lösen sich
   aus dem Schwarm, werden zurückgezogen. Ein Verband pulst und startet synchron.
@@ -393,6 +496,14 @@ die hellsten Spitzen liegen nahe am Absprung, nicht am Anfang.
 | Darstellung (Puls, Cooldown-Balken)                  |      2 h |
 | Tests (30 Rust, 21 JavaScript)                       |      2 h |
 | Spec und Dokumentation                               |    1,5 h |
-| **Summe**                                            | **12 h** |
+| Vorwarnlinie (Aim-Buffer, Layer, 16 Tests, Doku)     |      2 h |
+| **Summe**                                            | **14 h** |
 
-Bleibt im 14-h-Budget von S-05. Offen in S-05 sind damit noch Schild und Slow-Time.
+Die Vorwarnlinie ist **nachträglich** dazugekommen und war in der ersten Fassung dieser Spec
+nicht vorgesehen: dort galt „für die Vorwarnung reicht eine Zahl pro Boid", was für _dass_ und
+_wann_ stimmt und für _wohin_ nicht. Die 2 h liegen zu etwa gleichen Teilen im siebten Buffer
+samt seinen Grenztests und in der Zeichenebene; ein Teil davon ging in die Aufteilung von
+`wasm_bridge/mod.rs`, die der neue Buffer über die 400-Zeilen-Grenze geschoben hat.
+
+Damit ist das ursprüngliche 14-h-Budget von S-05 genau ausgeschöpft. Offen in S-05 ist nur
+noch Slow-Time, das laut §3.4 von `specs-overview.md` bewusst entfällt.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dashGlowLevel, dashPulseScale } from './dashPulse.js';
+import { dashAimAlpha, dashGlowLevel, dashPulseScale } from './dashPulse.js';
 
 /**
  * Samples a whole charge-up the way the renderer sees it: the engine reports a
@@ -89,5 +89,48 @@ describe('dashGlowLevel', () => {
     const secondHalfPeak = Math.max(...samples.slice(samples.length / 2));
 
     expect(secondHalfPeak).toBeGreaterThan(firstHalfPeak);
+  });
+});
+
+describe('dashAimAlpha', () => {
+  it('draws no line at all for a boid that is not charging', () => {
+    // The engine leaves those out of the aim buffer entirely, so this is the second lock on
+    // the same rule: a dash that has launched must not keep announcing itself.
+    expect(dashAimAlpha(0)).toBe(0);
+    expect(dashAimAlpha(-1)).toBe(0);
+    expect(dashAimAlpha(-0.2)).toBe(0);
+  });
+
+  it('is already clearly visible the moment the charge-up begins', () => {
+    // The warning lasts 0.57 to 0.73 s. A line that faded up from nothing would spend a
+    // third of that being invisible, which is a third of the time the player has to react.
+    expect(dashAimAlpha(0.001)).toBeGreaterThan(0.2);
+  });
+
+  it('reaches full strength at the launch', () => {
+    expect(dashAimAlpha(1)).toBeCloseTo(1, 5);
+  });
+
+  it('strengthens monotonically across the charge-up', () => {
+    // Steadily rather than in pulses: the boid's own glow is what beats, and the line is
+    // what says where. Two things beating at once would be one thing too many.
+    let previous = -1;
+
+    for (const alpha of sampleChargeUp(200, dashAimAlpha)) {
+      expect(alpha).toBeGreaterThan(previous);
+      previous = alpha;
+    }
+  });
+
+  it('stays inside the 0 to 1 range the colour table is indexed with', () => {
+    for (const alpha of sampleChargeUp(200, dashAimAlpha)) {
+      expect(alpha).toBeGreaterThanOrEqual(0);
+      expect(alpha).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('clamps a progress the engine promised not to send', () => {
+    expect(dashAimAlpha(4)).toBeCloseTo(1, 5);
+    expect(dashAimAlpha(Number.NaN)).toBe(0);
   });
 });

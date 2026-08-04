@@ -15,11 +15,12 @@
 //! velocities, one unsigned integer for the difficulty tier, and one float for the
 //! dash phase, whose sign carries the dash state so no fifth buffer is needed.
 //!
-//! Two further buffers are not index-aligned with the boid buffers and are checked
+//! Three further buffers are not index-aligned with the boid buffers and are checked
 //! elsewhere, each together with the rest of its own contract; the files split only
 //! because this one would otherwise pass the project's file-length limit. The temporary
-//! obstacles are in `wasm_obstacle_tests.rs`, and the markers that announce the next
-//! wave at the world edge are in `wasm_wave_spawn_tests.rs`.
+//! obstacles are in `wasm_obstacle_tests.rs`, the markers that announce the next wave at
+//! the world edge are in `wasm_wave_spawn_tests.rs`, and the warning lines that say where
+//! a charging boid will dash are in `wasm_dash_aim_tests.rs`.
 //!
 //! One thing about the wave lifecycle leaks into this file regardless, because several
 //! tests here need a later wave's boids: `set_wave` no longer spawns anything. It

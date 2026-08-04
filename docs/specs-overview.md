@@ -44,12 +44,12 @@ Detail-Specs:
 | S-02 Bridge-API            |                   5 h |
 | S-03 Rendering & HUD       |                  12 h |
 | S-04 Loop & Waves          |                  13 h |
-| S-05 Steuerung & Power-Ups |                  20 h |
+| S-05 Steuerung & Power-Ups |                  22 h |
 | S-06 Querschnitt           |                  12 h |
 | S-07 Hindernisse           |                  16 h |
-| **Summe**                  |              **96 h** |
+| **Summe**                  |              **98 h** |
 | + Integration/Test (~20 %) |                 ~19 h |
-| **Gesamt Specs**           | **≈ 115 h (≈ 14 PT)** |
+| **Gesamt Specs**           | **≈ 118 h (≈ 15 PT)** |
 
 **Schwerpunkt:** Die Engine (S-01/S-02, ~23 h) ist der teuerste Block. Das
 Grundgerüst ist spielbar; offen sind v. a. Highscore-Persistenz und Settings.
@@ -57,8 +57,9 @@ Grundgerüst ist spielbar; offen sind v. a. Highscore-Persistenz und Settings.
 Der Dash aus S-05 ist umgesetzt (~12 h der dort ursprünglich geschätzten 14 h, siehe
 [spec-s05-dash.md](spec-s05-dash.md)) und hat S-05 von _Frontend_ auf _Engine/FE_
 verschoben, weil der Boid-Dash in der Simulation liegt. Die beiden Power-ups Aegis und
-Overdrive ([spec-s05b-powerups.md](spec-s05b-powerups.md)) kommen mit ~6 h dazu; S-05
-steht damit bei 20 h. Offen bleibt in S-05 nur noch Slow-Time.
+Overdrive ([spec-s05b-powerups.md](spec-s05b-powerups.md)) kommen mit ~6 h dazu, die
+Vorwarnlinie des Boid-Dashs mit ~2 h; S-05 steht damit bei 22 h. Offen bleibt in S-05 nur
+noch Slow-Time.
 
 S-04 steht bei 13 h statt 10 h, weil die Pause ([spec-s04b-pause.md](spec-s04b-pause.md))
 mit ~3 h dazukommt. Sie liegt in S-04 und nicht in S-03, obwohl das Sichtbarste an ihr eine
@@ -121,13 +122,13 @@ Hälfte.
 
 | Block              |                 Aufwand |
 | ------------------ | ----------------------: |
-| Specs S-01…S-07    |                 ≈ 115 h |
+| Specs S-01…S-07    |                 ≈ 118 h |
 | Tooling T-01…T-08  |                ≈ 40,5 h |
 | Dokumentation D-01 |                  ≈ 22 h |
-| **Gesamt**         | **≈ 177,5 h (≈ 22 PT)** |
+| **Gesamt**         | **≈ 180,5 h (≈ 23 PT)** |
 
 Bis zur Abgabe am **03.09.2026** stehen realistisch ~5 Wochen zur Verfügung. Das
-Gesamtbudget von ≈ 177,5 h liegt damit über der verfügbaren Kapazität, weshalb
+Gesamtbudget von ≈ 180,5 h liegt damit über der verfügbaren Kapazität, weshalb
 bewusst gekürzt wird:
 
 - **Slow-Time aus S-05 entfällt.** Es wäre das einzige der drei angedachten

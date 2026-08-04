@@ -146,6 +146,12 @@ Owns _all_ simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
   (`Idle → Charging → Dashing → Cooling`), its tuning, the per-tier ramp, and `dash_render_phase`,
   the single number the frontend draws the warning pulse from. Durations count in **simulation
   steps**, never milliseconds.
+- `simulation/dash_aim.rs` — where a dash would go and how far it carries: `launch_direction`
+  (aim at the player), `dash_distance` and `dash_aim_end`. It is the **single** source of the
+  direction — `dash.rs` launches with it and the warning line the frontend draws is measured with
+  it, so the line cannot promise a direction the launch will not take. Nothing is stored on the
+  boid: the aim is decided in the step the dash launches, so during the charge-up the honest
+  answer is a fresh one every step, and it keeps following a player who moves.
 - `simulation/wave_spawn.rs` + `wave_spawn_placement.rs` — every wave after the first is
   **announced before it exists**. Placement puts three gates on the world edge (the perimeter
   is one number walked clockwise, so a gate slides along it and rounds corners by addition)
@@ -166,6 +172,8 @@ Owns _all_ simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
   integrates, wraps at world edges, relaxes overlaps, then counts player hits. O(n²) in the boid count.
 - `wasm_bridge/` — the only `#[wasm_bindgen]` surface. `GameEngine` owns the flock, the obstacle
   field, the wave spawn queue, world bounds, wave state, and the reusable output buffers.
+  `frame_buffers.rs` sits beside it with the strides and the one function that packs a frame into
+  those buffers, so `mod.rs` keeps the life cycle and the exports.
   `boid_factory.rs` sits beside it and answers the one question none of the simulation modules do —
   given a wave number, what kind of boid is that: `difficulty_tier_for_wave` /
   `properties_for_difficulty_tier` are the design ramp, `build_boid` is the single place a tier
@@ -190,7 +198,13 @@ Owns rendering, input, game state, and UI. Contains **no** simulation math.
 - `player/playerController.js` — player integration (accelerate/decelerate/clamp) plus the dash, whose
   impulse survives the per-step speed clamp by temporarily raising the limit.
 - `player/dashCooldown.js`, `renderer/dashPulse.js` — the dash's import-free arithmetic, split out so
-  it is testable under Vitest in the same way `loop/frameGraphScale.js` is.
+  it is testable under Vitest in the same way `loop/frameGraphScale.js` is. `dashPulse.js` turns one
+  engine phase into all three warning numbers: the boid's size, its brightness, and the opacity of
+  the aim line.
+- `renderer/dashAimLayer.js` — the thin red dashed line in front of a charging boid, decoded from
+  `frame.dashAims`. It says **where** the lunge goes, which the pulse cannot; the geometry is the
+  engine's own answer and none of it is recomputed here. Drawn over the trails and under everything
+  that moves, and gone the moment the boid launches — where `trailLayer.js` takes over.
 - `renderer/spawnMarkerLayer.js` + `spawnMarkerPulse.js` — the gates the next wave will arrive
   through, decoded from `frame.spawnMarkers`. The graphic is an explicit **placeholder** (a red
   glow); the arithmetic is split out for Vitest the same way `dashPulse.js` is. Its ring
@@ -237,14 +251,19 @@ objects or per-entity structs across. `dash_phases` shows the pattern for packin
 state into one number: `0` means nothing to draw, a positive value is charge-up progress and a
 negative one is dash-remaining, so the sign carries the state and no second buffer is needed.
 
-Two further buffers are **not** index-aligned with those four, because there is no relationship
-between the boid count and how many of them exist: `obstacles` (`OBSTACLE_STRIDE` = 7) and
-`spawn_markers` (`SPAWN_MARKER_STRIDE` = 3). Each carries its own count. Their strides are
-duplicated in `gameConfig.js` and asserted on by the boundary tests, which is the point of the
-duplication. The sign trick is deliberately _absent_ from `spawn_markers`: an entry only exists
-while that spawn is pending, so the count already says how many there are and every value in the
-buffer is real — reach for the sign only when one number has to encode a state _and_ a "nothing
-here".
+Three further buffers are **not** index-aligned with those four, because there is no relationship
+between the boid count and how many of them exist: `obstacles` (`OBSTACLE_STRIDE` = 7),
+`spawn_markers` (`SPAWN_MARKER_STRIDE` = 3) and `dash_aims` (`DASH_AIM_STRIDE` = 5). Each carries
+its own count. Their strides are duplicated in `gameConfig.js` and asserted on by the boundary
+tests, which is the point of the duplication. The sign trick is deliberately _absent_ from
+`spawn_markers` and `dash_aims`: an entry only exists while that spawn is pending or that boid is
+charging, so the count already says how many there are and every value in the buffer is real —
+reach for the sign only when one number has to encode a state _and_ a "nothing here". `dash_aims`
+therefore repeats a boid's charge progress, which `dash_phases` already carries: the index that
+would have found it is exactly what a buffer with its own count does not have.
+
+All six are packed in one place, `wasm_bridge/frame_buffers.rs`, which also owns the three stride
+constants. `mod.rs` beside it owns the `#[wasm_bindgen]` surface and the engine's life cycle.
 
 Note that `INITIAL_BOID_COUNT` is duplicated in `engine/src/constants.rs` and
 `frontend/src/gameConfig.js` — keep the two in sync when changing it.

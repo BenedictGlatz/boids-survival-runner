@@ -1,4 +1,5 @@
 use super::boid::Boid;
+use super::dash_aim::{dash_speed, launch_direction};
 use crate::math::vector::Vec2;
 
 // Re-exported so everything about the dash can be reached through this one module.
@@ -23,6 +24,15 @@ pub enum DashState {
 /// True while the boid is flying along its dash line.
 pub fn is_dashing(boid: &Boid) -> bool {
     boid.dash_state == DashState::Dashing
+}
+
+/// True while the boid is pulsing and has not launched yet.
+///
+/// This is exactly the window the warning is visible in — the pulse and the aim line the
+/// frontend draws both belong to it — so it is worth a name of its own rather than a
+/// `DashState` comparison spelled out at every caller.
+pub fn is_charging(boid: &Boid) -> bool {
+    boid.dash_state == DashState::Charging
 }
 
 /// Puts an idle boid into its charge-up.
@@ -74,31 +84,16 @@ pub fn advance_dash_state(boid: &mut Boid, player_position: Vec2) {
 /// separation still steers during a dash, and its force is tiny next to the dash
 /// speed, so the boid keeps flying almost exactly straight while still being able
 /// to curve gently around a boid in its way.
+///
+/// The direction comes from `dash_aim.rs`, which is also where the warning line drawn
+/// during the charge-up is measured from — so the warning cannot point anywhere else than
+/// the launch below.
 fn launch_dash(boid: &mut Boid, player_position: Vec2) {
     boid.dash_state = DashState::Dashing;
     boid.dash_state_steps_remaining = boid.properties.dash.dash_steps;
 
     let direction = launch_direction(boid, player_position);
     boid.velocity = direction.scale(dash_speed(boid));
-}
-
-/// Aim once at where the player is standing at launch time.
-fn launch_direction(boid: &Boid, player_position: Vec2) -> Vec2 {
-    let toward_player = player_position.sub(boid.position).normalize();
-    if toward_player.length_squared() > 0.0 {
-        return toward_player;
-    }
-
-    // The player is standing exactly on the boid, so "toward the player" has no
-    // direction at all. Keep flying the way the boid already points instead of
-    // freezing a zero-length direction, which would make the dash stand still.
-    let heading = boid.velocity.normalize();
-    if heading.length_squared() > 0.0 {
-        heading
-    } else {
-        // Last resort, in the same spirit as the overlap fallback direction.
-        Vec2::new(1.0, 0.0)
-    }
 }
 
 /// Speed cap for this boid on this step: raised while dashing, normal otherwise.
@@ -113,10 +108,6 @@ pub fn step_speed_limit(boid: &Boid) -> f32 {
     } else {
         boid.properties.max_speed
     }
-}
-
-fn dash_speed(boid: &Boid) -> f32 {
-    boid.properties.max_speed * boid.properties.dash.speed_multiplier
 }
 
 /// One number per boid, holding everything the renderer needs for the pulse:

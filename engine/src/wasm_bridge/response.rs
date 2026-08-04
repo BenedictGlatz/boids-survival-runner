@@ -20,6 +20,8 @@ pub struct FrameResponse {
     pub(crate) obstacles: Vec<f32>,
     pub(crate) spawn_marker_count: u32,
     pub(crate) spawn_markers: Vec<f32>,
+    pub(crate) dash_aim_count: u32,
+    pub(crate) dash_aims: Vec<f32>,
     pub(crate) player_x: f32,
     pub(crate) player_y: f32,
     pub(crate) obstacle_hit: bool,
@@ -126,6 +128,37 @@ impl FrameResponse {
     /// warning left joins the flock in the same step it would have reached it.
     pub fn spawn_markers(&self) -> Float32Array {
         Float32Array::from(self.spawn_markers.as_slice())
+    }
+
+    /// Number of dash warning lines packed into the dash-aim buffer.
+    #[wasm_bindgen(getter)]
+    pub fn dash_aim_count(&self) -> u32 {
+        self.dash_aim_count
+    }
+
+    /// Returns one warning line per charging boid, five values each:
+    /// `[start_x, start_y, end_x, end_y, charge_progress]`.
+    ///
+    /// The line runs from the boid to where its dash would end if it launched in this very
+    /// step, so it is as long as the dash carries and it points where the dash would go.
+    /// The engine picks the direction only at the launch itself, which is why this is a
+    /// fresh answer every frame rather than a stored aim: while the boid charges, the line
+    /// keeps following the player, and it stops being a prediction at the moment it stops
+    /// existing.
+    ///
+    /// An entry exists **only while a boid is charging** — exactly the window its pulse is
+    /// visible in. There is therefore no "nothing to draw" value and no sign trick as in
+    /// `dash_phases`: `dash_aim_count` already says how many lines there are, the buffer is
+    /// empty on nearly every frame, and a boid that has launched draws no line because it
+    /// is no longer announcing anything, it is flying the line.
+    ///
+    /// Not index-aligned with the boid buffers, for the same reason `spawn_markers` is not:
+    /// at most a dozen boids charge at once out of up to 156, so an entry carries its own
+    /// position rather than leaving 140 empty slots to be skipped. `charge_progress` is the
+    /// boid's `dash_phases` value, repeated here because the index that would have found it
+    /// is exactly what this buffer does not have.
+    pub fn dash_aims(&self) -> Float32Array {
+        Float32Array::from(self.dash_aims.as_slice())
     }
 
     /// The player's position after the engine resolved the move against the

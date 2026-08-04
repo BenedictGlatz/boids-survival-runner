@@ -1,4 +1,5 @@
 mod boid_factory;
+mod frame_buffers;
 pub mod response;
 
 use self::boid_factory::{build_boid, create_boid_for_wave, difficulty_tier_for_wave};
@@ -8,24 +9,14 @@ use crate::constants::{
     WAVE_SPAWN_GATE_COUNT, WAVE_SPAWN_WARNING_STEPS,
 };
 use crate::math::vector::Vec2;
-use crate::simulation::dash::dash_render_phase;
 use crate::simulation::flock::Flock;
-use crate::simulation::obstacle_arming::obstacle_render_phase;
 use crate::simulation::obstacle_collision::resolve_movement_against_obstacles;
 use crate::simulation::obstacle_field::ObstacleField;
-use crate::simulation::wave_spawn::{wave_spawn_warning_progress, PendingSpawn, WaveSpawnQueue};
+use crate::simulation::wave_spawn::{PendingSpawn, WaveSpawnQueue};
 use crate::simulation::wave_spawn_placement::{
     gate_perimeter_offset, gate_spawn_position, inward_velocity,
 };
 use wasm_bindgen::prelude::*;
-
-/// Values per obstacle in the obstacle buffer. Kept in step with the frontend's
-/// OBSTACLE_STRIDE, and asserted on in the WASM boundary tests.
-const OBSTACLE_STRIDE: usize = 7;
-
-/// Values per announced spawn in the spawn-marker buffer. Kept in step with the
-/// frontend's SPAWN_MARKER_STRIDE, and asserted on in the WASM boundary tests.
-const SPAWN_MARKER_STRIDE: usize = 3;
 
 /// Browser-facing simulation engine.
 #[wasm_bindgen]
@@ -37,12 +28,20 @@ pub struct GameEngine {
     world_height: f32,
     initial_boid_count: u32,
     current_wave: u32,
+    /// Where the player stood at the end of the last `tick`.
+    ///
+    /// The dash warning lines are measured against it, and `snapshot()` is handed no
+    /// player position at all — it reports a world that is deliberately frozen (countdown,
+    /// death, pause), so re-using the last one is not an approximation there: nothing has
+    /// moved since.
+    last_player_position: Vec2,
     positions_buffer: Vec<f32>,
     velocities_buffer: Vec<f32>,
     tiers_buffer: Vec<u32>,
     dash_phases_buffer: Vec<f32>,
     obstacles_buffer: Vec<f32>,
     spawn_markers_buffer: Vec<f32>,
+    dash_aims_buffer: Vec<f32>,
 }
 
 #[wasm_bindgen]
@@ -84,12 +83,14 @@ impl GameEngine {
             world_height,
             initial_boid_count: spawn_count,
             current_wave: 1,
+            last_player_position: player_position,
             positions_buffer: Vec::with_capacity(spawn_count as usize * 2),
             velocities_buffer: Vec::with_capacity(spawn_count as usize * 2),
             tiers_buffer: Vec::with_capacity(spawn_count as usize),
             dash_phases_buffer: Vec::with_capacity(spawn_count as usize),
             obstacles_buffer: Vec::new(),
             spawn_markers_buffer: Vec::new(),
+            dash_aims_buffer: Vec::new(),
         }
     }
 
@@ -119,6 +120,9 @@ impl GameEngine {
             PLAYER_COLLISION_RADIUS,
         );
         let player_position = resolution.position;
+        // Kept for the frame response, which is built after the flock has moved and needs
+        // the position the dash warning lines are aimed at.
+        self.last_player_position = player_position;
 
         // Lighting up what was hit, while the index still refers to the obstacle it was
         // taken from — the field update below removes whatever expired this step and
@@ -293,80 +297,6 @@ impl GameEngine {
                 spawn.velocity,
                 spawn.difficulty_tier,
             ));
-        }
-    }
-
-    fn build_frame_response(&mut self, hit_count: u32) -> FrameResponse {
-        self.positions_buffer.clear();
-        self.velocities_buffer.clear();
-        self.tiers_buffer.clear();
-        self.dash_phases_buffer.clear();
-        self.obstacles_buffer.clear();
-        self.spawn_markers_buffer.clear();
-        // Unlike the boid buffers these two cannot be sized once at construction: the
-        // obstacle count changes as they come and go, and the marker count is zero for
-        // most of a wave. Reserving here keeps them from regrowing on the frames where
-        // something new appears.
-        self.obstacles_buffer
-            .reserve(self.obstacle_field.len() * OBSTACLE_STRIDE);
-        self.spawn_markers_buffer
-            .reserve(self.wave_spawns.len() * SPAWN_MARKER_STRIDE);
-
-        for boid in &self.flock.boids {
-            self.positions_buffer.push(boid.position.x);
-            self.positions_buffer.push(boid.position.y);
-            self.velocities_buffer.push(boid.velocity.x);
-            self.velocities_buffer.push(boid.velocity.y);
-            self.tiers_buffer.push(boid.difficulty_tier);
-            self.dash_phases_buffer.push(dash_render_phase(boid));
-        }
-
-        // OBSTACLE_STRIDE values each, in this order. There is no shape flag: a
-        // circular obstacle has both spine points in the same place, which the
-        // frontend draws as a round line cap without a branch of its own. The last two
-        // values are the render states an obstacle can be in — materialising, fading
-        // out at the end of its life, and flashing red after a hit — one float each,
-        // the first of them signed the way the dash phase is.
-        for obstacle in &self.obstacle_field.obstacles {
-            self.obstacles_buffer.push(obstacle.spine_start.x);
-            self.obstacles_buffer.push(obstacle.spine_start.y);
-            self.obstacles_buffer.push(obstacle.spine_end.x);
-            self.obstacles_buffer.push(obstacle.spine_end.y);
-            self.obstacles_buffer.push(obstacle.radius);
-            self.obstacles_buffer.push(obstacle_render_phase(obstacle));
-            self.obstacles_buffer.push(obstacle.hit_flash());
-        }
-
-        // SPAWN_MARKER_STRIDE values each: where a boid of the next wave will enter, and
-        // how far through its warning that announcement is. One entry per announced boid
-        // rather than one per gate — the boids of a gate stand close enough together that
-        // the glows the frontend draws merge into a single arc, so the marker is literally
-        // the spot each boid appears at and the gate needs no separate concept here.
-        for spawn in &self.wave_spawns.pending {
-            self.spawn_markers_buffer.push(spawn.position.x);
-            self.spawn_markers_buffer.push(spawn.position.y);
-            self.spawn_markers_buffer
-                .push(wave_spawn_warning_progress(spawn));
-        }
-
-        FrameResponse {
-            entity_count: self.flock.len() as u32,
-            hit_count,
-            positions: self.positions_buffer.clone(),
-            velocities: self.velocities_buffer.clone(),
-            tiers: self.tiers_buffer.clone(),
-            dash_phases: self.dash_phases_buffer.clone(),
-            obstacle_count: self.obstacle_field.len() as u32,
-            obstacles: self.obstacles_buffer.clone(),
-            spawn_marker_count: self.wave_spawns.len() as u32,
-            spawn_markers: self.spawn_markers_buffer.clone(),
-            // Filled in by tick(). A snapshot moves nobody, so there is nothing to
-            // correct and nothing to report.
-            player_x: 0.0,
-            player_y: 0.0,
-            obstacle_hit: false,
-            block_normal_x: 0.0,
-            block_normal_y: 0.0,
         }
     }
 }

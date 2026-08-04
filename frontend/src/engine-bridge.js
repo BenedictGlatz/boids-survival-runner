@@ -130,6 +130,8 @@ function normalizeFrameResponse(response, attemptedPosition) {
     // between waves.
     spawnMarkerCount: response.spawn_marker_count,
     spawnMarkers: response.spawn_markers(),
+    dashAimCount: response.dash_aim_count,
+    dashAims: response.dash_aims(),
     obstacleHit: response.obstacle_hit,
     // Falls back to the attempted position for a snapshot, which resolves nothing, so
     // callers never have to check which kind of frame they are holding.

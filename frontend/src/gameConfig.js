@@ -142,8 +142,8 @@ export const PLAYER_DASH_COOLDOWN_MS = 1400;
  * Values per obstacle in the engine's obstacle buffer:
  * `[spineStartX, spineStartY, spineEndX, spineEndY, radius, renderPhase, hitFlash]`.
  *
- * Duplicated in `engine/src/wasm_bridge/mod.rs` and asserted on by the WASM boundary
- * tests, the same way `INITIAL_BOID_COUNT` is duplicated — keep the two in sync.
+ * Duplicated in `engine/src/wasm_bridge/frame_buffers.rs` and asserted on by the WASM
+ * boundary tests, the same way `INITIAL_BOID_COUNT` is duplicated — keep the two in sync.
  */
 export const OBSTACLE_STRIDE = 7;
 
@@ -175,8 +175,8 @@ export const OBSTACLE_FADE_SHARE = 0.06;
 /**
  * Values per marker in the engine's spawn-marker buffer: `[x, y, warningProgress]`.
  *
- * Duplicated in `engine/src/wasm_bridge/mod.rs` and asserted on by the WASM boundary
- * tests, the same way `OBSTACLE_STRIDE` is — keep the two in sync.
+ * Duplicated in `engine/src/wasm_bridge/frame_buffers.rs` and asserted on by the WASM
+ * boundary tests, the same way `OBSTACLE_STRIDE` is — keep the two in sync.
  */
 export const SPAWN_MARKER_STRIDE = 3;
 
@@ -219,6 +219,22 @@ export const SPAWN_MARKER_RING_END_SCALE = 1;
  */
 export const SPAWN_MARKER_PULSE_HZ = 2.4;
 export const SPAWN_MARKER_PULSE_DEPTH = 0.22;
+
+/**
+ * Values per warning line in the engine's dash-aim buffer:
+ * `[startX, startY, endX, endY, chargeProgress]`.
+ *
+ * One entry per boid that is charging up a dash, and only for as long as it charges. Not
+ * index-aligned with the boid buffers — hence the start point inside the entry.
+ *
+ * Duplicated in `engine/src/wasm_bridge/frame_buffers.rs` and asserted on by the WASM
+ * boundary tests, the same way `SPAWN_MARKER_STRIDE` is — keep the two in sync.
+ *
+ * The look of the line is not configured here but in `renderer/dashAimLayer.js`, next to the
+ * drawing it belongs to, the way the pulse keeps its own numbers in `renderer/dashPulse.js`.
+ * What crosses the language boundary is only this stride.
+ */
+export const DASH_AIM_STRIDE = 5;
 
 /**
  * How much of the velocity that ran into an obstacle comes back the other way when the

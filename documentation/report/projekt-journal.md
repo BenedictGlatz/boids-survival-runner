@@ -98,8 +98,70 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-04 | 2,5 | S-05 | Drei Gameplay-Verbesserungen aus einer Spielsitzung des Betreuers: (1) Der gemeldete Fehler „Power-ups spawnen auf Hindernissen" existierte nicht — die Prüfung war korrekt, verdrahtet und getestet; die tatsächliche Ursache ist die Gegenrichtung (Hindernisse entstehen alle ~9 s und stehen 40 s, Marker liegen 12 s, also wächst regelmäßig eines über einen liegenden Marker), von der Spec ausdrücklich als akzeptierte Grenze geführt. Jetzt behandelt: `markerLifetime.js` prüft jeden Marker pro Schritt, ein verdeckter skaliert über `OBSTACLE_RETIRE_FADE_MS` = 350 ms weg — innerhalb der 1,5 s Anlaufzeit des Hindernisses, also bevor es fest ist — und ist ab dem Setzen von `retiringSinceMs` nicht mehr aufsammelbar; Rücknahmeschwelle ist `PICKUP_RADIUS` (27) gegen die Platzierungsschwelle 70, damit nicht jedes benachbarte Hindernis einsammelbare Marker löscht. (2) Ein Marker zeigt seine Restliegezeit jetzt an, über **dieselbe** Funktion, mit der ein Buff am Spieler abläuft: `drawTimeArc` samt Blinkgate aus `powerupLayer.js` in ein Blattmodul `renderer/timeArc.js` gezogen, weil zwei Aufrufer sonst einen Importzyklus über `powerupMarkerLayer.js` geschlossen hätten, und die Wanduhr des Blinkens von `performance.now()` auf einen Parameter umgestellt — dadurch ist das Motiv erstmals prüfbar, es war vorher auf keiner Teststufe abgedeckt. (3) Spielerhandling: neues `PLAYER_TURN_DECELERATION` = 3600 bremst in `_steer` den Geschwindigkeitsanteil, der nicht in die gehaltene Richtung zeigt; `PLAYER_ACCELERATION` 1200 → 2000, `PLAYER_DECELERATION` 1500 → 2600, `PLAYER_MAX_SPEED` und `PLAYER_DASH_SPEED` bewusst unverändert (Tunnel-Invariante, Overdrive-Faktor, Schweif-Schwelle hängen daran). Gemessen: 90°-Wende 1,63 s → 0,10 s, 180°-Wende 0,60 s → 0,28 s, Anfahren 0,30 → 0,18 s, Anhalten 0,25 → 0,15 s. `powerups.js` lief bei 416 Zeilen auf und wurde entlang der schon zweimal benutzten Naht geteilt (`markerLifetime.js`), `powerups.test.js` und `playerController.test.js` ebenso (`playerSteering.test.js`); Spec S-05b §2/§3/§5/§6/§7 und Kap. 11 des Design-Systems fortgeschrieben, inklusive der ausdrücklichen Rücknahme der akzeptierten Grenze |
 
 | 2026-08-04 | 1,0 | S-03 | HUD-Fortschrittsblock aus dem fortgeschriebenen Designsystem umgesetzt: die Wellennummer verlässt die rechte obere Ecke und steht mit Timer und dem neuen Wert `SPAWNING` als `.hud-group` oben Mitte, getrennt durch Haarlinien — die drei beantworten **eine** Frage („wie weit bin ich, was kommt jetzt") und brauchten dafür bisher zwei Blicke in gegenüberliegende Ecken; `SPAWNING` zeigt die Stufe 01–05 der gerade spawnenden Boid-Variante plus Boid-Silhouette, beides in der Farbe genau dieser Stufe aus `BOID_COLORS` — die Farbe ist die eigentliche Ankündigung, weil sie auf die Darts in der Arena zeigt, die Zahl nennt nur den Schritt und zeigt zugleich, wo die Rampe endet (ab Welle 5 steht sie auf 05, während die Wellennummer weiterläuft); Ableitung der Stufe als neues Frontend-Modul `round/waveTier.js` statt als achter Wert über die WASM-Grenze (siehe Entscheidung), `MAX_BOID_DIFFICULTY_TIER` damit als zweite bewusste Handkopie neben `INITIAL_BOID_COUNT` in `gameConfig.js`. Nebenbefund beim Umbau: `.hud-stat--boids` war ein toter Selektor — die Boid-Zahl stand seit dem HUD-Umbau vom 2026-07-30 in Weiß statt in Rot, weil das Element die Klasse nie trug; die Utility `.top-right` entfällt mit der Wellennummer, und mit ihr das Stapeln zweier Ecken im ≤640-px-Fenster. Acht neue Unit-Zusicherungen, zwei neue E2E-Zusicherungen (Stufe und ihre Farbe), Sichtprüfung per temporärem Playwright-Screenshot in Welle 1 und — mit verkürzter `WAVE_DURATION_SECONDS` und erhöhtem Lebensstand — in Welle 3 |
+| 2026-08-04 | 2,0 | S-05 | Vorwarnlinie für den Boid-Dash: ab dem ersten Blinken zieht ein ladender Boid eine dünne rote gestrichelte Linie dorthin, wo sein Dash endet, die im Absprungschritt verschwindet — der Puls sagte bisher _dass_ und _wann_, aber nicht _wohin_, und ohne das Wohin ist die Vorwarnung eine Aufforderung zum Zucken statt zum Ausweichen. Geometrie kommt aus dem neuen `simulation/dash_aim.rs`, in das `launch_direction` und `dash_speed` aus `dash.rs` umgezogen sind: dieselbe Funktion schreibt den Absprung und misst die Linie, das Auseinanderlaufen ist damit strukturell verhindert statt kommentiert; `dash_distance` = `dash_speed × dash_steps`, weil jeder Dash-Schritt an der erhöhten Kappe läuft. Neuer Buffer `dash_aims` mit Stride 5 (`[start_x, start_y, end_x, end_y, charge_progress]`), eigene Anzahl statt Index-Gleichheit wie `spawn_markers` (höchstens ~15 von bis zu 156 Boids laden gleichzeitig), kein Vorzeichentrick, weil ein Eintrag nur während `Charging` existiert; `GameEngine` merkt sich dafür `last_player_position`, weil `snapshot()` keine Spielerposition bekommt und die eingefrorene Welt dieselben Linien zeigen muss wie der `tick` davor. `wasm_bridge/mod.rs` stand mit dem neuen Buffer bei 421 Zeilen und wurde entlang derselben Naht geteilt, an der schon `boid_factory.rs` abging: `frame_buffers.rs` nimmt die drei Strides und `build_frame_response` (302 Zeilen bleiben). Frontend: `dashAimAlpha` zu `dashPulseScale` und `dashGlowLevel` in `dashPulse.js` — drei Zahlen aus einer Phase — plus die Zeichenebene `renderer/dashAimLayer.js` nach dem Muster von `spawnMarkerLayer.js` (Alpha-Tabelle statt `rgba(...)` pro Bild, `setLineDash` **innerhalb** von `save`/`restore`, sonst strichelt jeder spätere Strich mit). Sieben neue Rust-Zusicherungen, sechs neue WASM-Vertragstests in `wasm_dash_aim_tests.rs`, 16 neue Frontend-Zusicherungen (465 gesamt), E2E unverändert 51 grün; Sichtprüfung per temporärem Playwright-Screenshot in Welle 3, mit `DASH_UNLOCK_DIFFICULTY_TIER = 1` und gekürzter Wellendauer |
 
 ## Entscheidungen
+
+### 2026-08-04 — Die Vorwarnlinie kommt aus der Engine, nicht aus dem Renderer
+
+Die Linie braucht zwei Angaben: eine Richtung (auf den Spieler) und eine Länge (`dash_speed ×
+dash_steps`). Beide sind im Frontend grundsätzlich beschaffbar — die Spielerposition liegt dort,
+und die Reichweite ist eine Rechnung aus zwei Tuning-Werten. Drei Wege dahin:
+
+- **Gewählt:** ein Buffer `dash_aims` aus der Engine, gefüllt aus `dash_aim_end`, also aus
+  **derselben** Funktion, mit der `launch_dash` die Absprungrichtung schreibt.
+- **Verworfen:** `normalize(player − boid)` im Renderer, mit den Reichweiten je Stufe als Tabelle
+  in `gameConfig.js`. Kostet keinen Buffer und keine Grenzüberschreitung, spiegelt aber zwei
+  Regeln, deren Original in der Engine steht.
+- **Verworfen:** ein einmaliger `#[wasm_bindgen]`-Getter `dash_range_for_tier`, beim Start
+  ausgelesen und im Frontend zwischengespeichert, Richtung weiter im Renderer. Beseitigt die
+  Tabellenkopie, nicht die Richtungskopie.
+
+Der Grund ist der Zweck der Linie: sie ist ein **Versprechen über künftiges Verhalten der
+Simulation**, und ihr ganzer Wert liegt darin, dass sie stimmt. Eine gespiegelte Aimregel stimmt
+genau so lange, bis jemand die Aimregel ändert — und die naheliegendste künftige Änderung ist
+gerade dort, nämlich Vorhalten auf die Spielerbewegung. Danach zeigte die Linie weiter dorthin, wo
+der Dash früher hinging, und wäre schlimmer als keine Linie: der Spieler weicht in den Treffer aus.
+Ein Test kann das nicht auffangen, weil beide Seiten dann in sich schlüssig sind.
+
+Das ist ausdrücklich die Gegenrichtung zur Entscheidung über die Spawn-Stufe weiter unten, und die
+Unterscheidung ist tragfähig: die Stufe ist eine reine Funktion der Wellennummer, die das Frontend
+selbst führt. Die Aimlinie ist eine Funktion von **Simulationszustand** — Boidposition,
+Spielerposition nach der Hindernisauflösung, Dash-Tuning je Boid. Was Zustand ist, geht über die
+Grenze; was eine Rechnung auf einer Zahl ist, die der Empfänger schon hat, nicht.
+
+Der Preis ist ein weiterer Buffer und eine dritte Stride-Handkopie. Beides ist bewusst klein gehalten:
+eigene Anzahl statt 156 überwiegend leerer Einträge, und die Stride wird von den Grenztests
+festgenagelt, was der Sinn der Kopie ist.
+
+→ Kap. 5
+
+### 2026-08-04 — Die Linie zielt mit, statt beim Ladebeginn einzufrieren
+
+Die Engine wählt die Dash-Richtung erst im Absprungschritt (`launch_dash`); während der Aufladung
+existiert keine Richtung, die man zeichnen könnte. Zwei Wege dahin:
+
+- **Gewählt:** die Linie zeigt in jedem Bild, wohin der Dash _jetzt_ ginge. Sie dreht also mit,
+  solange geladen wird, und die Engine bleibt unangetastet.
+- **Verworfen:** die Richtung schon in `begin_dash_charge` festlegen und auf dem Boid einfrieren.
+  Die Linie wäre damit ein Versprechen — sichtbar attraktiver, weil sie ruhig steht.
+
+Die verworfene Variante ist keine Darstellungsfrage, sondern eine Balanceänderung, und zwar eine
+harte: bei 0,57–0,73 s Vorwarnung, 222–277 px Reichweite und einer Spielergeschwindigkeit von
+6 px/Schritt (also ~250 px in der Vorwarnzeit) entkäme jeder bewegte Spieler jedem Dash, indem er
+einfach weiterläuft. Der Boid-Dash ist aber genau das Gegenteil eines ausweichbaren Rituals: er
+soll einen **stehenden** Spieler treffen und einen bewegten ~30 px Seitversatz kosten (§3).
+
+Was die mitziehende Linie lesbar macht, ist deshalb nicht die Fluchtrichtung, sondern die
+**Reichweite**: endet die Linie vor dem Spieler, kommt dieser Boid von dort nicht an; läuft sie
+über ihn hinaus, kommt er an. Das ist die Information, die vorher fehlte — und sie bleibt wahr,
+während sie mitdreht.
+
+Nebenwirkung, bewusst in Kauf genommen: bei einem Sechser-Verband laufen sechs Linien auf dem
+Spieler zusammen. Deshalb Haarlinie und Strichmuster statt durchgezogener Striche — sechs volle
+rote Linien lesen sich als Käfig statt als Warnung.
+
+→ Kap. 3, 5
 
 ### 2026-08-04 — Die Spawn-Stufe wird im Frontend abgeleitet, nicht über die Grenze getragen
 
@@ -1617,6 +1679,26 @@ den Preis von Produktionscode, der nur für Tests existiert.
 → Kap. 3, 8
 
 ## Herausforderungen & Lessons Learned
+
+- **2026-08-04 — Eine Freischaltkonstante herunterzudrehen schaltet nichts frei.** Für die
+  Sichtprüfung der Vorwarnlinie brauchte es dashende Boids in Welle 1, also
+  `DASH_UNLOCK_DIFFICULTY_TIER = 0` und ein neuer Build. Im Browser passierte nichts: kein Puls,
+  keine Linie, `dash_aim_count` durchgehend 0. Rund 30 min gingen in die falsche Richtung, weil
+  das Symptom wie ein Renderfehler aussah — der Buffer war ja neu. Die Messung, die es umgedreht
+  hat, war eine Sonde auf `dash_phases` im laufenden Bild: dort stand ebenfalls überall 0, damit
+  lag es nicht am Zeichnen, und die eigenen Grenztests aus derselben Quelle sprachen im Browser
+  ohnehin an. Die Ursache steht in `boid_factory.rs`: `build_boid` gibt Stufe 0 den
+  Standardkonstruktor, und `DashProperties::default()` hat `can_dash: false` **fest** verdrahtet
+  — dokumentiert und richtig so, weil null Ladeschritte ein legitimer Tuning-Wert bleiben soll
+  und nicht versehentlich zum Ausschalter werden darf. Der Unlock-Wert wird auf diesem Pfad also
+  gar nicht gelesen. Mit `= 1` und Welle 2 war die Prüfung sofort da.
+  Zwei Lehren. Erstens: **Eine Konstante zu verbiegen prüft nur, was sie liest** — bei einem
+  Schnellpfad, der die Regel überspringt, verbiegt man ins Leere, und das sieht genauso aus wie
+  ein defektes Feature. Zweitens: Bei „neues Feature zeigt nichts" ist die erste Messung nicht
+  das neue Feature, sondern der Wert, von dem es abhängt; hätte die Sonde auf `dash_phases` am
+  Anfang gestanden, wären es fünf Minuten gewesen. Der Weg dorthin ist in §6 der Dash-Spec
+  vermerkt, damit die nächste Sichtprüfung nicht wieder bei Stufe 0 anfängt.
+  → Kap. 8
 
 - **2026-08-04 — Der gemeldete Fehler existierte nicht, der Fehler dahinter schon.** Aus
   einer Spielsitzung kam „Power-ups dürfen nicht auf Hindernissen spawnen". Die Prüfung

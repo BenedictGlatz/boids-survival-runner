@@ -7,6 +7,7 @@ import {
   WORLD_WIDTH,
 } from '../gameConfig.js';
 import { ArenaBackground } from './arenaBackground.js';
+import { drawDashAimLines } from './dashAimLayer.js';
 import { dashPulseScale } from './dashPulse.js';
 import { dashTrails } from './dashTrailHistory.js';
 import { DrawCallCounter } from './drawCallCounter.js';
@@ -214,6 +215,11 @@ export class CanvasRenderer {
       sampleDashTrails(dashTrails, frame, playerPosition, renderState);
     }
     drawDashTrails(ctx, dashTrails, trailColorForTier);
+    // Where a boid that is charging up will lunge. Above the trails and below everything
+    // that moves, for the same reason: it is neither terrain nor an object, it is a
+    // statement about the boid at its start — which therefore has to stay drawn on top of
+    // it, and so does the player the line points at.
+    drawDashAimLines(ctx, frame);
     drawBoids(ctx, frame);
     drawPlayer(ctx, playerPosition, renderState.playerInvulnerable === true);
     // A shell and its time arcs lie on the player, so they come after them — and before the
