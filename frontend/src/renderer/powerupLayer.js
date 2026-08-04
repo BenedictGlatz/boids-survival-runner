@@ -13,6 +13,10 @@
  * moment and nothing else — there is nothing left to display once it is over, and the result
  * is already in the life segments under the player.
  *
+ * The arc itself is no longer drawn here: it moved to `timeArc.js` when a marker's remaining
+ * lifetime started using the same motif. Three arcs that look alike because they are one function
+ * is a different thing from three that happen to agree.
+ *
  * Purely presentational, like `trailLayer.js`. Nothing here decides anything.
  */
 
@@ -24,6 +28,7 @@ import {
   OVERDRIVE_COLOR,
   STROKE_WIDTH,
 } from './powerupMarkerLayer.js';
+import { drawTimeArc } from './timeArc.js';
 
 /** Shell radius, clear of the player's own 16 px body and its glow. */
 const SHELL_RADIUS = 30;
@@ -39,12 +44,6 @@ const OVERDRIVE_ARC_RADIUS = 42;
 const MEND_ARC_RADIUS = 34;
 const MEND_ARC_WIDTH = 2.5;
 const MEND_ARC_GLOW = 10;
-
-/** Below this fraction the time arc blinks — the only warning a buff is about to end. */
-const ARC_BLINK_BELOW = 0.17;
-const ARC_BLINK_HZ = 4;
-const ARC_ALPHA = 0.9;
-const ARC_BLINK_ALPHA = 0.14;
 
 const SHELL_SPIN_TURNS_PER_SECOND = 0.5;
 const SHELL_GLOW_BLUR = 9;
@@ -82,7 +81,7 @@ export function drawPlayerBuffs(ctx, playerPosition, renderState, seconds) {
   }
 
   if (buffs.overdrive !== undefined) {
-    drawOverdriveRing(ctx, playerPosition.x, playerPosition.y, buffs.overdrive);
+    drawOverdriveRing(ctx, playerPosition.x, playerPosition.y, buffs.overdrive, seconds);
   }
 
   if (renderState.aegisShatterAge !== undefined) {
@@ -117,7 +116,7 @@ export function drawAegisShell(ctx, x, y, seconds, remaining) {
   ctx.stroke();
   ctx.restore();
 
-  drawTimeArc(ctx, x, y, AEGIS_ARC_RADIUS, remaining, AEGIS_COLOR);
+  drawTimeArc(ctx, x, y, AEGIS_ARC_RADIUS, remaining, AEGIS_COLOR, seconds);
 }
 
 /**
@@ -128,42 +127,11 @@ export function drawAegisShell(ctx, x, y, seconds, remaining) {
  * @param {number} x - Player position.
  * @param {number} y - Player position.
  * @param {number} remaining - Fraction of the buff left, `1`..`0`.
+ * @param {number} seconds - Wall-clock seconds, for the arc's blink.
  * @returns {void}
  */
-export function drawOverdriveRing(ctx, x, y, remaining) {
-  drawTimeArc(ctx, x, y, OVERDRIVE_ARC_RADIUS, remaining, OVERDRIVE_COLOR);
-}
-
-/**
- * The remaining-time motif both buffs share: a 2 px arc draining clockwise from twelve.
- *
- * It sits on the player and not only in the HUD on purpose — in wave 5 nobody looks at the
- * edge of the screen. The HUD gets the buffs too, but as the second place to look.
- * @param {CanvasRenderingContext2D} ctx - Canvas context, in world space.
- * @param {number} x - Centre.
- * @param {number} y - Centre.
- * @param {number} radius - Arc radius.
- * @param {number} remaining - Fraction left, `1`..`0`.
- * @param {string} color - Buff colour.
- * @returns {void}
- */
-export function drawTimeArc(ctx, x, y, radius, remaining, color) {
-  if (remaining <= 0) return;
-
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = STROKE_WIDTH;
-  ctx.lineCap = 'butt';
-
-  // Blinks off the wall clock, not off `remaining`, so the rate is a steady 4 Hz whatever a
-  // buff's total duration happens to be.
-  const blinkPhase = Math.sin((performance.now() / 1000) * ARC_BLINK_HZ * Math.PI * 2);
-  ctx.globalAlpha = remaining < ARC_BLINK_BELOW && blinkPhase < 0 ? ARC_BLINK_ALPHA : ARC_ALPHA;
-
-  ctx.beginPath();
-  ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.min(1, remaining) * Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
+export function drawOverdriveRing(ctx, x, y, remaining, seconds) {
+  drawTimeArc(ctx, x, y, OVERDRIVE_ARC_RADIUS, remaining, OVERDRIVE_COLOR, seconds);
 }
 
 /**

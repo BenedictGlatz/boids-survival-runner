@@ -4,5 +4,11 @@
     "prompt": "Ich habe im Design Handhoff Ordner ein neues Design für einen Heal Powerup hinzugefügt, dieses soll beim Spieler einen Lebenspunkt wiederherstellten, bitte implentiere dieses neue Powerup",
     "topic": "frontend-ui",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Ich hätte gerne dass du die Implementation einer Gameplayverbesserungen für mich planst:\n\n- Powerups dürfen nicht auf Hindernissen Spawnen\n- Um die Powerups herum sollte ein Kreis ablaufen, anhanddem man erkennen kann wann das Powerup wieder aus der Arena verschwindet. Visuell sollte es genauso aussehen wie der Kreis um den Spieler herum der einem anzeigt wann ein aufgesammeltes Powerup abläuft.\n- Der Spielercharakter sollte etwas manövrierfähiger sein, aktuell hat er sehr viel Momentum, bremst sehr langsam und hat Probleme mit schnellen Richtungswechseln. Bitte mache ihn etwas weniger träge.",
+    "topic": "frontend-ui",
+    "use": "impl"
   }
 ]
