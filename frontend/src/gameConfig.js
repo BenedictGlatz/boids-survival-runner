@@ -72,20 +72,20 @@ export const PLAYER_MAX_SPEED = 360;
 /**
  * How hard the player builds speed in the direction they are holding, in px/s².
  *
- * Reaches the top speed from a standstill in `360 / 2000` = 0,18 s. Deliberately not the lever
+ * Reaches the top speed from a standstill in `360 / 1600` = 0,23 s. Deliberately not the lever
  * that makes a turn feel sharp — that is `PLAYER_TURN_DECELERATION` below, because acceleration
  * can only ever *add*, and a turn is mostly a matter of getting rid of the old velocity.
  */
-export const PLAYER_ACCELERATION = 2000;
+export const PLAYER_ACCELERATION = 1600;
 
 /**
  * How hard the player slows once no direction is held at all, in px/s².
  *
  * Higher than the acceleration on purpose: letting go is a decision and should land quickly,
  * whereas building up to full tilt is meant to be felt. From top speed to a full stop in
- * `360 / 2600` = 0,14 s, and it snaps the last sliver to exactly zero rather than drifting.
+ * `360 / 2000` = 0,18 s, and it snaps the last sliver to exactly zero rather than drifting.
  */
-export const PLAYER_DECELERATION = 2600;
+export const PLAYER_DECELERATION = 2000;
 
 /**
  * How hard the player brakes the part of their velocity that is *not* going where they point,
@@ -95,14 +95,23 @@ export const PLAYER_DECELERATION = 2600;
  * direction was held there was no braking at all, so the only thing working against the old
  * momentum was the acceleration itself. A full reversal therefore took twice as long as reaching
  * top speed did (`2 × 360 / 1200` = 0,6 s) and a ninety-degree turn was a wide drift with no
- * force acting on the sideways component at all.
+ * force acting on the sideways component at all — 1,63 s of it, measured.
  *
  * The highest of the three because it is the most deliberate: a player pushing a direction that
  * disagrees with where they are going is actively steering, not coasting. It clears a full
- * sideways `PLAYER_MAX_SPEED` in `360 / 3600` = 0,1 s, which reads as grip rather than as a
- * teleport — the knob to turn down first if the player ever feels twitchy instead of responsive.
+ * sideways `PLAYER_MAX_SPEED` in `360 / 2200` = 0,16 s.
+ *
+ * That is the second setting of this knob, and the reason it exists as one. At 3600 (0,1 s) the
+ * turn read as twitchy: the sideways momentum vanished inside three frames, so a corner cost
+ * nothing and the character had no weight left to steer against. Dialling it back to 2200 keeps
+ * the point of the brake — a ninety-degree turn is still an order of magnitude cheaper than the
+ * 1,63 s drift it replaced — while a corner is again something the player leans into.
+ *
+ * The floor is `PLAYER_ACCELERATION`, not zero: below roughly that value braking the old heading
+ * takes longer than accelerating through it would, and the brake stops being the faster way
+ * round a corner at all. `player/playerSteering.test.js` asserts exactly that comparison.
  */
-export const PLAYER_TURN_DECELERATION = 3600;
+export const PLAYER_TURN_DECELERATION = 2200;
 
 /** Safety net for the player integrator. Must stay above SIMULATION_STEP_SECONDS. */
 export const PLAYER_MAX_DELTA_SECONDS = 0.05;
