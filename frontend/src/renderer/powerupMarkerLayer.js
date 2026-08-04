@@ -63,8 +63,13 @@ const MEND_GLYPH_BAR_WIDTH_SHARE = 0.72;
 const MEND_GLYPH_BAR_HEIGHT_SHARE = 0.15;
 const MEND_GLYPH_GAP_SHARE = 0.17;
 
-/** The topmost bar of the meter glyph is only hinted at — that gap is the whole icon. */
+/**
+ * The topmost bar of the meter glyph is only hinted at — that gap is the whole icon. It dims
+ * along with the rest when the marker goes inert but never disappears: a glyph that loses a bar
+ * has become a different glyph, and the icon is supposed to be the same one going quiet.
+ */
 const MEND_GLYPH_HINT_ALPHA = 0.3;
+const MEND_GLYPH_HINT_INERT_DROP = 0.15;
 
 /** How much opacity an inert marker gives up. It fades; it does not disappear. */
 const INERT_ALPHA_DROP = 0.35;
@@ -219,7 +224,9 @@ function drawMeterGlyph(ctx, x, y, radius, inert) {
 
   for (let bar = 0; bar < 3; bar += 1) {
     const hinted = bar === 0;
-    ctx.globalAlpha = hinted ? MEND_GLYPH_HINT_ALPHA * (1 - inert) : 1 - inert * INERT_ALPHA_DROP;
+    ctx.globalAlpha = hinted
+      ? MEND_GLYPH_HINT_ALPHA - inert * MEND_GLYPH_HINT_INERT_DROP
+      : 1 - inert * INERT_ALPHA_DROP;
     ctx.fillRect(x - barWidth / 2, topY + bar * (barHeight + gap), barWidth, barHeight);
   }
 
