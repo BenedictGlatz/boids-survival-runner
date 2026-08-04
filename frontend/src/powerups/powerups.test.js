@@ -177,10 +177,24 @@ describe('spawning', () => {
   it('scales a fresh marker in rather than popping it into existence', () => {
     const driver = new Driver();
     driver.idle(SPAWN_INTERVAL_MS + 20);
-    expect(driver.markers()[0].spawnScale).toBeLessThan(1);
+    expect(driver.markers()[0].scale).toBeLessThan(1);
 
     driver.idle(600);
-    expect(driver.markers()[0].spawnScale).toBe(1);
+    expect(driver.markers()[0].scale).toBe(1);
+  });
+
+  it('reports how much of its time on the ground a marker has left', () => {
+    const driver = new Driver();
+    driver.idle(SPAWN_INTERVAL_MS + 100);
+
+    // Essentially full the moment it lands, so the ring starts as a closed circle.
+    const atStart = driver.markers()[0].remaining;
+    expect(atStart).toBeGreaterThan(0.99);
+    expect(atStart).toBeLessThanOrEqual(1);
+
+    // And it drains with the clock: a third of the lifetime spends a third of the ring.
+    driver.idle(MARKER_LIFETIME_MS / 3);
+    expect(driver.markers()[0].remaining).toBeCloseTo(atStart - 1 / 3, 2);
   });
 
   it('takes a marker back that nobody picked up', () => {

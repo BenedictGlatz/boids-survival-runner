@@ -1,6 +1,7 @@
 /**
  * Everything a power-up looks like while it is still lying in the arena: the hexagonal marker,
- * its glyph, and the ring left behind where one was picked up.
+ * its glyph, the arc counting down how much longer it will lie there, and the ring left behind
+ * where one was picked up.
  *
  * The hexagon is the fourth and last shape in the game (`docs/design_system/design-system.md`
  * §11: triangle boid, circle player, capsule obstacle, hexagon pickup), and this file owns that
@@ -18,6 +19,7 @@
 
 import { launchRingAlpha, launchRingRadius, LAUNCH_RING_SECONDS } from './dashTrail.js';
 import { towardInert } from './mendPulse.js';
+import { drawTimeArc } from './timeArc.js';
 
 /**
  * Marker radius. Smaller than an obstacle, larger than a boid — reads as an item.
@@ -28,6 +30,17 @@ import { towardInert } from './mendPulse.js';
  * looks like a hit stops being one.
  */
 export const PICKUP_RADIUS = 27;
+
+/**
+ * Radius of the ring counting a marker's remaining time down.
+ *
+ * Seven pixels outside the hexagon, which is the clearance the player's own buff arc keeps over
+ * its shell (36 over 30) — so the arc sits the same distance off the shape in both places.
+ *
+ * Deliberately *inside* `COLLECT_RADIUS` (39): the ring must not look like the reach it is not.
+ * This file has never known the collect distance and still does not.
+ */
+const MARKER_ARC_RADIUS = 34;
 
 /**
  * Amber is already the game's colour for a temporary state change, cyan the colour of the
@@ -132,8 +145,9 @@ export function drawPowerupMarkers(ctx, renderState, seconds) {
       marker.x,
       marker.y,
       seconds,
-      marker.spawnScale,
+      marker.scale,
       marker.inert,
+      marker.remaining,
     );
   }
 
@@ -159,9 +173,11 @@ export function drawPowerupMarkers(ctx, renderState, seconds) {
  * @param {number} [scale] - `0`..`1` spawn-in scale.
  * @param {number} [inert] - `0`..`1`, a Mend marker at full lives. It drains to slate, stops
  *   turning and stops glowing, but keeps bobbing — it is still an object lying there.
+ * @param {number} [remaining] - Fraction of its time on the ground left, `1`..`0`, drawn as the
+ *   ring around it. Absent means no ring — which is what a caller with nothing to count wants.
  * @returns {void}
  */
-export function drawPowerupMarker(ctx, kind, x, y, seconds, scale = 1, inert = 0) {
+export function drawPowerupMarker(ctx, kind, x, y, seconds, scale = 1, inert = 0, remaining = 0) {
   if (scale <= 0) return;
 
   const color = inert > 0 ? towardInert(powerupColor(kind), inert) : powerupColor(kind);
@@ -209,6 +225,13 @@ export function drawPowerupMarker(ctx, kind, x, y, seconds, scale = 1, inert = 0
   }
 
   ctx.restore();
+
+  // The same arc a running buff drains on the player, here counting how much longer the marker
+  // will lie there. It rides the bob so it reads as part of the marker rather than as a ring
+  // painted on the floor underneath it, and it scales with the marker so the two arrive and
+  // leave together. The colour is the already-inert-corrected one, so a Mend marker nobody can
+  // use greys its ring out along with everything else.
+  drawTimeArc(ctx, x, bobY, MARKER_ARC_RADIUS * scale, remaining, color, seconds);
 }
 
 /**

@@ -141,9 +141,7 @@ export class PowerupField {
       }
     }
 
-    this._markers = this._markers.filter(
-      (marker) => simulationMs - marker.spawnedAtMs < MARKER_LIFETIME_MS,
-    );
+    this._markers = this._markers.filter((marker) => simulationMs < marker.expiresAtMs);
     this._collects = this._collects.filter((pop) => simulationMs - pop.atMs < COLLECT_RING_MS);
 
     if (simulationMs >= this._nextSpawnMs) {
@@ -227,8 +225,8 @@ export class PowerupField {
    * Everything the renderer and the HUD need, as plain data.
    * @param {number} simulationMs - `gameData.simulationTimeMs`.
    * @returns {{
-   *   powerupMarkers: Array<{kind: string, x: number, y: number, spawnScale: number,
-   *     inert: number}>,
+   *   powerupMarkers: Array<{kind: string, x: number, y: number, scale: number,
+   *     remaining: number, inert: number}>,
    *   powerupCollects: Array<{kind: string, x: number, y: number, age: number}>,
    *   powerupBuffs: Record<string, number>,
    *   aegisShatterAge: number | undefined,
@@ -241,7 +239,12 @@ export class PowerupField {
       x: marker.x,
       y: marker.y,
       // Scales in so a marker never simply appears next to the player.
-      spawnScale: Math.min(1, (simulationMs - marker.spawnedAtMs) / SPAWN_SCALE_IN_MS),
+      scale: Math.min(1, (simulationMs - marker.spawnedAtMs) / SPAWN_SCALE_IN_MS),
+      // How much of its time on the ground is left, for the ring that runs around it. The same
+      // fraction the buffs report, so the renderer can draw both with the same arc: a marker
+      // that is about to be taken back says so, instead of being there one frame and gone the
+      // next.
+      remaining: Math.max(0, (marker.expiresAtMs - simulationMs) / MARKER_LIFETIME_MS),
       // A Mend marker with nothing to give drains to slate rather than disappearing: a marker
       // that vanishes in front of you feels stolen, one that goes grey explains itself.
       inert: marker.kind === 'mend' ? this._mend.inertAmount() : 0,
@@ -289,7 +292,16 @@ export class PowerupField {
       if (this._markers.some((m) => Math.hypot(m.x - x, m.y - y) < MIN_SPAWN_DISTANCE)) continue;
       if (isTooCloseToAnObstacle(x, y, frame)) continue;
 
-      this._markers.push({ kind, x, y, spawnedAtMs: simulationMs });
+      // The expiry is stored as an absolute timestamp rather than derived from the spawn time,
+      // the same way `_buffs` holds `endsAtMs`: the spawn time is still needed for the scale-in,
+      // but only a stored expiry can be a *different* one per marker.
+      this._markers.push({
+        kind,
+        x,
+        y,
+        spawnedAtMs: simulationMs,
+        expiresAtMs: simulationMs + MARKER_LIFETIME_MS,
+      });
       this._nextKind += 1 + skipped;
 
       return;
