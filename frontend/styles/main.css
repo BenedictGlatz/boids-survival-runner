@@ -72,11 +72,6 @@ body {
   transform: translateX(-50%);
 }
 
-.top-right {
-  top: 1rem;
-  right: 1rem;
-}
-
 .bottom-left {
   bottom: 1rem;
   left: 1rem;
@@ -108,16 +103,10 @@ body {
     left: 0.75rem;
   }
 
+  /* Stays centred: the top edge holds one group now, not a centred value with a second one
+     in the corner that had to be stacked below it to keep the two from colliding. */
   .top-center {
     top: 0.75rem;
-    right: 0.75rem;
-    left: auto;
-    transform: none;
-  }
-
-  .top-right {
-    top: 3.75rem;
-    right: 0.75rem;
   }
 
   .bottom-left {

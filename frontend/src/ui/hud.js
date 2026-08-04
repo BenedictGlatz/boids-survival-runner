@@ -1,8 +1,10 @@
 import { t } from './i18n.js';
+import { BOID_COLORS } from '../renderer/entityPalette.js';
+import { spawnLevelForWave, spawnTierForWave } from '../round/waveTier.js';
 import { WAVE_DURATION_SECONDS } from '../gameConfig.js';
 
 /**
- * In-game heads-up display (timer, wave, score, boid count, dash bar).
+ * In-game heads-up display (wave, timer, spawning variant, score, boid count, dash bar).
  * Reads game state and updates DOM elements — no simulation logic.
  *
  * A value is a small uppercase label plus a large mono number, without a surface and
@@ -20,13 +22,15 @@ export class Hud {
     // tests read the ids, so moving a stat around the screen does not break them the
     // way a `.hud-stat.bottom-left` selector would.
     this._stats = {
-      timer: createStat('hud-timer', 'top-center', 'hud.timer', [
-        'hud-stat--timer',
-        'hud-stat--center',
+      wave: createStat('hud-wave', 'hud.wave', ['hud-stat--wave']),
+      timer: createStat('hud-timer', 'hud.timer', ['hud-stat--timer']),
+      spawn: createStat('hud-spawn-tier', 'hud.spawning', ['hud-stat--spawn']),
+      score: createStat('hud-score', 'hud.score', ['hud-stat--score', 'bottom-left']),
+      boids: createStat('hud-boids', 'hud.boids', [
+        'hud-stat--boids',
+        'hud-stat--right',
+        'bottom-right',
       ]),
-      wave: createStat('hud-wave', 'top-right', 'hud.wave', ['hud-stat--right']),
-      score: createStat('hud-score', 'bottom-left', 'hud.score', ['hud-stat--score']),
-      boids: createStat('hud-boids', 'bottom-right', 'hud.boids', ['hud-stat--right']),
     };
 
     // The wave progress rail lives under the timer, because it measures the same clock.
@@ -37,9 +41,20 @@ export class Hud {
     this._waveTrack.appendChild(this._waveFill);
     this._stats.timer.element.appendChild(this._waveTrack);
 
-    for (const stat of Object.values(this._stats)) {
-      this._el.appendChild(stat.element);
-    }
+    // The tier mark and the digits share one value box, so the arrow can inherit the tier
+    // colour through `currentColor` instead of needing a second inline style. That is why the
+    // digits get a span of their own: writing to the value box itself would delete the arrow
+    // on the first update.
+    this._spawnLevel = document.createElement('span');
+    this._stats.spawn.value.appendChild(createTierMark());
+    this._stats.spawn.value.appendChild(this._spawnLevel);
+
+    // Wave, time and the arriving variant answer one question — how far am I, and what is
+    // coming now — so they stand together at the top centre instead of across two screen
+    // corners. The corners stay free for the score and the boid count.
+    this._el.appendChild(buildGroup([this._stats.wave, this._stats.timer, this._stats.spawn]));
+    this._el.appendChild(this._stats.score.element);
+    this._el.appendChild(this._stats.boids.element);
 
     this._dash = createDashBar();
     // Above the dash bar in the same flex column, so the two abilities read as one stack and
@@ -66,10 +81,11 @@ export class Hud {
   update(data, renderState = {}) {
     this._stats.timer.value.textContent = formatTime(data.timerSeconds);
     // Two digits, so a wave change does not shift the number's width.
-    this._stats.wave.value.textContent = String(data.wave).padStart(2, '0');
+    this._stats.wave.value.textContent = padTwo(data.wave);
     this._stats.score.value.textContent = String(data.score);
     this._stats.boids.value.textContent = String(data.entityCount);
 
+    this._updateSpawnTier(data.wave);
     this._waveFill.style.width = `${waveProgressPercent(data.timerSeconds)}%`;
     this._updateDash(renderState.dashCooldownProgress);
     this._updateBuffs(renderState.powerupBuffs);
@@ -89,6 +105,20 @@ export class Hud {
    */
   show() {
     this._el.style.display = 'flex';
+  }
+
+  /**
+   * Which boid variant the current wave is putting into the arena, in that variant's colour.
+   *
+   * The colour is the actual announcement: the number says the escalation stepped, the colour
+   * says which of the darts out there it produced, so the value needs no legend. It is written
+   * on every frame rather than only on a change — that is one string assignment, against a
+   * remembered previous value that a restart would have to reset.
+   */
+  _updateSpawnTier(wave) {
+    this._spawnLevel.textContent = padTwo(spawnLevelForWave(wave));
+    // On the value box, not on the digits: the tier mark inherits it from there.
+    this._stats.spawn.value.style.color = BOID_COLORS[spawnTierForWave(wave)];
   }
 
   /**
@@ -121,11 +151,48 @@ export class Hud {
   }
 }
 
+/**
+ * The top-centre progress group: the given stats side by side, with a hairline between each
+ * pair. It is positioned by the same `top-center` utility a single value used to use, so where
+ * a thing sits still comes from `main.css` and not from this module.
+ *
+ * The hairlines are their own elements rather than borders on the stats, because a border would
+ * have to be switched off again on the first or the last child — one rule more than a `<div>`.
+ */
+function buildGroup(stats) {
+  const element = document.createElement('div');
+  element.className = 'hud-group top-center';
+
+  for (let index = 0; index < stats.length; index += 1) {
+    if (index > 0) {
+      const rule = document.createElement('div');
+      rule.className = 'hud-group__rule';
+      element.appendChild(rule);
+    }
+
+    element.appendChild(stats[index].element);
+  }
+
+  return element;
+}
+
+/**
+ * The boid silhouette beside the spawning level: a clipped triangle, the same shape the canvas
+ * draws a boid as, so the number is readable without a legend. Clipped rather than a glyph for
+ * the reason the power-up hexagon is — no font is involved, and it cannot fail to load.
+ */
+function createTierMark() {
+  const mark = document.createElement('span');
+  mark.className = 'hud-stat__tier-mark';
+
+  return mark;
+}
+
 /** Builds one label-above-value stat. The value is filled in by `update`. */
-function createStat(id, positionClass, labelKey, extraClasses) {
+function createStat(id, labelKey, extraClasses) {
   const element = document.createElement('div');
   element.id = id;
-  element.className = ['hud-stat', positionClass, ...extraClasses].join(' ');
+  element.className = ['hud-stat', ...extraClasses].join(' ');
 
   const label = document.createElement('span');
   label.className = 'hud-stat__label';
@@ -218,6 +285,11 @@ function formatTime(totalSeconds) {
   const seconds = (safeSeconds % 60).toString().padStart(2, '0');
 
   return `${minutes}:${seconds}`;
+}
+
+/** Two digits, so a counter that steps from 9 to 10 does not shift its own width. */
+function padTwo(value) {
+  return String(value).padStart(2, '0');
 }
 
 function clamp01(value) {

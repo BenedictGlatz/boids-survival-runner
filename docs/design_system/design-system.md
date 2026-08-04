@@ -175,16 +175,46 @@ Fläche und ohne Rahmen; Lesbarkeit kommt aus `text-shadow: 0 2px 12px rgba(0,0,
 Damit gibt das HUD vier Rechtecke Arena zurück. Die `id`s bleiben (`hud-timer`, `hud-wave`,
 `hud-score`, `hud-boids`), die e2e-Tests also auch.
 
-| Position     | Inhalt                                                                 |
-| ------------ | ---------------------------------------------------------------------- |
-| oben Mitte   | `TIME` + `00:30` (34px) + 2px-Fortschrittsschiene der Welle, cyan      |
-| oben rechts  | `WAVE` + `02` (26px), rechtsbündig                                     |
-| unten links  | `SCORE` + Wert (30px) in **Cyan** — es ist dein Ergebnis               |
-| unten rechts | `BOIDS` + Wert (26px) in **Rot** — es ist die Bedrohung                |
-| unten Mitte  | Dash-Bar: 200×4px Pill; voll + Cyan-Glow + `DASH READY`, sonst gedimmt |
+| Position     | Inhalt                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| oben Mitte   | eine Gruppe: `WAVE` `02` (24px) · `TIME` `00:30` (34px) + 2px-Wellenschiene · `SPAWNING` Tier-Dreieck + `03` (24px) |
+| unten links  | `SCORE` + Wert (30px) in **Cyan** — es ist dein Ergebnis                                                            |
+| unten rechts | `BOIDS` + Wert (26px) in **Rot** — es ist die Bedrohung                                                             |
+| unten Mitte  | Dash-Bar: 200×4px Pill; voll + Cyan-Glow + `DASH READY`, sonst gedimmt                                              |
+
+### Der Fortschrittsblock oben Mitte
+
+Welle, Zeit und das Tier der gerade spawnenden Boids sind **eine** Information: wie weit bin
+ich, und was kommt jetzt. Sie stehen deshalb in einer Gruppe, getrennt durch 1px-Haarlinien in
+`rgba(255,255,255,.1)`, statt über zwei Bildschirmecken verteilt. Ein Blick nach oben Mitte
+beantwortet alles; die Ecken bleiben für Score und Boid-Zahl.
+
+`TIME` bleibt der größte Wert der Gruppe (34px gegen 24px) — es ist der Wert, der sich
+jede Sekunde ändert. `WAVE` links, weil es die Zeit einordnet, `SPAWNING` rechts, weil es
+vorwärts zeigt.
+
+`SPAWNING` ist neu und war bisher nirgends sichtbar. Die Zahl steht in der **Tier-Farbe dieses
+Tiers** (`#F03A5F` → `#FB7185` → `#F97316` → `#D946EF` → `#A855F7`), daneben ein 9×11px
+Dreieck in derselben Farbe. Das Dreieck ist die Boid-Silhouette selbst, also braucht der Wert
+keine Legende: man sieht, welche Gegner gerade landen, und findet sie in der Arena wieder.
+Wechselt das Tier, wechselt die Farbe — das ist die einzige Ankündigung, die eine Eskalation
+braucht.
+
+Die vierte Stufe ist Fuchsia und **nicht** Amber: §1 gibt Amber ausschließlich an
+Zustandswechsel, und ein dauerhaft amberner Boid sagte das Falsche. Die Reihe steht deshalb
+nur an einer Stelle im Code (`BOID_COLORS` in `renderer/entityPalette.js`) und wird von der
+Arena und vom HUD aus derselben Quelle gelesen; ein HUD mit eigener Kopie der Palette wäre
+genau die Legende, die dieser Wert nicht braucht.
+
+Die Stufe ist die Wellennummer minus eins, geklemmt bei `MAX_BOID_DIFFICULTY_TIER` — angezeigt
+wird sie um eins nach oben verschoben, weil ein Spieler die erste Gegnerart als „01" liest.
+Ab Welle 5 steht sie deshalb auf `05`, während die Wellennummer daneben weiterläuft. Das ist
+kein Widerspruch, sondern die Aussage über das Spätspiel: von dort an wächst der Schwarm nur
+noch in der Zahl, nicht mehr in der Art.
 
 Die Wellen-Schiene ist `timerSeconds / WAVE_DURATION_SECONDS` — der Wert liegt in `hud.js`
-bereits vor, es braucht keine neue Datenquelle.
+bereits vor, es braucht keine neue Datenquelle. Das Spawn-Tier kommt aus derselben Stelle, die
+es beim Spawnen ohnehin bestimmt (`hud-spawn-tier` als neue `id`).
 
 Die Dash-Bar wechselt ihr Label mit dem Zustand und trägt Glow nur im Ready-Zustand — der
 Glow ist die Information, nicht Dekoration. Sie kann im Canvas bleiben (dann Farben aus §1)
@@ -195,6 +225,7 @@ Textzeile dann nicht pro Frame neu gerastert wird.
 
 ```
 hud.dashReady        "Dash Ready"
+hud.spawning         "Spawning"
 menu.gameSettings    "Game Settings"
 menu.controls        "Controls"
 menu.personalBest    "Personal Best"

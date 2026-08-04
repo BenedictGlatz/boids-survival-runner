@@ -65,7 +65,9 @@ nicht als `@import` in der CSS — ein `@import` blockiert das Rendering der gan
    ohne Änderung weiter.
 5. **HUD.** `hud.js` von Panel-Divs auf Kicker+Wert umbauen. Kleinster Schritt mit der
    größten sichtbaren Wirkung; die `id`s (`hud-timer`, `hud-wave`, …) bleiben erhalten,
-   damit die e2e-Tests weiterlaufen.
+   damit die e2e-Tests weiterlaufen. Neu dabei: `hud-wave` und `hud-timer` wandern in einen
+   `.hud-group` oben Mitte, zusammen mit dem bisher unsichtbaren Spawn-Tier
+   (`hud-spawn-tier`) — Details in `design-system.md` §7.
 6. **Menü.** `menu.js` nach `menu-markup.html` umbauen. `optionGroup.js` bleibt
    unverändert nutzbar — es ändert sich nur dessen CSS (`.segmented`).
 7. **Backdrop.** `menuBackdrop.js` beim Menü-Öffnen starten, beim Rundenstart stoppen.

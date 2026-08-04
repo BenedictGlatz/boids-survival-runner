@@ -56,6 +56,60 @@
   align-items: center;
 }
 
+/* Progress group, top centre. Wave, time and the arriving boid variant are one piece of
+   information — how far am I, and what is coming now — so they stand in a group instead of
+   spread over two screen corners. One glance upwards answers all three; the corners stay for
+   the score and the boid count.
+
+   The three stats inside give up their own positioning: the group positions, not the value. */
+.hud-group {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  pointer-events: none;
+}
+
+.hud-group .hud-stat {
+  position: static;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Optical baseline: the flanking values are smaller than the timer, so they need a nudge
+   down to sit on the same line as it. */
+.hud-group .hud-stat:not(.hud-stat--timer) {
+  padding-top: 3px;
+}
+
+.hud-group__rule {
+  align-self: stretch;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* The timer stays the largest value of the group — it is the one that changes every second. */
+.hud-stat--wave .hud-stat__value,
+.hud-stat--spawn .hud-stat__value {
+  font-size: 24px;
+}
+
+/* Mark and digits share one box so both take the tier colour, which `hud.js` writes inline
+   from the same palette the boids themselves are drawn from. */
+.hud-stat--spawn .hud-stat__value {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* The boid silhouette itself, so the level needs no legend. */
+.hud-stat__tier-mark {
+  width: 9px;
+  height: 11px;
+  clip-path: polygon(100% 50%, 0 0, 0 100%);
+  background: currentColor;
+}
+
 /* Wave progress under the timer: timerSeconds within the current wave. */
 .wave-track {
   width: 132px;
@@ -215,6 +269,17 @@
 
   .hud-stat--timer .hud-stat__value {
     font-size: 26px;
+  }
+
+  /* The group stays centred and closes up instead of breaking apart — three values in a row
+     are still narrower than the arena at this width. */
+  .hud-group {
+    gap: 14px;
+  }
+
+  .hud-stat--wave .hud-stat__value,
+  .hud-stat--spawn .hud-stat__value {
+    font-size: 19px;
   }
 
   .hud-stat--score .hud-stat__value {

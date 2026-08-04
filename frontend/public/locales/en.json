@@ -51,6 +51,7 @@
     "lives": "Lives",
     "timer": "Time",
     "wave": "Wave",
+    "spawning": "Spawning",
     "boids": "Boids",
     "dash": "Dash",
     "dashReady": "Dash Ready",

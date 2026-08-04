@@ -48,12 +48,27 @@ test.describe('starting a round', () => {
     expect(await hudNumber(page, '#hud-boids')).toBe(INITIAL_BOID_COUNT);
   });
 
+  test('shows the boid variant the first wave spawns', async ({ page }) => {
+    await openStartMenu(page);
+    await startRound(page);
+
+    // The level counts from one where the engine's tier counts from zero, so the baseline
+    // flock reads as 01. Its colour is the one the canvas draws that variant in — asserted
+    // here because it is the actual announcement of an escalation, not decoration.
+    await expect(page.locator('#hud-spawn-tier .hud-stat__value')).toHaveText('01');
+    await expect(page.locator('#hud-spawn-tier .hud-stat__value')).toHaveCSS(
+      'color',
+      'rgb(240, 58, 95)',
+    );
+  });
+
   test('labels every HUD value from the locale file', async ({ page }) => {
     await openStartMenu(page);
     await startRound(page);
 
     await expect(page.locator('#hud-timer')).toContainText(STRINGS.hud.timer);
     await expect(page.locator('#hud-wave')).toContainText(STRINGS.hud.wave);
+    await expect(page.locator('#hud-spawn-tier')).toContainText(STRINGS.hud.spawning);
     await expect(page.locator('#hud-score')).toContainText(STRINGS.hud.score);
     await expect(page.locator('#hud-boids')).toContainText(STRINGS.hud.boids);
   });

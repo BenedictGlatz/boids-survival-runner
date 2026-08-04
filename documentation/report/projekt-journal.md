@@ -97,7 +97,38 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-04 | 2,0 | S-05 | Drittes Power-up **Mend** aus dem Design-Handoff umgesetzt (gibt ein Lebenssegment zurück): Wirkung ist `roundData.restoreLives` — Gegenstück zu `registerHit`, klemmt gegen `maxLives` an genau einer Stelle und vergibt bewusst **keine** Gnadenfrist, weil das Aegis' Aufgabe ist; `PowerupField.step` bekommt den Lebensstand hereingereicht und **liest** ihn nur, `KINDS` zyklt über drei Arten mit Übersprung bei voller Gesundheit (Zählstand wird erst nach erfolgreicher Platzierung fortgeschrieben, sonst schluckt eine zugestellte Arena ein Angebot); ein Marker, dessen Nutzen während seiner Liegezeit entfällt, wird über 300 ms **inert** statt zu verschwinden; Mend erzeugt keinen Buff, also keine HUD-Zeile und keinen Restzeitbogen, sondern nur den Moment (einmaliger Bogen **gegen** den Uhrzeigersinn, weiß aufblitzendes Segment); vier neue Module entlang bestehender Nähte, weil zwei Dateien am 400-Zeilen-Limit standen — `powerups/mend.js` (alles, was von Leben weiß), `powerups/markerClearance.js` (Spawn-Geometrie, `powerups.js` 356 → 331), `renderer/mendPulse.js` (importfreie Arithmetik) und `renderer/powerupMarkerLayer.js` (Boden gegen Spieler, `powerupLayer.js` 373 → 244); 44 neue Frontend-Zusicherungen (365 → 409), E2E-Suite unverändert 50 grün, Spec S-05b und Kap. 11 des Design-Systems fortgeschrieben |
 | 2026-08-04 | 2,5 | S-05 | Drei Gameplay-Verbesserungen aus einer Spielsitzung des Betreuers: (1) Der gemeldete Fehler „Power-ups spawnen auf Hindernissen" existierte nicht — die Prüfung war korrekt, verdrahtet und getestet; die tatsächliche Ursache ist die Gegenrichtung (Hindernisse entstehen alle ~9 s und stehen 40 s, Marker liegen 12 s, also wächst regelmäßig eines über einen liegenden Marker), von der Spec ausdrücklich als akzeptierte Grenze geführt. Jetzt behandelt: `markerLifetime.js` prüft jeden Marker pro Schritt, ein verdeckter skaliert über `OBSTACLE_RETIRE_FADE_MS` = 350 ms weg — innerhalb der 1,5 s Anlaufzeit des Hindernisses, also bevor es fest ist — und ist ab dem Setzen von `retiringSinceMs` nicht mehr aufsammelbar; Rücknahmeschwelle ist `PICKUP_RADIUS` (27) gegen die Platzierungsschwelle 70, damit nicht jedes benachbarte Hindernis einsammelbare Marker löscht. (2) Ein Marker zeigt seine Restliegezeit jetzt an, über **dieselbe** Funktion, mit der ein Buff am Spieler abläuft: `drawTimeArc` samt Blinkgate aus `powerupLayer.js` in ein Blattmodul `renderer/timeArc.js` gezogen, weil zwei Aufrufer sonst einen Importzyklus über `powerupMarkerLayer.js` geschlossen hätten, und die Wanduhr des Blinkens von `performance.now()` auf einen Parameter umgestellt — dadurch ist das Motiv erstmals prüfbar, es war vorher auf keiner Teststufe abgedeckt. (3) Spielerhandling: neues `PLAYER_TURN_DECELERATION` = 3600 bremst in `_steer` den Geschwindigkeitsanteil, der nicht in die gehaltene Richtung zeigt; `PLAYER_ACCELERATION` 1200 → 2000, `PLAYER_DECELERATION` 1500 → 2600, `PLAYER_MAX_SPEED` und `PLAYER_DASH_SPEED` bewusst unverändert (Tunnel-Invariante, Overdrive-Faktor, Schweif-Schwelle hängen daran). Gemessen: 90°-Wende 1,63 s → 0,10 s, 180°-Wende 0,60 s → 0,28 s, Anfahren 0,30 → 0,18 s, Anhalten 0,25 → 0,15 s. `powerups.js` lief bei 416 Zeilen auf und wurde entlang der schon zweimal benutzten Naht geteilt (`markerLifetime.js`), `powerups.test.js` und `playerController.test.js` ebenso (`playerSteering.test.js`); Spec S-05b §2/§3/§5/§6/§7 und Kap. 11 des Design-Systems fortgeschrieben, inklusive der ausdrücklichen Rücknahme der akzeptierten Grenze |
 
+| 2026-08-04 | 1,0 | S-03 | HUD-Fortschrittsblock aus dem fortgeschriebenen Designsystem umgesetzt: die Wellennummer verlässt die rechte obere Ecke und steht mit Timer und dem neuen Wert `SPAWNING` als `.hud-group` oben Mitte, getrennt durch Haarlinien — die drei beantworten **eine** Frage („wie weit bin ich, was kommt jetzt") und brauchten dafür bisher zwei Blicke in gegenüberliegende Ecken; `SPAWNING` zeigt die Stufe 01–05 der gerade spawnenden Boid-Variante plus Boid-Silhouette, beides in der Farbe genau dieser Stufe aus `BOID_COLORS` — die Farbe ist die eigentliche Ankündigung, weil sie auf die Darts in der Arena zeigt, die Zahl nennt nur den Schritt und zeigt zugleich, wo die Rampe endet (ab Welle 5 steht sie auf 05, während die Wellennummer weiterläuft); Ableitung der Stufe als neues Frontend-Modul `round/waveTier.js` statt als achter Wert über die WASM-Grenze (siehe Entscheidung), `MAX_BOID_DIFFICULTY_TIER` damit als zweite bewusste Handkopie neben `INITIAL_BOID_COUNT` in `gameConfig.js`. Nebenbefund beim Umbau: `.hud-stat--boids` war ein toter Selektor — die Boid-Zahl stand seit dem HUD-Umbau vom 2026-07-30 in Weiß statt in Rot, weil das Element die Klasse nie trug; die Utility `.top-right` entfällt mit der Wellennummer, und mit ihr das Stapeln zweier Ecken im ≤640-px-Fenster. Acht neue Unit-Zusicherungen, zwei neue E2E-Zusicherungen (Stufe und ihre Farbe), Sichtprüfung per temporärem Playwright-Screenshot in Welle 1 und — mit verkürzter `WAVE_DURATION_SECONDS` und erhöhtem Lebensstand — in Welle 3 |
+
 ## Entscheidungen
+
+### 2026-08-04 — Die Spawn-Stufe wird im Frontend abgeleitet, nicht über die Grenze getragen
+
+Der neue HUD-Wert braucht die Antwort auf `difficulty_tier_for_wave(wave)` — eine Subtraktion und
+eine Klemmung, die in `wasm_bridge/boid_factory.rs` steht. Drei Wege dahin:
+
+- **Gewählt:** `round/waveTier.js` leitet die Stufe im Frontend aus der Wellennummer ab, die das
+  Frontend ohnehin selbst führt (`round/roundData.js` zählt sie, `simulationStep.js` kündigt sie an).
+  Die Engine wird nicht gefragt, weil sie nichts weiß, was hier fehlt.
+- **Verworfen:** ein achter Wert in `FrameResponse`. Der Buffer-Vertrag soll minimal bleiben, und
+  dieser Wert wäre der erste, der pro Bild eine Zahl transportiert, die der Empfänger schon hat.
+- **Verworfen:** ein zusätzlicher `#[wasm_bindgen]`-Getter außerhalb der Bildantwort. Billiger als ein
+  Buffer, aber dieselbe Sache: eine Grenzüberschreitung für eine Rechnung ohne Zustand.
+
+Der Preis ist die Doppelführung von `MAX_BOID_DIFFICULTY_TIER` (4) in `gameConfig.js` — die zweite
+Handkopie im Projekt nach `INITIAL_BOID_COUNT`, mit demselben Kommentar an beiden Stellen. Sie ist
+billiger als ihre Alternative, weil sie an einer Stelle festgenagelt ist, die auffällt, wenn sie
+falsch wird: `waveTier.test.js` prüft `BOID_COLORS.length === MAX_BOID_DIFFICULTY_TIER + 1`. Damit
+schlägt ein Auseinanderlaufen von Rampe und Palette als Test fehl und nicht als
+`undefined`-Farbe im HUD — was der eigentliche Grund für den Test ist, denn genau diese Klemmung
+erlaubt dem HUD den Palettenzugriff ohne zweite Bereichsprüfung.
+
+Verallgemeinerbar, und die Gegenrichtung zur Entscheidung vom 2026-08-03 (`build_boid` als
+gemeinsame Quelle für erste Flock und Tore): Über die Sprachgrenze gehört, was **Zustand** ist —
+Positionen, Geschwindigkeiten, Dash-Phasen. Eine reine Funktion einer Zahl, die beide Seiten
+kennen, gehört auf die Seite, die sie braucht. Die Grenze wird durch das eng gehalten, was **nicht**
+darüber geht.
+
+→ Kap. 4, 5
 
 ### 2026-08-04 — Der Restzeit-Bogen wird eine Funktion mit drei Aufrufern
 

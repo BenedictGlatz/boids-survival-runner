@@ -624,6 +624,64 @@ a:hover {
   align-items: center;
 }
 
+/* ------------------------------------------------------------------ *
+ * Fortschrittsblock oben Mitte: Welle, Zeit und Spawn-Tier sind eine
+ * Information ("wie weit bin ich, was kommt jetzt") und stehen deshalb
+ * in einer Gruppe statt über zwei Bildschirmecken verteilt.
+ *
+ * Die drei .hud-stat darin verlieren ihre eigene Positionierung — die
+ * Gruppe positioniert, nicht der Wert.
+ * ------------------------------------------------------------------ */
+
+.hud-group {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  pointer-events: none;
+}
+
+.hud-group .hud-stat {
+  position: static;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Optische Grundlinie: die flankierenden Werte sind kleiner als der Timer. */
+.hud-group .hud-stat:not(.hud-stat--timer) {
+  padding-top: 3px;
+}
+
+.hud-group__rule {
+  align-self: stretch;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hud-stat--wave .hud-stat__value,
+.hud-stat--spawn .hud-stat__value {
+  font-size: 24px;
+}
+
+/* Zahl und Dreieck tragen beide die Tier-Farbe — hud.js setzt sie inline
+   aus derselben Palette, aus der die Boids gezeichnet werden. */
+.hud-stat--spawn .hud-stat__value {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Die Boid-Silhouette selbst, damit der Wert ohne Legende lesbar ist. */
+.hud-stat__tier-mark {
+  width: 9px;
+  height: 11px;
+  clip-path: polygon(100% 50%, 0 0, 0 100%);
+  background: currentColor;
+}
+
 /* Wellen-Fortschritt unter dem Timer: timerSeconds / WAVE_DURATION_SECONDS. */
 .wave-track {
   width: 132px;
@@ -785,6 +843,15 @@ a:hover {
 
   .hud-stat--timer .hud-stat__value {
     font-size: 26px;
+  }
+
+  .hud-group {
+    gap: 14px;
+  }
+
+  .hud-stat--wave .hud-stat__value,
+  .hud-stat--spawn .hud-stat__value {
+    font-size: 19px;
   }
 
   .hud-stat--score .hud-stat__value {

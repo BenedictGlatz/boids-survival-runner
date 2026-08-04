@@ -42,6 +42,19 @@ export const INITIAL_BOID_COUNT = 24;
 export const PLAYER_STARTING_LIVES = 3;
 export const HIT_COOLDOWN_MS = 900;
 export const WAVE_DURATION_SECONDS = 30;
+
+/**
+ * The highest boid variant the difficulty ramp ever reaches. Duplicated from
+ * `MAX_BOID_DIFFICULTY_TIER` in `engine/src/constants.rs` — keep the two in sync, the same
+ * hand-sync obligation `INITIAL_BOID_COUNT` already carries.
+ *
+ * The frontend needs it because it owns the wave counter and therefore the only place that
+ * can say which variant is arriving right now. It is also the highest index
+ * `BOID_COLORS` in `renderer/entityPalette.js` may be asked for, which is what
+ * `round/waveTier.test.js` asserts.
+ */
+export const MAX_BOID_DIFFICULTY_TIER = 4;
+
 export const START_COUNTDOWN_SECONDS = 3;
 export const PLAYER_VISUAL_RADIUS = 16;
 /**
