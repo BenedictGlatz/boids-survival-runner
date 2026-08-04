@@ -39,8 +39,9 @@ Sonderregeln in §3, denn ein Fund, den man nicht brauchen kann, ist kein Fund.
   nicht, es kommt kein Puffer über die Grenze dazu.
 - Die Regeln liegen in `powerups/powerups.js` und sind frei von Canvas und DOM, also
   unter Vitest prüfbar — dieselbe Trennung wie `player/dashCooldown.js` gegen
-  `renderer/dashPulse.js`. Zwei Nachbarmodule tragen je einen abgeschlossenen Teil:
-  `powerups/markerClearance.js` die Hindernisgeometrie des Spawns und
+  `renderer/dashPulse.js`. Drei Nachbarmodule tragen je einen abgeschlossenen Teil:
+  `powerups/markerClearance.js` die Hindernisgeometrie, `powerups/markerLifetime.js` die
+  Liegezeit eines Markers samt seinen beiden Animationen und seiner Rücknahme, und
   `powerups/mend.js` alles, was Mend über Leben weiß.
 - **`PowerupField` schreibt nie einen Lebenszähler**, es liest ihn. Die Gutschrift
   passiert in `roundData.restoreLives`, dem Gegenstück zu `registerHit` und wie dieses der
@@ -50,11 +51,12 @@ Sonderregeln in §3, denn ein Fund, den man nicht brauchen kann, ist kein Fund.
 
 ## 2) Zustandsmodell
 
-Fünf Dinge existieren nebeneinander und werden getrennt gehalten:
+Sechs Dinge existieren nebeneinander und werden getrennt gehalten:
 
 | Zustand        | Lebensdauer                                               | Träger                                    |
 | -------------- | --------------------------------------------------------- | ----------------------------------------- |
-| **Marker**     | `MARKER_LIFETIME_MS` ab Spawn                             | `_markers[]`, Position und Art            |
+| **Marker**     | bis `expiresAtMs`, gesetzt auf `MARKER_LIFETIME_MS`       | `_markers[]`, Position und Art            |
+| **Rücknahme**  | `OBSTACLE_RETIRE_FADE_MS` ab Verdeckung                   | `marker.retiringSinceMs`, nur Darstellung |
 | **Buff**       | `AEGIS_DURATION_MS` / `OVERDRIVE_DURATION_MS` ab Aufnahme | `_buffs`, Art → `endsAtMs`                |
 | **Shatter**    | `SHATTER_MS` ab absorbiertem Treffer                      | `_shatterAtMs`, nur Darstellung           |
 | **Mend-Bogen** | `MEND_ARC_SECONDS` ab Aufnahme                            | `MendState._grantedAtMs`, nur Darstellung |
@@ -72,21 +74,22 @@ Satz steht, auch in einer Datei stehen kann.
 
 ### Festgelegte Werte
 
-| Konstante                | Wert      | Warum                                                                            |
-| ------------------------ | --------- | -------------------------------------------------------------------------------- |
-| `AEGIS_DURATION_MS`      | 6500 ms   | lang genug, eine Formation zu überstehen, kurz genug, ihn ausgeben zu müssen     |
-| `OVERDRIVE_DURATION_MS`  | 6000 ms   | etwa eine Arenaquerung bei erhöhtem Tempo                                        |
-| `OVERDRIVE_FACTOR`       | 1,6       | spürbar; siehe §4                                                                |
-| `SPAWN_INTERVAL_MS`      | 9000 ms   | seltener als eine Welle (15 s), häufiger als ein Leben verloren geht             |
-| `MARKER_LIFETIME_MS`     | 12 000 ms | ein Marker, der ewig liegt, ist keine Entscheidung mehr                          |
-| `MAX_MARKERS`            | 2         | mehr macht die Arena zur Sammelaufgabe                                           |
-| `MIN_SPAWN_DISTANCE`     | 220 px    | Abstand zum Spieler und zwischen Markern                                         |
-| `MIN_OBSTACLE_CLEARANCE` | 70 px     | Markerradius 27 + Spielerradius 16 + Reserve                                     |
-| `COLLECT_RADIUS`         | 39 px     | größer als die Zeichnung (27 px); siehe §3                                       |
-| `SHATTER_MS`             | 350 ms    | Dauer der Splitteranimation                                                      |
-| `MEND_SEGMENTS`          | 1         | voll heilen macht die vorherige Runde bedeutungslos; siehe §4                    |
-| `INERT_FADE_MS`          | 300 ms    | Übergang eines Mend-Markers nach Slate und zurück                                |
-| `MEND_ARC_SECONDS`       | 0,45 s    | lang genug, um im Blickfeld zu landen, kurz genug, um kein Restzeitbogen zu sein |
+| Konstante                 | Wert      | Warum                                                                            |
+| ------------------------- | --------- | -------------------------------------------------------------------------------- |
+| `AEGIS_DURATION_MS`       | 6500 ms   | lang genug, eine Formation zu überstehen, kurz genug, ihn ausgeben zu müssen     |
+| `OVERDRIVE_DURATION_MS`   | 6000 ms   | etwa eine Arenaquerung bei erhöhtem Tempo                                        |
+| `OVERDRIVE_FACTOR`        | 1,6       | spürbar; siehe §4                                                                |
+| `SPAWN_INTERVAL_MS`       | 9000 ms   | seltener als eine Welle (15 s), häufiger als ein Leben verloren geht             |
+| `MARKER_LIFETIME_MS`      | 12 000 ms | ein Marker, der ewig liegt, ist keine Entscheidung mehr                          |
+| `OBSTACLE_RETIRE_FADE_MS` | 350 ms    | Rücknahme eines verdeckten Markers; siehe §3                                     |
+| `MAX_MARKERS`             | 2         | mehr macht die Arena zur Sammelaufgabe                                           |
+| `MIN_SPAWN_DISTANCE`      | 220 px    | Abstand zum Spieler und zwischen Markern                                         |
+| `MIN_OBSTACLE_CLEARANCE`  | 70 px     | Markerradius 27 + Spielerradius 16 + Reserve                                     |
+| `COLLECT_RADIUS`          | 39 px     | größer als die Zeichnung (27 px); siehe §3                                       |
+| `SHATTER_MS`              | 350 ms    | Dauer der Splitteranimation                                                      |
+| `MEND_SEGMENTS`           | 1         | voll heilen macht die vorherige Runde bedeutungslos; siehe §4                    |
+| `INERT_FADE_MS`           | 300 ms    | Übergang eines Mend-Markers nach Slate und zurück                                |
+| `MEND_ARC_SECONDS`        | 0,45 s    | lang genug, um im Blickfeld zu landen, kurz genug, um kein Restzeitbogen zu sein |
 
 Die Werte liegen im Modul, nicht in `gameConfig.js` — wie schon die Schweif-Konstanten
 in `renderer/dashTrail.js`. `gameConfig.js` trägt, was über Modulgrenzen hinweg gilt;
@@ -156,6 +159,37 @@ Punktabstand zurück und braucht keine Fallunterscheidung.
 Ohne diese Prüfung kann ein Marker in einer Hazard-Kapsel landen. Der Spieler wird von
 Hindernissen weggeschoben und verliert dabei ein Leben — der Marker wäre also nicht nur
 unerreichbar, sondern eine Falle.
+
+### Rücknahme eines verdeckten Markers
+
+Die Spawn-Prüfung deckt nur die eine Richtung ab. Hindernisse entstehen aber **während** ein
+Marker liegt — etwa im selben Rhythmus, in dem Marker entstehen, und jedes steht danach 40 s —
+also wächst regelmäßig eines über einen Marker, der schon lag. Deshalb wird jeder Marker pro
+Simulationsschritt gegen die Hindernisse geprüft:
+
+```
+verdeckt, wenn  distToCapsule(marker, obstacle) < PICKUP_RADIUS   für ein Hindernis
+```
+
+Ein verdeckter Marker bekommt `retiringSinceMs` **einmalig** gesetzt und skaliert über
+`OBSTACLE_RETIRE_FADE_MS` weg — die Umkehrung des Einblendens. Einmalig, weil ein Hindernis unter
+ihm ablaufen kann: ein Marker, der wiederkäme, nachdem er angefangen hat zu gehen, flackert, statt
+eines von beidem zu sein. Aufsammeln ist ab dem Setzen nicht mehr möglich.
+
+Zwei Festlegungen tragen das:
+
+- **Die Schwelle ist enger als beim Platzieren** — `PICKUP_RADIUS` (27) statt
+  `MIN_OBSTACLE_CLEARANCE` (70). Beides fragt `isTooCloseToAnObstacle` mit unterschiedlichem
+  Abstand, und die Hysterese ist die eigentliche Aussage: leicht liegen zu lassen, schwer
+  wegzuwerfen. Bei 70 px würde jedes Hindernis, das irgendwo in der Umgebung entsteht, einen
+  bequem erreichbaren Marker löschen — die Behandlung würde mehr Marker kosten als der Fehler.
+- **Der Restzeitring wird nicht gekürzt.** Er zeigt weiter die ehrliche Lebensdauer; das Gehen
+  trägt allein die Skalierung. Würde stattdessen `expiresAtMs` vorgezogen, spränge der Ring in
+  einem Bild von seinem Stand auf fast null — und ein Countdown, der springt, ist keiner mehr.
+
+`OBSTACLE_RETIRE_FADE_MS` (350 ms) liegt bewusst innerhalb von `OBSTACLE_ARMING_STEPS` (90
+Schritte, 1,5 s), der Zeit, die ein neues Hindernis nur gezeichnet und noch nicht fest ist. Der
+Marker ist also weg, **bevor** das Hindernis, das ihn geholt hat, jemanden ein Leben kosten kann.
 
 ### Aufnahme
 
@@ -268,6 +302,7 @@ Restzeitbogen und keine HUD-Zeile (§5).
 | Element              | Ort                                            | Quelle                           |
 | -------------------- | ---------------------------------------------- | -------------------------------- |
 | Marker (Hexagon)     | Weltraum, über Hindernissen, unter dem Schweif | `renderer/powerupMarkerLayer.js` |
+| Marker-Restzeitring  | Weltraum, r = 34 um die Markerposition         | dito, über `renderer/timeArc.js` |
 | Einsammelring        | Weltraum, an der Markerposition                | dito                             |
 | Aegis-Schale + Bogen | Weltraum, über dem Spieler, r = 30 / 36        | `renderer/powerupLayer.js`       |
 | Overdrive-Bogen      | Weltraum, über dem Spieler, r = 42             | dito                             |
@@ -295,6 +330,27 @@ blinkt. Kein Ton, kein Text in der Arena. Der Bogen läuft auf Wall Time, nicht 
 Simulationsuhr — er ist Darstellung, und 4 Hz sollen 4 Hz bleiben, unabhängig davon, wie
 lang der Buff noch dauert.
 
+### Ein Motiv, eine Funktion
+
+Das Restzeit-Motiv liegt in `renderer/timeArc.js` und wird an **drei** Stellen aufgerufen: die
+beiden Buffs am Spieler und der Marker am Boden. Ein eigenes Blattmodul, weil `powerupLayer.js`
+das Hexagon-Vokabular aus `powerupMarkerLayer.js` bezieht — würde der Bogen in einer der beiden
+Dateien liegen und die andere ihn brauchen, entstünde ein Importzyklus.
+
+Der Punkt ist nicht die Vermeidung des Zyklus, sondern die Zusicherung: dass der Ring am Marker
+„genauso aussieht" wie der Bogen am Spieler, ist keine Ähnlichkeit, die von Hand gehalten werden
+muss, sondern **eine Funktion mit zwei Aufrufern**. Strichbreite, Startpunkt zwölf Uhr,
+Laufrichtung und Blinkfrequenz können damit nicht auseinanderlaufen.
+
+Die Wanduhr für das Blinken wird hereingegeben statt intern aus `performance.now()` gelesen. Das
+ist der Grund, warum `timeArcSweep` und `timeArcAlpha` unter Vitest prüfbar sind — vorher war der
+gesamte Bogen auf keiner Teststufe abgedeckt, weil eine versteckte globale Eingabe nicht prüfbar
+ist. Dieselbe Aufteilung wie `dashPulse.js` gegen `renderer/dashTrail.js`.
+
+Der Marker-Ring sitzt bewusst **innerhalb** von `COLLECT_RADIUS` (34 gegen 39): ein Ring, der den
+Aufsammelradius zeichnete, würde eine Trefferfläche versprechen. `powerupMarkerLayer.js` kennt
+`COLLECT_RADIUS` weiterhin nicht.
+
 ### Mends Moment
 
 Mend bekommt **keine HUD-Zeile und keinen Restzeitbogen**: es ist ein Ereignis und hat
@@ -319,28 +375,40 @@ sein Verschwinden.
 
 ## 6) Edge Cases
 
-| Fall                                         | Verhalten                                                                                             |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Beide Buffs gleichzeitig                     | unabhängig; zwei Bögen (36 px amber, 42 px cyan), zwei HUD-Zeilen                                     |
-| Denselben Buff erneut aufnehmen              | Dauer startet neu auf voll, **kein** Stapeln                                                          |
-| Treffer während der Gnadenfrist mit Aegis    | Schild bleibt erhalten, es gab keinen Schaden zu fressen                                              |
-| Zweiter Treffer direkt nach einer Absorption | kostet ein Leben; eine Absorption startet keine Gnadenfrist                                           |
-| Rundenneustart                               | `reset()` in `beginRound()` — dort springt `simulationTimeMs` auf 0, jeder Zeitstempel muss mit       |
-| Countdown vor dem Rundenstart                | die Welt steht, `step()` läuft nicht, es wird nichts gezeichnet                                       |
-| Mehrschritt-Frame                            | `step()` läuft pro Simulationsschritt, nicht pro Bild — bei 144 Hz wird gleich gesammelt wie bei 60   |
-| Spieler wurde vom Hindernis weggeschoben     | `step()` läuft **nach** der Korrektur; nie aus einer Position aufgesammelt, die es nicht gab          |
-| Arena voll, kein Platz für einen Marker      | dieses Intervall entfällt still, nächster Versuch regulär                                             |
-| Mend bei voller Gesundheit                   | **spawnt nicht**; die Reihenfolge überspringt es und rückt entsprechend weiter                        |
-| Gesundheit wird voll, Marker liegt schon     | Marker wird über 300 ms inert, sammelt nicht ein, verschwindet aber nicht; sinkt sie, kommt er zurück |
-| Zwei Treffer hintereinander                  | das nächste Angebot ist **nicht** wieder Mend — Mend steht zwischen den anderen beiden                |
-| Mend bei bereits voller Gesundheit aufnehmen | kann nicht eintreten (Spawn- und Aufsammelregel); `restoreLives` klemmt zusätzlich                    |
-| Heilung und Treffer im selben Schritt        | Gutschrift zuerst, Abzug danach — in der Reihenfolge des Eintretens, nicht gegeneinander              |
-| Hindernis entsteht **über** einem Marker     | akzeptierte Grenze: der Marker bleibt für den Rest seiner 12 s unerreichbar (siehe unten)             |
+| Fall                                           | Verhalten                                                                                             |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Beide Buffs gleichzeitig                       | unabhängig; zwei Bögen (36 px amber, 42 px cyan), zwei HUD-Zeilen                                     |
+| Denselben Buff erneut aufnehmen                | Dauer startet neu auf voll, **kein** Stapeln                                                          |
+| Treffer während der Gnadenfrist mit Aegis      | Schild bleibt erhalten, es gab keinen Schaden zu fressen                                              |
+| Zweiter Treffer direkt nach einer Absorption   | kostet ein Leben; eine Absorption startet keine Gnadenfrist                                           |
+| Rundenneustart                                 | `reset()` in `beginRound()` — dort springt `simulationTimeMs` auf 0, jeder Zeitstempel muss mit       |
+| Countdown vor dem Rundenstart                  | die Welt steht, `step()` läuft nicht, es wird nichts gezeichnet                                       |
+| Mehrschritt-Frame                              | `step()` läuft pro Simulationsschritt, nicht pro Bild — bei 144 Hz wird gleich gesammelt wie bei 60   |
+| Spieler wurde vom Hindernis weggeschoben       | `step()` läuft **nach** der Korrektur; nie aus einer Position aufgesammelt, die es nicht gab          |
+| Arena voll, kein Platz für einen Marker        | dieses Intervall entfällt still, nächster Versuch regulär                                             |
+| Mend bei voller Gesundheit                     | **spawnt nicht**; die Reihenfolge überspringt es und rückt entsprechend weiter                        |
+| Gesundheit wird voll, Marker liegt schon       | Marker wird über 300 ms inert, sammelt nicht ein, verschwindet aber nicht; sinkt sie, kommt er zurück |
+| Zwei Treffer hintereinander                    | das nächste Angebot ist **nicht** wieder Mend — Mend steht zwischen den anderen beiden                |
+| Mend bei bereits voller Gesundheit aufnehmen   | kann nicht eintreten (Spawn- und Aufsammelregel); `restoreLives` klemmt zusätzlich                    |
+| Heilung und Treffer im selben Schritt          | Gutschrift zuerst, Abzug danach — in der Reihenfolge des Eintretens, nicht gegeneinander              |
+| Hindernis entsteht **über** einem Marker       | Marker skaliert über 350 ms weg, ab sofort nicht mehr aufsammelbar (siehe unten)                      |
+| Hindernis läuft unter einem gehenden Marker ab | Marker kommt **nicht** zurück; `retiringSinceMs` wird nur einmal gesetzt                              |
 
-Der letzte Fall wird bewusst nicht behandelt. Ihn zu beheben hieße, in jedem Schritt
-jeden Marker gegen jedes Hindernis zu prüfen statt nur einmal beim Spawn, und die Folge
-wäre ein Marker, der verschwindet, während der Spieler auf ihn zuläuft — das ist die
+Der letzte Fall war bis 2026-08-04 **bewusst nicht behandelt**, mit dieser Begründung: ihn zu
+beheben hieße, in jedem Schritt jeden Marker gegen jedes Hindernis zu prüfen statt nur einmal beim
+Spawn, und die Folge wäre ein Marker, der verschwindet, während der Spieler auf ihn zuläuft — die
 schlechtere von zwei Enttäuschungen.
+
+Der erste Halbsatz war ein Kostenargument und trägt nicht: zwei Marker gegen höchstens zwölf
+Hindernisse sind 1440 Abstandsrechnungen pro Sekunde, in einer Simulation, die 90 Boids paarweise
+gegeneinander rechnet. Der zweite Halbsatz war richtig — für einen Marker, der **verschwindet**.
+Für einen, der über 350 ms weggeht, gilt er nicht, und diese Möglichkeit gab es zum Zeitpunkt der
+Entscheidung nicht: sie ist erst mit dem Restzeitring und seiner Skalierung entstanden. Die
+Entscheidung ist damit nicht umgestoßen, ihre Voraussetzung ist entfallen.
+
+Was bleibt, ist der Grund, aus dem die Spawn-Prüfung in §3 überhaupt existiert: ein Marker in
+einer Hazard-Kapsel ist keine Enttäuschung, sondern eine **Falle**. Eine Regel, die für das
+Platzieren gilt, aber nicht für das Liegenbleiben, ist eine halbe Regel.
 
 ## 7) Testbarkeit
 
@@ -350,12 +418,14 @@ Abstandsregeln, Aufnahme, Ablauf, Absorption und Rundenreset vollständig unter 
 
 Mend ist über drei Ebenen geprüft, und die Aufteilung folgt den Modulgrenzen:
 
-| Modul                        | Was dort geprüft wird                                                            |
-| ---------------------------- | -------------------------------------------------------------------------------- |
-| `powerups/mend.test.js`      | `canMend`, der Verlauf der Inertheit über die Zeit, das Melden des Bogens        |
-| `powerups/powerups.test.js`  | Spawn-Reihenfolge mit Überspringen, inerter Marker nicht aufsammelbar, kein Buff |
-| `renderer/mendPulse.test.js` | Bogen-Deckkraft und -Sweep, Segment-Blitz, Blende nach Slate                     |
-| `round/roundData.test.js`    | `restoreLives`: Klemmung, keine Gnadenfrist, ein Segment statt aller             |
+| Modul                             | Was dort geprüft wird                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `powerups/mend.test.js`           | `canMend`, der Verlauf der Inertheit über die Zeit, das Melden des Bogens                       |
+| `powerups/markerLifetime.test.js` | Ein- und Ausblenden, Restzeit, Rücknahme — arithmetisch **und** durch ein echtes Feld getrieben |
+| `renderer/timeArc.test.js`        | Sweep und Blinken des Restzeit-Motivs, das vorher ungeprüft war                                 |
+| `powerups/powerups.test.js`       | Spawn-Reihenfolge mit Überspringen, inerter Marker nicht aufsammelbar, kein Buff                |
+| `renderer/mendPulse.test.js`      | Bogen-Deckkraft und -Sweep, Segment-Blitz, Blende nach Slate                                    |
+| `round/roundData.test.js`         | `restoreLives`: Klemmung, keine Gnadenfrist, ein Segment statt aller                            |
 
 Der Lebenszähler liegt in den Tests beim Treiber und nicht im Feld — genauso wie im Spiel
 bei `roundData`. Dass `PowerupField` ihn nur liest, ist damit nicht nur behauptet, sondern

@@ -374,6 +374,13 @@ Spieler ist und bleibt die einzige gefüllte cyane Fläche im Spiel.
   Icon. Ein Herz oder Kreuz wäre ein zweites Symbol für etwas, für das das Spiel schon eines
   hat.
 - Spawn: 450 ms Scale-in. Ein Marker erscheint nie einfach.
+- Ablauf: der Restzeit-Bogen aus dem Abschnitt unten, auf Radius 34. Ein Marker verschwindet
+  genauso wenig einfach, wie er erscheint.
+- Wächst ein Hindernis über einen liegenden Marker, skaliert er über **350 ms** weg — das Scale-in
+  rückwärts. Das ist kürzer als die 1,5 s, die ein Hindernis zum Erscheinen braucht, der Marker ist
+  also fort, bevor das Hindernis fest wird. Ein Marker in einer Hazard-Kapsel wäre keine
+  Enttäuschung, sondern eine Falle; das unterscheidet diesen Fall vom inerten Mend-Marker weiter
+  unten, der liegen bleibt, weil an seinem Platz nichts gefährlich ist.
 
 ### Aktiv am Spieler
 
@@ -387,16 +394,34 @@ nur beim Dash. Technisch: die Schwellengeschwindigkeit sinkt auf `PLAYER_MAX_SPE
 also zieht normale Bewegung plötzlich einen Schweif. Tempo hat im Spiel schon eine Sprache;
 Overdrive schaltet sie nur an.
 
-### Restzeit — ein Motiv für beide
+### Restzeit — ein Motiv für alles, was abläuft
 
-Ein 2px-Bogen um den Spieler, der im Uhrzeigersinn von zwölf Uhr leerläuft. **Aegis auf
-Radius 36, Overdrive auf 42** — beide können damit gleichzeitig laufen und bleiben
-unterscheidbar. In der letzten Sekunde blinkt der Bogen mit **4 Hz**; das ist die einzige
-Warnung, kein Ton und kein Text in der Arena.
+Ein 2px-Bogen, der im Uhrzeigersinn von zwölf Uhr leerläuft. In den letzten 17 % blinkt er mit
+**4 Hz**; das ist die einzige Warnung, kein Ton und kein Text in der Arena.
 
-Der Bogen sitzt bewusst **am Spieler** und nicht im HUD: in Welle 5 schaut niemand an den
+Drei Dinge laufen ab und benutzen deshalb alle drei denselben Bogen:
+
+| Was                      | Ort        | Radius |
+| ------------------------ | ---------- | ------ |
+| **Aegis**                | am Spieler | 36     |
+| **Overdrive**            | am Spieler | 42     |
+| **Liegezeit** e. Markers | am Marker  | 34     |
+
+Die beiden Buff-Radien sind verschieden, damit sie gleichzeitig laufen und unterscheidbar bleiben.
+Der Marker-Ring liegt 7 px außerhalb seines 27-px-Hexagons — derselbe Abstand, den der Aegis-Bogen
+über seiner 30-px-Schale hält, damit ein Bogen überall gleich weit von seiner Form absteht. Er
+bleibt **innerhalb** des Aufsammelradius (39): ein Ring, der die Trefferfläche zeichnet, verspricht
+sie.
+
+Die Buff-Bögen sitzen bewusst **am Spieler** und nicht im HUD: in Welle 5 schaut niemand an den
 Bildrand. Das HUD bekommt die Buffs trotzdem — unten Mitte über der Dash-Bar, Hex-Glyph plus
-62-px-Balken, nach oben gestapelt — aber als Zweitinformation.
+62-px-Balken, nach oben gestapelt — aber als Zweitinformation. Die Liegezeit eines Markers bekommt
+**keine** HUD-Zeile: sie gehört an den Ort, an dem die Entscheidung fällt, und das ist der Marker.
+
+**Regel für alles Weitere, das abläuft: dieser Bogen, kein zweiter.** Technisch ist er eine einzige
+Funktion (`renderer/timeArc.js`) mit drei Aufrufern — Strichbreite, Startpunkt, Laufrichtung und
+Blinkfrequenz können daher nicht auseinanderlaufen. Wer einen vierten Ablauf gestaltet, ruft sie
+auf und wählt nur Radius und Farbe.
 
 ### Zustand oder Ereignis — die Regel für weitere Power-ups
 

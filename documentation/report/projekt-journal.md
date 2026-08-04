@@ -95,8 +95,107 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-03 | 0,5 | S-06 | Power-up-Marker um die Hälfte vergrößert, weil ein Pickup, das man schwer trifft, ignoriert wird: `PICKUP_RADIUS` 18 → 27, `COLLECT_RADIUS` 26 → 39 (gleicher Faktor, damit das eingespielte Verhältnis der beiden bleibt), `MIN_OBSTACLE_CLEARANCE` 60 → 70, weil der Abstand Glyphe **plus** Spielerkörper außerhalb der Kapsel halten muss; zwei neue Zusicherungen auf genau diese beiden Verhältnisse — jeder andere Test in `powerups.test.js` liest seine Konstante selbst und würde ein Nachhinken des Aufsammelradius hinter der Optik nicht bemerken; Kap. 11 des Design-Systems auf die neuen Zahlen gezogen |
 | 2026-08-04 | 2,0 | S-05 | Drittes Power-up **Mend** aus dem Design-Handoff umgesetzt (gibt ein Lebenssegment zurück): Wirkung ist `roundData.restoreLives` — Gegenstück zu `registerHit`, klemmt gegen `maxLives` an genau einer Stelle und vergibt bewusst **keine** Gnadenfrist, weil das Aegis' Aufgabe ist; `PowerupField.step` bekommt den Lebensstand hereingereicht und **liest** ihn nur, `KINDS` zyklt über drei Arten mit Übersprung bei voller Gesundheit (Zählstand wird erst nach erfolgreicher Platzierung fortgeschrieben, sonst schluckt eine zugestellte Arena ein Angebot); ein Marker, dessen Nutzen während seiner Liegezeit entfällt, wird über 300 ms **inert** statt zu verschwinden; Mend erzeugt keinen Buff, also keine HUD-Zeile und keinen Restzeitbogen, sondern nur den Moment (einmaliger Bogen **gegen** den Uhrzeigersinn, weiß aufblitzendes Segment); vier neue Module entlang bestehender Nähte, weil zwei Dateien am 400-Zeilen-Limit standen — `powerups/mend.js` (alles, was von Leben weiß), `powerups/markerClearance.js` (Spawn-Geometrie, `powerups.js` 356 → 331), `renderer/mendPulse.js` (importfreie Arithmetik) und `renderer/powerupMarkerLayer.js` (Boden gegen Spieler, `powerupLayer.js` 373 → 244); 44 neue Frontend-Zusicherungen (365 → 409), E2E-Suite unverändert 50 grün, Spec S-05b und Kap. 11 des Design-Systems fortgeschrieben |
+| 2026-08-04 | 2,5 | S-05 | Drei Gameplay-Verbesserungen aus einer Spielsitzung des Betreuers: (1) Der gemeldete Fehler „Power-ups spawnen auf Hindernissen" existierte nicht — die Prüfung war korrekt, verdrahtet und getestet; die tatsächliche Ursache ist die Gegenrichtung (Hindernisse entstehen alle ~9 s und stehen 40 s, Marker liegen 12 s, also wächst regelmäßig eines über einen liegenden Marker), von der Spec ausdrücklich als akzeptierte Grenze geführt. Jetzt behandelt: `markerLifetime.js` prüft jeden Marker pro Schritt, ein verdeckter skaliert über `OBSTACLE_RETIRE_FADE_MS` = 350 ms weg — innerhalb der 1,5 s Anlaufzeit des Hindernisses, also bevor es fest ist — und ist ab dem Setzen von `retiringSinceMs` nicht mehr aufsammelbar; Rücknahmeschwelle ist `PICKUP_RADIUS` (27) gegen die Platzierungsschwelle 70, damit nicht jedes benachbarte Hindernis einsammelbare Marker löscht. (2) Ein Marker zeigt seine Restliegezeit jetzt an, über **dieselbe** Funktion, mit der ein Buff am Spieler abläuft: `drawTimeArc` samt Blinkgate aus `powerupLayer.js` in ein Blattmodul `renderer/timeArc.js` gezogen, weil zwei Aufrufer sonst einen Importzyklus über `powerupMarkerLayer.js` geschlossen hätten, und die Wanduhr des Blinkens von `performance.now()` auf einen Parameter umgestellt — dadurch ist das Motiv erstmals prüfbar, es war vorher auf keiner Teststufe abgedeckt. (3) Spielerhandling: neues `PLAYER_TURN_DECELERATION` = 3600 bremst in `_steer` den Geschwindigkeitsanteil, der nicht in die gehaltene Richtung zeigt; `PLAYER_ACCELERATION` 1200 → 2000, `PLAYER_DECELERATION` 1500 → 2600, `PLAYER_MAX_SPEED` und `PLAYER_DASH_SPEED` bewusst unverändert (Tunnel-Invariante, Overdrive-Faktor, Schweif-Schwelle hängen daran). Gemessen: 90°-Wende 1,63 s → 0,10 s, 180°-Wende 0,60 s → 0,28 s, Anfahren 0,30 → 0,18 s, Anhalten 0,25 → 0,15 s. `powerups.js` lief bei 416 Zeilen auf und wurde entlang der schon zweimal benutzten Naht geteilt (`markerLifetime.js`), `powerups.test.js` und `playerController.test.js` ebenso (`playerSteering.test.js`); Spec S-05b §2/§3/§5/§6/§7 und Kap. 11 des Design-Systems fortgeschrieben, inklusive der ausdrücklichen Rücknahme der akzeptierten Grenze |
 
 ## Entscheidungen
+
+### 2026-08-04 — Der Restzeit-Bogen wird eine Funktion mit drei Aufrufern
+
+Der Marker-Ring sollte „genauso aussehen" wie der Bogen am Spieler. Drei Wege dahin:
+
+- **Gewählt:** `drawTimeArc` in ein eigenes Blattmodul `renderer/timeArc.js`, aufgerufen von
+  `powerupLayer.js` (Spieler) und `powerupMarkerLayer.js` (Boden).
+- **Verworfen:** den Bogen in `powerupLayer.js` lassen und von `powerupMarkerLayer.js` importieren.
+  `powerupLayer.js` bezieht Hexagon, Farben und Strichbreite bereits von dort — das wäre ein
+  Importzyklus. ESLint hätte ihn nicht gemeldet (kein `import`-Plugin konfiguriert), er wäre also
+  nur unlesbar gewesen, nicht auffällig.
+- **Verworfen:** eine zweite Zeichenfunktion am Marker mit denselben Zahlen. Das ist der Fall, der
+  in sechs Monaten auseinanderläuft, und die Vorgabe war ausdrücklich „genauso".
+
+Der Preis der gewählten Variante ist **eine** doppelte Zahl: `TIME_ARC_WIDTH` = 2 steht neben
+`STROKE_WIDTH` = 2, weil das Modul sonst wieder in `powerupMarkerLayer.js` hineingreifen müsste und
+der Zyklus zurückkäme. Beide Stellen tragen den Kommentar dazu.
+
+Die Nebenwirkung ist der eigentliche Gewinn: der Bogen las seine Wanduhr intern aus
+`performance.now()`. Das ist eine versteckte globale Eingabe und der Grund, warum er auf **keiner**
+Teststufe abgedeckt war — weder als Unit-Test (nicht ansteuerbar) noch als E2E-Test (Playwright
+zählt keine Canvas-Pixel, siehe Kap. 8.2). Als Parameter hereingegeben sind `timeArcSweep` und
+`timeArcAlpha` gewöhnliche Funktionen, und das Blinken ist mit sieben Zusicherungen belegt.
+
+Verallgemeinerbar: Wenn zwei Stellen „gleich aussehen sollen", ist die Zusicherung eine gemeinsame
+Funktion und nicht eine gemeinsame Konstante. Konstanten halten Zahlen zusammen, Funktionen halten
+auch die Reihenfolge und die Verzweigungen zusammen — und der Startwinkel, die Laufrichtung und die
+Blinkschwelle sind hier zusammen mehr als ihre Zahlen.
+
+→ Kap. 4, 8
+
+### 2026-08-04 — Zwei Schwellen für eine Geometrie: Hysterese am Markerspawn
+
+Ein Marker wird mit `MIN_OBSTACLE_CLEARANCE` = 70 px platziert. Für die Rücknahme eines verdeckten
+Markers wäre dieselbe Schwelle naheliegend gewesen — dieselbe Funktion, dieselbe Zahl.
+
+**Gewählt:** `isTooCloseToAnObstacle` bekommt einen optionalen Abstandsparameter; die Rücknahme
+fragt mit `PICKUP_RADIUS` = 27, also erst, wenn die Kapsel die gezeichnete Glyphe erreicht.
+
+**Verworfen: beide Richtungen mit 70 px.** Dann löscht jedes Hindernis, das irgendwo im
+Platzierungsradius entsteht, einen Marker, der bequem erreichbar ist und keinerlei Problem
+darstellt. Da 70 px die Zahl ist, die einen Marker _komfortabel_ erreichbar hält, hätte die
+Behandlung mehr Marker gekostet als der Fehler — mit demselben Ergebnis für den Spieler
+(„der Marker war plötzlich weg"), nur häufiger.
+
+**Verworfen: eine zweite Funktion.** Die Geometrie ist identisch, nur die Schwelle unterscheidet
+sich. Zwei Funktionen mit derselben Rechnung wären die Duplikation, die als erstes auseinanderläuft.
+
+Der Punkt ist, dass die beiden Zahlen **verschiedene Fragen** beantworten: 70 px ist „ist das ein
+guter Platz", 27 px ist „ist dieser Platz jetzt unhaltbar". Das ist keine Ungenauigkeit, sondern
+Hysterese — leicht liegen zu lassen, schwer wegzuwerfen — und ein Kommentar an der Funktion sagt
+das, damit die Lücke nicht später als Inkonsistenz „aufgeräumt" wird.
+
+Zweite Festlegung im selben Zug: Die Rücknahme kürzt `expiresAtMs` **nicht**. Sonst spränge der
+neue Restzeitring in einem Bild von seinem Stand auf fast null — ein Countdown, der springt, ist
+keiner. Das Gehen trägt allein die Skalierung, der Ring bleibt bei der Wahrheit über die
+Lebensdauer. Zwei Zustände, zwei Träger, statt einer Zahl mit zwei Bedeutungen.
+
+→ Kap. 4, 8
+
+### 2026-08-04 — Gegenlenken statt höherer Beschleunigung
+
+Gemeldet war „sehr viel Momentum, bremst langsam, Probleme mit schnellen Richtungswechseln". Die
+naheliegende Antwort — `PLAYER_ACCELERATION` und `PLAYER_DECELERATION` anheben — wurde verworfen,
+weil sie den dritten Teil der Meldung nicht trifft.
+
+Der Grund liegt im Modell, nicht in den Zahlen: gebremst wurde **nur, wenn keine Taste gedrückt
+war**. Solange eine Richtung gehalten wurde, wirkte gegen die vorhandene Geschwindigkeit
+ausschließlich die Beschleunigung in die neue Richtung. Für eine 180°-Wende heißt das
+`2 · v_max / a` = 0,6 s. Für eine 90°-Wende heißt es **gar nichts**: die querlaufende Komponente
+wurde von keiner Kraft angefasst, sie verschwand nur, weil die radiale Kappe die Gesamtsumme
+begrenzt und dabei umverteilt. Gemessen 1,63 s, bis sie auf 1 % abgebaut war — das ist das
+Rutschgefühl, und keine Erhöhung von `a` hätte es beseitigt, weil Beschleunigung nur addieren kann.
+
+**Gewählt:** `_steer` zerlegt die Geschwindigkeit in den Anteil in Blickrichtung und den Rest
+(`along = v · d`, `lateral = v - d·along`; `d` ist normiert, deshalb ist die Projektion exakt) und
+bremst den Rest mit einer eigenen, höheren Rate `PLAYER_TURN_DECELERATION` = 3600. Auf der
+`along`-Achse wird **entweder** gebremst **oder** beschleunigt, nie beides — „erst aufhören, in die
+falsche Richtung zu fahren" ist eine Regel, die in einen Satz passt.
+
+Gemessen danach: 90° 0,10 s, 180° 0,28 s. Die beiden Konstanten wurden zusätzlich angehoben
+(1200 → 2000, 1500 → 2600), aber sie sind das Beiwerk.
+
+`PLAYER_MAX_SPEED` (360) und `PLAYER_DASH_SPEED` (1100) blieben **unangetastet**, und das war die
+zweite Entscheidung: an ihnen hängen die Tunnel-Invariante gegen `MINIMUM_OBSTACLE_RADIUS` (ein
+Dash legt pro Schritt ~18 px zurück), `OVERDRIVE_FACTOR` und das in `trailSampling.test.js`
+eingebackene Verhältnis der Schweif-Schwelle. Nichts ist schneller geworden, es ist nur leichter zu
+richten — was die Meldung auch verlangte.
+
+Bewusst behaltene Nebenwirkung: Der Querbremse fällt auch der Dash-Überschuss zum Opfer, ein Dash
+ist damit lenkbar bzw. abbrechbar. Geradeaus gehalten ändert sich nichts, weshalb der
+Reichweitentest unverändert grün blieb.
+
+Die Lehre betrifft die Diagnose: Zwei der drei Symptome („viel Momentum", „bremst langsam") zeigen
+auf Konstanten, das dritte („Richtungswechsel") auf das Modell. Wer nur die ersten beiden hört,
+dreht an Zahlen und liefert eine Verbesserung, die das eigentliche Ärgernis unberührt lässt.
+
+→ Kap. 4, 10
 
 ### 2026-08-04 — Mend ist ein Ereignis, kein dritter Buff
 
@@ -1487,6 +1586,57 @@ den Preis von Produktionscode, der nur für Tests existiert.
 → Kap. 3, 8
 
 ## Herausforderungen & Lessons Learned
+
+- **2026-08-04 — Der gemeldete Fehler existierte nicht, der Fehler dahinter schon.** Aus
+  einer Spielsitzung kam „Power-ups dürfen nicht auf Hindernissen spawnen". Die Prüfung
+  dagegen war vorhanden, korrekt und getestet: `markerClearance.js` rechnet den
+  Punkt-Kapsel-Abstand richtig, `_trySpawn` ruft sie mit dem echten Hindernispuffer auf, drei
+  Zusicherungen deckten sie ab. Die Versuchung war entsprechend groß, „ist schon
+  implementiert" zu antworten — und das wäre falsch gewesen, denn das Symptom war echt: Der
+  Spieler **sah** Marker in Hindernissen liegen. Gefunden wurde die Ursache erst über die
+  Kadenz der Gegenseite: Hindernisse entstehen alle ~9 s (`DEFAULT_OBSTACLE_SPAWN_INTERVAL_STEPS`
+  = 540, mit der Wellendichte sinkend) und stehen 40 s, ein Marker liegt 12 s — also wächst
+  regelmäßig ein Hindernis über einen Marker, der längst lag. Kein Fehler in der Prüfung,
+  sondern eine Prüfung, die nur einmal stattfand, wo sich beide Seiten bewegen.
+
+  Rund 40 min, praktisch vollständig Diagnose; die Behebung selbst ist eine Schleife über zwei
+  Marker.
+
+  Zwei Lehren, und die zweite ist die unbequeme. Erstens: Eine Fehlermeldung nennt ein Symptom
+  und **behauptet dabei eine Ursache**; hier war die behauptete Ursache widerlegbar und das
+  Symptom trotzdem richtig. Wer die Behauptung prüft und dann aufhört, schließt einen echten
+  Fehler als „kein Fehler". Zweitens: Der Fall stand als akzeptierte Grenze in der eigenen Spec
+  (S-05b §6) — er war also **bekannt**, mit Begründung, und trotzdem hat ihn niemand mit dem
+  Bericht aus dem Spiel zusammengebracht, bis die Zahlen nebeneinander lagen. Eine dokumentierte
+  Grenze liest sich im Nachhinein wie eine Entscheidung und im Betrieb wie ein Fehler; dass sie
+  aufgeschrieben war, hat die Diagnose nicht verkürzt, sondern eher verdeckt.
+
+  Nachtrag zur Begründung von damals: ihr erster Halbsatz war ein Kostenargument (jeder Marker
+  gegen jedes Hindernis in jedem Schritt) und trägt nicht — das sind 1440 Abstandsrechnungen pro
+  Sekunde in einer Simulation, die 90 Boids paarweise rechnet. Der zweite Halbsatz („ein Marker,
+  der verschwindet, während man auf ihn zuläuft") war richtig, betraf aber nur ein Verschwinden;
+  ein Wegskalieren über 350 ms war zum Zeitpunkt der Entscheidung noch nicht möglich. Die
+  Entscheidung wurde nicht umgestoßen, ihre Voraussetzung ist entfallen — und das ist der
+  Unterschied, den eine Spec-Änderung benennen muss, damit sie nicht als Meinungswechsel gelesen
+  wird.
+  → Kap. 4, 8, 10
+
+- **2026-08-04 — Zwei von drei Symptomen zeigten auf Konstanten, das dritte auf das Modell.**
+  Zur Steuerung kamen drei Beobachtungen: viel Momentum, bremst langsam, Probleme bei schnellen
+  Richtungswechseln. Die ersten beiden lassen sich mit zwei Zahlen erledigen. Der dritte nicht,
+  und das war erst nach einer Messung sichtbar: Bei einer 90°-Wende wurde die querlaufende
+  Geschwindigkeitskomponente von **keiner Kraft** angefasst — gebremst wurde ausschließlich,
+  wenn gar keine Taste gedrückt war. Sie verschwand nur, weil die radiale Kappe die Gesamtsumme
+  begrenzt und dabei umverteilt: gemessene 1,63 s, bis sie auf 1 % abgebaut war, gegen 0,6 s für
+  eine volle Umkehr. Die auffälligere Zahl gehörte also zum unauffälligeren Symptom.
+
+  Die Lehre ist eine über die Reihenfolge: Erst messen, was das Modell tut, dann entscheiden, ob
+  Konstanten die Antwort sind. Wären nur die Konstanten angehoben worden, wäre die Übergabe
+  fachlich vertretbar gewesen („beschleunigt und bremst messbar schneller") und hätte das
+  eigentliche Ärgernis unberührt gelassen — die Art Verbesserung, die in einer zweiten
+  Spielsitzung als „ist immer noch so" zurückkommt. Beschleunigung kann nur addieren; wer ein
+  Wegkommen von etwas will, braucht ein Bremsen dafür.
+  → Kap. 4, 10
 
 - **2026-08-03 — Der erste Test gegen das Durchtunneln war selbst durchlässig.** Die
   Zusicherung durch `Flock::update` behauptete zunächst nur, der Boid liege nach jedem
