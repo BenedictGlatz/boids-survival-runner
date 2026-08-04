@@ -5,6 +5,7 @@ pub mod dash_selection;
 pub mod flock;
 pub mod obstacle;
 pub mod obstacle_arming;
+pub mod obstacle_bounce;
 pub mod obstacle_collision;
 pub mod obstacle_density;
 pub mod obstacle_field;

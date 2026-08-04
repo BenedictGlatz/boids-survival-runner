@@ -2,6 +2,7 @@ use super::boid::Boid;
 use super::dash::{advance_dash_state, begin_dash_charge, is_dashing, step_speed_limit};
 use super::dash_selection::select_dash_group;
 use super::obstacle::Obstacle;
+use super::obstacle_bounce::bounce_boid_off_obstacles;
 use super::obstacle_pushout::push_boids_out_of_obstacles;
 use super::overlap::{resolve_boid_overlaps, wrap_position};
 use super::physics::{aabb_overlap, clamp_force, integrate};
@@ -68,7 +69,13 @@ impl Flock {
             boid.acceleration = clamp_force(boid, steering);
             // Only a dashing boid gets a raised cap. On the first step after a dash
             // the cap drops back and the leftover dash speed is clamped away at once.
+            let position_before_the_step = boid.position;
             integrate(boid, step_speed_limit(boid));
+            // The whole step is tested against the obstacles, not just where it ended:
+            // an obstacle is a wall for a boid exactly as it is for the player. This has
+            // to happen before the wrap, or a boid crossing the world edge would be
+            // tested along a segment straight through the middle of the arena.
+            bounce_boid_off_obstacles(obstacles, boid, position_before_the_step);
             wrap_position(&mut boid.position, world_width, world_height);
         }
 
@@ -366,55 +373,9 @@ mod tests {
         assert!(most_boids_dashing_at_once > 1);
     }
 
-    #[test]
-    fn boids_steer_around_an_obstacle_instead_of_pressing_into_it() {
-        // The whole feature seen from the outside: a boid chasing a player on the far
-        // side of a bar has to get past it. Steering alone is what has to achieve
-        // that — the push-out is a safety net for obstacles that appear on top of a
-        // boid, and a boid that relied on it would visibly grind along the surface.
-        let bar = Obstacle::new(Vec2::new(500.0, 200.0), Vec2::new(500.0, 600.0), 15.0, 1800);
-        let obstacles = [bar];
-        let mut flock = Flock::new();
-        flock.add(Boid::new(Vec2::new(300.0, 400.0), Vec2::new(3.0, 0.0)));
-
-        let player = Vec2::new(700.0, 400.0);
-        let mut nearest_approach = f32::MAX;
-
-        for _ in 0..240 {
-            flock.update(player, &obstacles, 1000.0, 1000.0);
-
-            let contact = bar.contact_with_point(flock.boids[0].position, 0.0);
-            nearest_approach = nearest_approach.min(contact.surface_distance);
-
-            // Never inside, at any point along the way.
-            assert!(
-                contact.surface_distance >= -1e-3,
-                "a boid ended up {} inside the obstacle",
-                -contact.surface_distance
-            );
-        }
-
-        // It got close enough for the rule to matter, so the test is not passing
-        // simply because the boid never went near the bar.
-        assert!(nearest_approach < 60.0);
-        // And it made it around: past the bar, or at least clear of the line it sat on.
-        let travelled_past = flock.boids[0].position.y < 200.0 || flock.boids[0].position.y > 600.0;
-        assert!(
-            flock.boids[0].position.x > 515.0 || travelled_past,
-            "the boid never got past the obstacle"
-        );
-    }
-
-    #[test]
-    fn a_boid_caught_inside_a_new_obstacle_is_freed() {
-        // An obstacle can appear on top of a boid, and steering cannot undo that.
-        let obstacles = [Obstacle::circle(Vec2::new(500.0, 500.0), 60.0, 1800)];
-        let mut flock = Flock::new();
-        flock.add(Boid::new(Vec2::new(505.0, 500.0), Vec2::new(1.0, 0.0)));
-
-        flock.update(Vec2::new(100.0, 100.0), &obstacles, 1000.0, 1000.0);
-
-        let contact = obstacles[0].contact_with_point(flock.boids[0].position, 0.0);
-        assert!(contact.surface_distance >= -1e-3);
-    }
+    // The two integration tests about obstacles used to sit here as well and now live
+    // beside the modules they actually exercise — the way round a bar in
+    // `obstacle_bounce.rs`, next to what happens when a boid fails to find it, and the
+    // rescue from an obstacle that appeared on top of a boid in `obstacle_pushout.rs`.
+    // That is also what brought this file back under the 400-line limit.
 }

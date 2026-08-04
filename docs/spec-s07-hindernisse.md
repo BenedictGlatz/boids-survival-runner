@@ -182,8 +182,12 @@ tick(previous_x, previous_y, attempted_x, attempted_y) -> FrameResponse
 Die Bewegung wird als **Strecke** gegen die Kapsel geprüft, nicht als Punkt. Das ist
 gleichzeitig der Schutz gegen Durchtunneln bei Dash-Geschwindigkeit, den ein reiner
 Punkttest je nach Hindernisdicke verpassen könnte. Bei Kontakt setzt die Engine den Spieler
-um `PLAYER_OBSTACLE_KNOCKBACK_DISTANCE` **außerhalb** der aufgeblasenen Oberfläche ab, und
+um `OBSTACLE_KNOCKBACK_DISTANCE` **außerhalb** der aufgeblasenen Oberfläche ab, und
 zwar auf der Seite, von der er kam, und meldet die Oberflächennormale zurück.
+
+Dieselbe Prüfung gilt seit `obstacle_bounce.rs` auch für **Boids**: `resolve_movement_against_obstacles`
+nimmt Position und Radius des Bewegten und kennt keinen Spieler, deshalb ist es genau eine
+Kollisionsprüfung für eine Wand statt zwei, die auseinanderlaufen können.
 
 Beide Hälften davon sind Bedingung dafür, dass man nicht feststecken kann — die erste
 Fassung setzte den Spieler exakt _auf_ die Oberfläche und ließ genau das zu:

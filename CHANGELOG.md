@@ -168,6 +168,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- A lunging boid no longer flies straight through an obstacle. Obstacles were a wall for the player
+  and a suggestion for the swarm: a boid steers around them while it flocks normally, but a dash
+  freezes its line at launch and switches that steering off, so a dashing boid passed clean through
+  a solid bar and came out the other side — the one moment the arena's cover was worth anything was
+  the one moment it did nothing. A boid now hits an obstacle exactly the way the player does, is
+  stopped on the side it came from and bounces off it with the same fraction of its speed. The dash
+  is repelled rather than cancelled, so the boid spends what is left of it rebounding, and a lunge
+  that only grazes a bar slides along it instead of sticking. Cover in the arena is now cover
+  against the whole swarm, dashes included.
+
 - A round no longer dies with a bare `RuntimeError` out of the engine somewhere in the middle of
   play. Starting a round waits for the WebAssembly module, and until that wait is over the card that
   started it is still on screen with its button still focused — so a second Enter, a held space bar

@@ -91,7 +91,47 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 
 | 2026-08-03 | 2,5 | S-04 | Wellen kündigen sich am Weltrand an, statt irgendwo in der Arena zu erscheinen: zwei neue Engine-Module — `simulation/wave_spawn_placement.rs` (Perimeter als **eine** Zahl im Uhrzeigersinn, `gate_perimeter_offset` schiebt ein Tor entlang der Kante, bis es `safe_spawn_distance` zum Spieler hält, `inward_velocity` mit alternierendem Seitenanteil) und `simulation/wave_spawn.rs` (`WaveSpawnQueue`, Warnfenster in Simulationsschritten, `wave_spawn_warning_progress`), nach demselben Schnitt wie `obstacle_spawn.rs`/`obstacle_field.rs`; `set_wave` **spawnt nicht mehr**, sondern kündigt an, `tick()` lässt die Boids nach `WAVE_SPAWN_WARNING_STEPS` = 120 Schritten (2 s) herein — `entity_count` hinkt der Wellennummer damit bewusst zwei Sekunden nach; siebter Buffer `spawn_markers` mit Stride 3 (`[x, y, warning_progress]`), ohne Vorzeichentrick, weil ein Eintrag nur existiert, solange er anhängig ist; `safe_spawn_distance` aus `wasm_bridge` in das Platzierungsmodul verschoben und die Tier-Verzweigung als `build_boid` zusammengeführt, damit die freie Platzierung der ersten Flock und die Tore nicht auseinanderlaufen; Frontend zeichnet den Platzhalter (`renderer/spawnMarkerLayer.js` plus importfreie Arithmetik in `spawnMarkerPulse.js`), Ring **schrumpft** hier statt zu wachsen wie beim Hindernis; 24 neue Rust-Zusicherungen, 11 neue WASM-Vertragstests in `wasm_wave_spawn_tests.rs`, 19 neue Frontend-Zusicherungen, Sichtprüfung über einen temporären Playwright-Screenshot bei 00:30 und 00:32 |
 
+| 2026-08-03 | 1,5 | S-07 | Boids prallen an Hindernissen ab, statt beim Dash durch sie hindurchzufliegen: `resolve_player_movement` ist zu `resolve_movement_against_obstacles` (Rückgabe `MovementResolution`, Parameter `mover_radius`) verallgemeinert und `PLAYER_OBSTACLE_KNOCKBACK_DISTANCE` entsprechend zu `OBSTACLE_KNOCKBACK_DISTANCE` umbenannt, weil derselbe Streckentest jetzt Spieler **und** Boid bedient; neues `simulation/obstacle_bounce.rs` setzt ihn pro Boid an — Aufruf in `Flock::update` direkt nach `integrate` und **vor** `wrap_position`, sonst läuft die Prüfstrecke eines am Weltrand umgeschlagenen Boids quer durch die Arena; `bounced_velocity` nimmt den Anteil in die Oberfläche weg und gibt `BOID_OBSTACLE_BOUNCE` = 0,35 davon zurück, denselben Wert wie `PLAYER_OBSTACLE_BOUNCE` im Frontend; der Dash wird nicht abgebrochen, der Boid federt mit erhöhter Kappe zurück; `flock.rs` stand mit dem neuen Aufruf bei 427 Zeilen und ist durch das Verschieben seiner beiden Hindernis-Integrationstests (Weg um eine Stange nach `obstacle_bounce.rs`, Rettung aus einem neu erschienenen Hindernis nach `obstacle_pushout.rs`) auf 381 zurück; 10 neue Rust-Zusicherungen, davon eine über `Flock::update` gegen die Verdrahtung selbst |
+
 ## Entscheidungen
+
+### 2026-08-03 — Ein Kollisionstest für eine Wand, statt einer je Bewegtem
+
+**Gewählt:** Der bestehende Streckentest des Spielers wird verallgemeinert
+(`resolve_movement_against_obstacles`, Parameter `mover_radius`) und von den Boids
+mitbenutzt. Das Abprallen selbst — Position übernehmen, Geschwindigkeit spiegeln — liegt als
+`obstacle_bounce.rs` daneben, weil der Spieler diesen Teil im Frontend erledigt
+(`playerController.applyObstacleBlock`) und ein Boid ihn in der Engine braucht.
+
+**Verworfen — Hindernisvermeidung auch für den dashenden Boid einschalten.** Die einfachste
+Antwort wäre, `dash_steering` um `avoid_obstacles` zu erweitern. Sie nimmt dem Dash aber
+genau die Eigenschaft, die ihn lesbar macht: Die Linie steht beim Start fest, und das
+Aufladepulsen ist die Warnung, wohin sie zeigt. Ein Dash, der unterwegs abbiegt, ist nicht
+mehr ausweichbar, sondern verfolgend. Zusätzlich ist die Vermeidungskraft eine
+Beschleunigung gegen `max_acceleration` (0,09) und damit viel zu schwach, um eine
+Dash-Geschwindigkeit von zehn Einheiten pro Schritt noch abzulenken — sie hätte das
+Durchfliegen gar nicht verhindert.
+
+**Verworfen — `push_boids_out_of_obstacles` einfach auch auf dashende Boids anwenden.** Der
+Ausnahmefall dort ist nur eine Zeile, und die Versuchung ist entsprechend groß. Es ist aber
+ein **Punkttest**: Er sieht, wo der Boid am Ende des Schritts steht. Ein Dash legt pro
+Schritt mehr Weg zurück als eine Stange dick ist, landet also auf der anderen Seite im
+Freien — dort findet der Punkttest nichts zu korrigieren. Genau diese Lücke war der Fehler.
+
+**Verworfen — den Streckentest für Boids nachbauen statt ihn zu teilen.** Hätte
+`obstacle_collision.rs` unberührt gelassen und die Umbenennung erspart. Der Preis wäre eine
+zweite Fassung derselben Geometrie samt Standoff-Rechnung: zwei Kollisionstests für **eine**
+Wand, die auseinanderlaufen, sobald einer von beiden angefasst wird.
+
+**Warum:** Ein Hindernis ist ein Gegenstand mit einem Verhalten, nicht zwei Regelwerke je
+nachdem, wer anstößt. Der Test kannte vom Spieler ohnehin nur Position und Radius — die
+Verallgemeinerung war eine Umbenennung, kein neuer Code.
+
+**Folge:** Der Dash wird beim Treffer nicht abgebrochen. Der Boid behält seine erhöhte
+Geschwindigkeitskappe für die restlichen Dash-Schritte und federt sichtbar zurück; das liest
+sich als abgewehrter Angriff, während ein Abbruch wie ein Aussetzer der Engine wirkte.
+Außerdem ist Deckung in der Arena jetzt Deckung gegen den ganzen Schwarm, was die
+Hindernisse taktisch aufwertet, ohne dass an ihrer Dichte gedreht wurde. → Kap. 5
 
 ### 2026-08-03 — Die Welle wird angekündigt, statt nur weiter weg zu spawnen
 
@@ -1368,6 +1408,20 @@ den Preis von Produktionscode, der nur für Tests existiert.
 → Kap. 3, 8
 
 ## Herausforderungen & Lessons Learned
+
+- **2026-08-03 — Der erste Test gegen das Durchtunneln war selbst durchlässig.** Die
+  Zusicherung durch `Flock::update` behauptete zunächst nur, der Boid liege nach jedem
+  Schritt nicht **innerhalb** der Stange. Sie besteht auch ohne jede Kollisionsprüfung: Ein
+  Boid, der die Stange in einem Schritt überspringt, liegt danach außerhalb — auf der
+  falschen Seite. Aufgefallen ist das erst durch eine bewusste Mutation des Aufrufs (statt
+  `previous_position` die schon integrierte Position übergeben, was die Prüfstrecke auf
+  Länge Null bringt): Der Test blieb grün. Erst die Zusicherung auf die **Seite** —
+  `position.x < 500` — fällt bei beiden Mutationen durch. Die zweite Fassung war dann
+  ihrerseits zu streng und schlug zu, weil der zurückgeprallte Boid nach dreizehn weiteren
+  Schritten die linke Weltkante erreicht und völlig zurecht rechts wieder auftaucht — vom
+  Überspringen nicht zu unterscheiden. Lehre: Eine Invariante gegen Tunneln muss die
+  Überquerung selbst prüfen, nicht ihre Folge, und der Weltumschlag ist in jeder Zusicherung
+  über eine Position ein eigener Fall. Rund 30 min, komplett in den Test geflossen.
 
 - **2026-08-02 — Die Fehlermeldung zeigte auf `tick()`, die Ursache lag im Startknopf.**
   Ein Playtest endete mitten in der Runde mit `RuntimeError: index out of bounds`, im Stack

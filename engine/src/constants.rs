@@ -258,7 +258,8 @@ const _: () = assert!(MINIMUM_CORRIDOR_WIDTH > 2.0 * PLAYER_COLLISION_RADIUS);
 /// or a fast enough player could pass clean through it between two steps.
 pub const MINIMUM_OBSTACLE_RADIUS: f32 = 12.0;
 
-/// How far outside an obstacle's inflated surface a blocked player is placed.
+/// How far outside an obstacle's inflated surface anything blocked by it is placed —
+/// the player as well as a boid.
 ///
 /// **This margin is what makes getting stuck impossible.** Placing the player exactly
 /// on the surface leaves them at a distance the very next collision test reads as a
@@ -268,7 +269,20 @@ pub const MINIMUM_OBSTACLE_RADIUS: f32 = 12.0;
 /// outward move is never blocked, and the push doubles as the knockback a collision
 /// should feel like. It has to stay well below `MINIMUM_CORRIDOR_WIDTH` so a player
 /// pushed off one obstacle cannot be pushed into the next.
-pub const PLAYER_OBSTACLE_KNOCKBACK_DISTANCE: f32 = 8.0;
+pub const OBSTACLE_KNOCKBACK_DISTANCE: f32 = 8.0;
+
+/// How much of a boid's speed into an obstacle is given back as a bounce.
+///
+/// The mirror of the frontend's `PLAYER_OBSTACLE_BOUNCE`, and deliberately the same
+/// value: an obstacle is one wall that behaves one way, whoever runs into it. A boid
+/// keeps the same share of its impact as the player does, so a dash that hits a bar
+/// visibly rebounds instead of stopping dead — while staying far enough below `1.0`,
+/// a perfect bounce, that a dashing boid is not flung back across the world.
+///
+/// A global constant rather than a `BoidProperties` field: this is a property of the
+/// obstacle surface, like `BOID_COLLISION_RADIUS`, not a boid variant's tuning. Nothing
+/// about the design ramp wants a tier that bounces differently.
+pub const BOID_OBSTACLE_BOUNCE: f32 = 0.35;
 
 /// How long an obstacle keeps glowing red after the player ran into it (~0.3 s).
 ///

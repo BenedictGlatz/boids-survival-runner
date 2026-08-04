@@ -16,5 +16,10 @@
     "prompt": "Bitte setze um dass man am Bildschirmrand sieht wo genau die neue Welle Boids spawnen wird, damit sie nicht direkt vor oder im Spieler spawnen. Verwende erstmal eine Placeholder Graphic, beispielsweise ein simples rotes Leuchten",
     "topic": "engine",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5",
+    "prompt": "Mir ist aufgefallen dass Boids anscheinend durch Hindernisse dashen können, das sollte nicht der Fall sein, sie sollte genauso wie Spieler von ihnen abprallen.\n\nAußerdem sollte die Powerups etwas größer sein, sodass sie leichter zu treffen ist, etwa 50% mehr Umfang",
+    "topic": "engine"
   }
 ]

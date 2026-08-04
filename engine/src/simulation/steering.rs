@@ -46,6 +46,10 @@ pub fn flocking_steering(
 /// would both make the lunge unpredictable and rob the charge-up pulse of its meaning as
 /// a warning. Getting stuck is impossible anyway, because a dash lasts a fixed number of
 /// steps.
+///
+/// Off *steering* around obstacles is not the same as passing through them: a dashing
+/// boid that runs into one is stopped and bounced by `obstacle_bounce.rs`, the same way
+/// the player is. The dash aims where it aims and takes the consequences.
 pub fn dash_steering(boid: &Boid, snapshot: &[Boid]) -> Vec2 {
     separation(boid, snapshot).scale(boid.properties.separation_weight)
 }

@@ -1,25 +1,31 @@
 use super::obstacle::Obstacle;
 use super::obstacle_arming::is_armed;
-use crate::constants::PLAYER_OBSTACLE_KNOCKBACK_DISTANCE;
+use crate::constants::OBSTACLE_KNOCKBACK_DISTANCE;
 use crate::math::segment::{closest_point_on_segment, distance_between_segments};
 use crate::math::vector::Vec2;
 
-// What an obstacle does to the player: it stops the move that ran into it. Kept apart
+// What an obstacle does to something that moves into it: it stops the move. Kept apart
 // from `obstacle_field.rs`, which is only about which obstacles exist and for how long,
-// and from `obstacle_pushout.rs`, which is the same question for the boids.
+// and from `obstacle_pushout.rs`, which frees a boid that was *displaced* into an
+// obstacle rather than having moved into one.
+//
+// The mover is a position and a radius and nothing else, so the same test serves the
+// player (from `wasm_bridge`) and a boid (from `obstacle_bounce.rs`). That is the point:
+// an obstacle is one wall with one behaviour, and two collision tests for one wall are
+// two things that can drift apart.
 //
 // This takes a plain slice rather than the field, so the caller never has to know that
 // obstacles come and go — it only ever sees the ones standing right now.
 
-/// What became of a player move that was tested against the obstacles.
-pub struct PlayerResolution {
-    /// Where the player actually ends up, which is the attempted position unless an
+/// What became of a move that was tested against the obstacles.
+pub struct MovementResolution {
+    /// Where the mover actually ends up, which is the attempted position unless an
     /// obstacle was in the way.
     pub position: Vec2,
-    /// Whether an obstacle was hit and a life should be spent.
+    /// Whether an obstacle was hit. For the player this is also when a life is spent.
     pub blocked: bool,
     /// The surface normal at the point of contact, pointing back at the side the
-    /// player came from, so the caller can bounce its velocity off it. Zero when
+    /// mover came from, so the caller can bounce its velocity off it. Zero when
     /// nothing was hit.
     pub surface_normal: Vec2,
     /// Which obstacle was hit, as an index into the slice that was passed in, so the
@@ -30,30 +36,30 @@ pub struct PlayerResolution {
     pub hit_obstacle: Option<usize>,
 }
 
-/// Tests a player move against the obstacles and pushes it back out of anything it hit.
+/// Tests a move against the obstacles and pushes it back out of anything it hit.
 ///
 /// The move is treated as the segment from `previous` to `attempted`, not as the end
-/// point alone. That is what keeps a dashing player from crossing a thin obstacle
-/// between two simulation steps: a point test would find open space on both sides and
-/// never notice the obstacle in between.
+/// point alone. That is what keeps a dashing player — or a dashing boid — from crossing
+/// a thin obstacle between two simulation steps: a point test would find open space on
+/// both sides and never notice the obstacle in between.
 ///
-/// A blocked player is placed `PLAYER_OBSTACLE_KNOCKBACK_DISTANCE` clear of the
-/// obstacle's inflated surface, on the side they came from. Both halves of that matter:
+/// A blocked mover is placed `OBSTACLE_KNOCKBACK_DISTANCE` clear of the obstacle's
+/// inflated surface, on the side they came from. Both halves of that matter:
 ///
 /// - **The side they came from**, because the end of the move is no guide. A dash can
 ///   finish deep inside the obstacle or all the way through it, and pushing out along
-///   the nearest normal would then shove the player out the far side.
-/// - **Clear of the surface rather than on it**, because a player standing exactly on
+///   the nearest normal would then shove the mover out the far side.
+/// - **Clear of the surface rather than on it**, because a mover standing exactly on
 ///   the surface is at the distance the next test reads as a touch again — even for a
 ///   move leading straight away from the obstacle, whose swept path still starts on the
 ///   surface. That correction put the player back every step and is what made it
 ///   possible to get stuck in an obstacle.
-pub fn resolve_player_movement(
+pub fn resolve_movement_against_obstacles(
     obstacles: &[Obstacle],
     previous: Vec2,
     attempted: Vec2,
-    player_radius: f32,
-) -> PlayerResolution {
+    mover_radius: f32,
+) -> MovementResolution {
     let mut position = attempted;
     let mut blocked = false;
     let mut surface_normal = Vec2::zero();
@@ -67,30 +73,30 @@ pub fn resolve_player_movement(
         }
 
         // The swept path against the obstacle's centre line. Anything closer than both
-        // radii combined means the player touched or entered the obstacle somewhere
+        // radii combined means the mover touched or entered the obstacle somewhere
         // along the way, whether or not the move ended inside it.
         let swept_distance =
             distance_between_segments(previous, position, obstacle.spine_start, obstacle.spine_end);
 
-        if swept_distance >= obstacle.radius + player_radius {
+        if swept_distance >= obstacle.radius + mover_radius {
             continue;
         }
 
         blocked = true;
         hit_obstacle = Some(index);
 
-        // The direction the player is pushed back in, decided by where they were before
+        // The direction the mover is pushed back in, decided by where they were before
         // the move rather than by where it ended.
-        let entry = obstacle.contact_with_point(previous, player_radius);
+        let entry = obstacle.contact_with_point(previous, mover_radius);
         let spine_point =
             closest_point_on_segment(position, obstacle.spine_start, obstacle.spine_end);
-        let standoff = obstacle.radius + player_radius + PLAYER_OBSTACLE_KNOCKBACK_DISTANCE;
+        let standoff = obstacle.radius + mover_radius + OBSTACLE_KNOCKBACK_DISTANCE;
 
         position = spine_point.add(entry.outward_normal.scale(standoff));
         surface_normal = entry.outward_normal;
     }
 
-    PlayerResolution {
+    MovementResolution {
         position,
         blocked,
         surface_normal,
@@ -101,14 +107,14 @@ pub fn resolve_player_movement(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::constants::{PLAYER_COLLISION_RADIUS, PLAYER_OBSTACLE_KNOCKBACK_DISTANCE};
+    use crate::constants::{OBSTACLE_KNOCKBACK_DISTANCE, PLAYER_COLLISION_RADIUS};
     use crate::simulation::obstacle_arming::begin_arming;
 
     const LIFETIME: u32 = 1800;
     const ARMING: u32 = 90;
 
-    fn resolve(obstacle: Obstacle, from: Vec2, to: Vec2) -> PlayerResolution {
-        resolve_player_movement(&[obstacle], from, to, PLAYER_COLLISION_RADIUS)
+    fn resolve(obstacle: Obstacle, from: Vec2, to: Vec2) -> MovementResolution {
+        resolve_movement_against_obstacles(&[obstacle], from, to, PLAYER_COLLISION_RADIUS)
     }
 
     #[test]
@@ -126,8 +132,12 @@ mod tests {
     fn a_world_without_obstacles_never_blocks() {
         let to = Vec2::new(120.0, 140.0);
 
-        let resolution =
-            resolve_player_movement(&[], Vec2::new(100.0, 140.0), to, PLAYER_COLLISION_RADIUS);
+        let resolution = resolve_movement_against_obstacles(
+            &[],
+            Vec2::new(100.0, 140.0),
+            to,
+            PLAYER_COLLISION_RADIUS,
+        );
 
         assert_eq!(resolution.position, to);
         assert!(!resolution.blocked);
@@ -182,7 +192,7 @@ mod tests {
         // One inflated radius plus the knockback out from the centre, on the side it
         // came from. The knockback is what keeps the player off the surface itself.
         let distance = resolution.position.distance_to(centre);
-        let standoff = 40.0 + PLAYER_COLLISION_RADIUS + PLAYER_OBSTACLE_KNOCKBACK_DISTANCE;
+        let standoff = 40.0 + PLAYER_COLLISION_RADIUS + OBSTACLE_KNOCKBACK_DISTANCE;
         assert!((distance - standoff).abs() < 1e-3);
         assert!(resolution.position.x < into.x);
     }
@@ -196,7 +206,7 @@ mod tests {
             Obstacle::circle(Vec2::new(300.0, 300.0), 40.0, LIFETIME),
         ];
 
-        let resolution = resolve_player_movement(
+        let resolution = resolve_movement_against_obstacles(
             &obstacles,
             Vec2::new(200.0, 300.0),
             Vec2::new(290.0, 300.0),
@@ -210,7 +220,7 @@ mod tests {
     fn a_move_that_hits_nothing_reports_no_obstacle() {
         let obstacles = [Obstacle::circle(Vec2::new(300.0, 300.0), 40.0, LIFETIME)];
 
-        let resolution = resolve_player_movement(
+        let resolution = resolve_movement_against_obstacles(
             &obstacles,
             Vec2::new(800.0, 800.0),
             Vec2::new(810.0, 800.0),

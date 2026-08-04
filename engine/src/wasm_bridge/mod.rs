@@ -11,7 +11,7 @@ use crate::math::vector::Vec2;
 use crate::simulation::dash::dash_render_phase;
 use crate::simulation::flock::Flock;
 use crate::simulation::obstacle_arming::obstacle_render_phase;
-use crate::simulation::obstacle_collision::resolve_player_movement;
+use crate::simulation::obstacle_collision::resolve_movement_against_obstacles;
 use crate::simulation::obstacle_field::ObstacleField;
 use crate::simulation::wave_spawn::{wave_spawn_warning_progress, PendingSpawn, WaveSpawnQueue};
 use crate::simulation::wave_spawn_placement::{
@@ -112,7 +112,7 @@ impl GameEngine {
 
         // Resolved before anything else moves, so the flock steers against and is
         // tested against the position the player really ends up in.
-        let resolution = resolve_player_movement(
+        let resolution = resolve_movement_against_obstacles(
             &self.obstacle_field.obstacles,
             previous,
             attempted,
