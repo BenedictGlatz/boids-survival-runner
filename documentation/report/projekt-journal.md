@@ -100,8 +100,41 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-04 | 1,0 | S-03 | HUD-Fortschrittsblock aus dem fortgeschriebenen Designsystem umgesetzt: die Wellennummer verlässt die rechte obere Ecke und steht mit Timer und dem neuen Wert `SPAWNING` als `.hud-group` oben Mitte, getrennt durch Haarlinien — die drei beantworten **eine** Frage („wie weit bin ich, was kommt jetzt") und brauchten dafür bisher zwei Blicke in gegenüberliegende Ecken; `SPAWNING` zeigt die Stufe 01–05 der gerade spawnenden Boid-Variante plus Boid-Silhouette, beides in der Farbe genau dieser Stufe aus `BOID_COLORS` — die Farbe ist die eigentliche Ankündigung, weil sie auf die Darts in der Arena zeigt, die Zahl nennt nur den Schritt und zeigt zugleich, wo die Rampe endet (ab Welle 5 steht sie auf 05, während die Wellennummer weiterläuft); Ableitung der Stufe als neues Frontend-Modul `round/waveTier.js` statt als achter Wert über die WASM-Grenze (siehe Entscheidung), `MAX_BOID_DIFFICULTY_TIER` damit als zweite bewusste Handkopie neben `INITIAL_BOID_COUNT` in `gameConfig.js`. Nebenbefund beim Umbau: `.hud-stat--boids` war ein toter Selektor — die Boid-Zahl stand seit dem HUD-Umbau vom 2026-07-30 in Weiß statt in Rot, weil das Element die Klasse nie trug; die Utility `.top-right` entfällt mit der Wellennummer, und mit ihr das Stapeln zweier Ecken im ≤640-px-Fenster. Acht neue Unit-Zusicherungen, zwei neue E2E-Zusicherungen (Stufe und ihre Farbe), Sichtprüfung per temporärem Playwright-Screenshot in Welle 1 und — mit verkürzter `WAVE_DURATION_SECONDS` und erhöhtem Lebensstand — in Welle 3 |
 | 2026-08-04 | 2,0 | S-05 | Vorwarnlinie für den Boid-Dash: ab dem ersten Blinken zieht ein ladender Boid eine dünne rote gestrichelte Linie dorthin, wo sein Dash endet, die im Absprungschritt verschwindet — der Puls sagte bisher _dass_ und _wann_, aber nicht _wohin_, und ohne das Wohin ist die Vorwarnung eine Aufforderung zum Zucken statt zum Ausweichen. Geometrie kommt aus dem neuen `simulation/dash_aim.rs`, in das `launch_direction` und `dash_speed` aus `dash.rs` umgezogen sind: dieselbe Funktion schreibt den Absprung und misst die Linie, das Auseinanderlaufen ist damit strukturell verhindert statt kommentiert; `dash_distance` = `dash_speed × dash_steps`, weil jeder Dash-Schritt an der erhöhten Kappe läuft. Neuer Buffer `dash_aims` mit Stride 5 (`[start_x, start_y, end_x, end_y, charge_progress]`), eigene Anzahl statt Index-Gleichheit wie `spawn_markers` (höchstens ~15 von bis zu 156 Boids laden gleichzeitig), kein Vorzeichentrick, weil ein Eintrag nur während `Charging` existiert; `GameEngine` merkt sich dafür `last_player_position`, weil `snapshot()` keine Spielerposition bekommt und die eingefrorene Welt dieselben Linien zeigen muss wie der `tick` davor. `wasm_bridge/mod.rs` stand mit dem neuen Buffer bei 421 Zeilen und wurde entlang derselben Naht geteilt, an der schon `boid_factory.rs` abging: `frame_buffers.rs` nimmt die drei Strides und `build_frame_response` (302 Zeilen bleiben). Frontend: `dashAimAlpha` zu `dashPulseScale` und `dashGlowLevel` in `dashPulse.js` — drei Zahlen aus einer Phase — plus die Zeichenebene `renderer/dashAimLayer.js` nach dem Muster von `spawnMarkerLayer.js` (Alpha-Tabelle statt `rgba(...)` pro Bild, `setLineDash` **innerhalb** von `save`/`restore`, sonst strichelt jeder spätere Strich mit). Sieben neue Rust-Zusicherungen, sechs neue WASM-Vertragstests in `wasm_dash_aim_tests.rs`, 16 neue Frontend-Zusicherungen (465 gesamt), E2E unverändert 51 grün; Sichtprüfung per temporärem Playwright-Screenshot in Welle 3, mit `DASH_UNLOCK_DIFFICULTY_TIER = 1` und gekürzter Wellendauer |
 | 2026-08-04 | 0,5 | S-05 | Spielerhandling nachgestimmt, weil die erste Fassung im Spieltest zu zackig lief — vor allem in Kurven: `PLAYER_TURN_DECELERATION` 3600 → 2200, `PLAYER_ACCELERATION` 2000 → 1600, `PLAYER_DECELERATION` 2600 → 2000, alle drei bewusst zwischen dem Stand vor dem Umbau und dem der ersten Fassung. Gemessen: 90°-Wende 0,10 → 0,17 s (vor dem Umbau 1,63 s), 180°-Wende 0,28 → 0,40 s (0,60 s), Anfahren 0,18 → 0,23 s (0,30 s), Anhalten 0,15 → 0,18 s (0,25 s). Kein Codepfad und kein Test geändert: alle Zusicherungen in `playerSteering.test.js` lesen ihre Konstanten aus `gameConfig.js` statt sie zu spiegeln, weshalb die Umstimmung eine Drei-Zeilen-Änderung ist — genau der Zweck dieser Testform. Die Umkehr-Zusicherung ist zugleich die **Untergrenze** der neuen Zahl: unterhalb von etwa `PLAYER_ACCELERATION` dauert das Wegbremsen der alten Richtung länger als das Durchbeschleunigen, die Querbremse verliert damit ihren Zweck; das steht jetzt als Kommentar an der Konstante, damit die nächste Nachstimmung die Grenze kennt |
+| 2026-08-04 | 0,5 | S-05 | Aegis nachgestimmt, weil der Schild im Spieltest genau den Zug nicht bezahlte, für den er gedacht ist: er fraß einen Treffer und war weg, ein Dash in eine Formation setzt aber drei oder vier Boids innerhalb weniger Schritte auf den Spieler — der zweite kostete trotzdem ein Leben. Der Bruch öffnet jetzt ein Fenster von `AEGIS_ABSORB_INVULNERABILITY_MS` = 1000 ms, in dem `absorbHit` jeden Treffer kostenlos macht; getragen von `PowerupField._absorbInvulnerableUntilMs`, nicht von `roundData.lastHitAtSimulationMs` (siehe Entscheidung). Sichtbarkeit ohne neue Optik: `playerInvulnerable` im renderState wird aus zwei Quellen verodert, der amberfarbene Spieler ist das bestehende Wort für „unantastbar" und trägt die 650 ms nach dem 350-ms-Shatter. `powerups.test.js` lief bei 434 Zeilen auf und wurde entlang derselben Naht geteilt, an der schon `mend.test.js` abging — `powerupBuffs.test.js` nimmt die beiden Buffs am Spieler mit eigenem Treiber, `powerups.test.js` behält die Arena (278 Zeilen). Sechs neue Zusicherungen zum Fenster, eine in `renderState.test.js` für die Verodung, Frontend-Suite 470 grün; Spec S-05b §2/§4/§6/§7 fortgeschrieben, inklusive der ausdrücklichen Rücknahme der Festlegung vom 2026-08-01 |
 
 ## Entscheidungen
+
+### 2026-08-04 — Aegis kauft ein Fenster, nicht einen Treffer
+
+**Gewählt:** Ein absorbierter Treffer bricht den Schild **und** startet
+`AEGIS_ABSORB_INVULNERABILITY_MS` = 1000 ms, in denen `absorbHit` jeden weiteren Treffer
+kostenlos macht. Der Zeitstempel liegt in `PowerupField`, nicht in `roundData`.
+
+**Verworfen:** (a) die Festlegung vom 2026-08-01 beibehalten — genau ein Treffer, danach
+ungeschützt; (b) das Fenster über `roundData.lastHitAtSimulationMs` fahren, also den Schild
+doch als vorgezogene Gnadenfrist implementieren, wie das Designsystem es ursprünglich
+vorschlug; (c) `HIT_COOLDOWN_MS` = 900 ms wiederverwenden statt einer eigenen Zahl.
+
+**Warum:** (a) ist die Rücknahme, um die es hier geht. Die alte Begründung — ein Schild endet
+mit dem Treffer, den er frisst — gilt weiter und ist unangetastet; falsch war der Schluss,
+dass damit auch der **Schutz** endet. Bei ~150 Boids in der späten Runde ist „ein Treffer"
+keine Einheit, in der das Spiel Schaden austeilt: eine Passage durch eine Formation setzt
+mehrere Treffer innerhalb weniger Schritte, also war der Unterschied zwischen „Schild dabei"
+und „Schild nicht dabei" für genau diesen Zug null — und Hineingehen ist die Fähigkeit, die
+Aegis laut Spec §1 belohnen soll. (b) hätte den Trichter verletzt: `lastHitAtSimulationMs`
+gehört dem verlorenen Leben, ein absorbierter Treffer hat keines gekostet, und ein Power-up,
+das in die Rundendaten schreibt, wäre das erste. (c) hätte die Fähigkeit an eine Konstante
+gehängt, die einem anderen Zweck dient — eine Nachstimmung der Gnadenfrist hätte Aegis
+stillschweigend mitverändert.
+
+**Konsequenz:** Der Schild hält jetzt zwei Zeitstempel statt einem, und das Fenster ist die
+einzige Nachwirkung im Feature, die Spielwirkung hat — Shatter, Mend-Bogen und Inertheit sind
+reine Darstellung. Sichtbar wird es ohne neue Optik: `playerInvulnerable` im renderState wird
+aus der Gnadenfrist **und** dem Fenster verodert, weil der amberfarbene Spieler das bestehende
+Wort des Spiels für „unantastbar" ist. Ein während des Fensters aufgesammelter Schild bleibt
+voll geladen, aus demselben Grund, aus dem er die Gnadenfrist übersteht.
+
+→ Kap. 4, 8
 
 ### 2026-08-04 — Die Vorwarnlinie kommt aus der Engine, nicht aus dem Renderer
 
@@ -756,6 +789,12 @@ eine Funktion und die Reihenfolge ist mit vier Zusicherungen festgenagelt.
 **Konsequenz:** Der Schild kann nicht mehr auf einem Treffer verschwendet werden, der
 während der Gnadenfrist ohnehin nichts gekostet hätte. `roundData.js` weiß dafür, dass
 Schaden abgefangen werden kann — aber nicht, wovon.
+
+**Teilweise zurückgenommen am 2026-08-04** („Aegis kauft ein Fenster, nicht einen Treffer"):
+Der Satz „nach einem absorbierten Treffer soll der nächste sofort wieder kosten" hat den
+Spieltest nicht überlebt. Der getrennte Zustand und die Reihenfolge im Trichter bleiben
+unverändert — zurückgenommen ist allein die Dauer des Schutzes, und sie liegt weiterhin im
+Power-up und nicht in den Rundendaten.
 
 → Kap. 4, 8
 

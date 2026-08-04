@@ -40,5 +40,11 @@
     "prompt": "Du hast den Spielercharakter vor einer Weile etwas agiler gemacht, bitte macht ihn wieder ein bisschen träger, vorallem in Kurven, etwas agiler als früher aber weniger agil als jetzt",
     "topic": "loop-input",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Aktuell macht einen das gelbe powerup für einen Hit unverwundbar, ich hätte gerne dass es einen ab dem ersten Hit für etwa eine Sekunde unverwundbar macht, sodass man auch durch einen Schwarm durch-dashen kann",
+    "topic": "frontend-ui",
+    "use": "impl"
   }
 ]

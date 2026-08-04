@@ -3,9 +3,10 @@
 Blickwinkel: Gameplay-Fähigkeit, Frontend
 
 Teil-Spec zu **S-05 Steuerung & Power-Ups**. Beschreibt die Spielerfähigkeiten neben dem
-Dash aus [S-05a](spec-s05-dash.md): **Aegis**, ein Schild, der genau einen Treffer frisst,
-**Overdrive**, eine zeitweise erhöhte Höchstgeschwindigkeit, und **Mend**, das ein
-Lebenssegment zurückgibt. Alle drei werden als Marker in der Arena aufgesammelt.
+Dash aus [S-05a](spec-s05-dash.md): **Aegis**, ein Schild, der am ersten Treffer bricht und
+danach eine Sekunde lang unverwundbar macht, **Overdrive**, eine zeitweise erhöhte
+Höchstgeschwindigkeit, und **Mend**, das ein Lebenssegment zurückgibt. Alle drei werden als
+Marker in der Arena aufgesammelt.
 
 Der tragende Unterschied läuft nicht zwischen den drei Wirkungen, sondern zwischen zwei
 Arten von Power-up: Aegis und Overdrive sind **Zustände**, die laufen; Mend ist ein
@@ -14,6 +15,8 @@ gleichermaßen, und die Regel für ein viertes Power-up steht in §8.
 
 Gestaltungsvorgabe ist `docs/design_system/design-system.md` §11; die dort
 vorgeschlagenen Zahlen sind hier als Festlegung übernommen.
+`AEGIS_ABSORB_INVULNERABILITY_MS` ist die eine Zahl, die dort nicht vorkommt — sie stammt
+aus einem Spieltest und ist in §4 begründet.
 
 ## 1) Zweck
 
@@ -51,21 +54,24 @@ Sonderregeln in §3, denn ein Fund, den man nicht brauchen kann, ist kein Fund.
 
 ## 2) Zustandsmodell
 
-Sechs Dinge existieren nebeneinander und werden getrennt gehalten:
+Sieben Dinge existieren nebeneinander und werden getrennt gehalten:
 
-| Zustand        | Lebensdauer                                               | Träger                                    |
-| -------------- | --------------------------------------------------------- | ----------------------------------------- |
-| **Marker**     | bis `expiresAtMs`, gesetzt auf `MARKER_LIFETIME_MS`       | `_markers[]`, Position und Art            |
-| **Rücknahme**  | `OBSTACLE_RETIRE_FADE_MS` ab Verdeckung                   | `marker.retiringSinceMs`, nur Darstellung |
-| **Buff**       | `AEGIS_DURATION_MS` / `OVERDRIVE_DURATION_MS` ab Aufnahme | `_buffs`, Art → `endsAtMs`                |
-| **Shatter**    | `SHATTER_MS` ab absorbiertem Treffer                      | `_shatterAtMs`, nur Darstellung           |
-| **Mend-Bogen** | `MEND_ARC_SECONDS` ab Aufnahme                            | `MendState._grantedAtMs`, nur Darstellung |
-| **Inertheit**  | dauerhaft, folgt dem Lebensstand                          | `MendState._inertAmount`, nur Darstellung |
+| Zustand           | Lebensdauer                                               | Träger                                     |
+| ----------------- | --------------------------------------------------------- | ------------------------------------------ |
+| **Marker**        | bis `expiresAtMs`, gesetzt auf `MARKER_LIFETIME_MS`       | `_markers[]`, Position und Art             |
+| **Rücknahme**     | `OBSTACLE_RETIRE_FADE_MS` ab Verdeckung                   | `marker.retiringSinceMs`, nur Darstellung  |
+| **Buff**          | `AEGIS_DURATION_MS` / `OVERDRIVE_DURATION_MS` ab Aufnahme | `_buffs`, Art → `endsAtMs`                 |
+| **Shatter**       | `SHATTER_MS` ab absorbiertem Treffer                      | `_shatterAtMs`, nur Darstellung            |
+| **Aegis-Fenster** | `AEGIS_ABSORB_INVULNERABILITY_MS` ab dem Bruch            | `_absorbInvulnerableUntilMs`, Spielwirkung |
+| **Mend-Bogen**    | `MEND_ARC_SECONDS` ab Aufnahme                            | `MendState._grantedAtMs`, nur Darstellung  |
+| **Inertheit**     | dauerhaft, folgt dem Lebensstand                          | `MendState._inertAmount`, nur Darstellung  |
 
 Ein Marker wird beim Einsammeln in einen Buff überführt; beide sind nie derselbe
 Datensatz. Aegis und Overdrive sind die einzigen beiden, die in `_buffs` landen — **Mend
 erzeugt keinen Buff**, weil es keinen Zustand hat, der laufen könnte. Shatter, Mend-Bogen
-und Inertheit sind reine Nachwirkung bzw. Darstellung und haben keine Spielwirkung.
+und Inertheit sind reine Nachwirkung bzw. Darstellung und haben keine Spielwirkung. Das
+Aegis-Fenster ist die eine Nachwirkung, die eine hat: es steht neben dem Shatter, dauert
+länger als er und ist der Grund, warum die beiden getrennte Zeitstempel sind.
 
 Mends Zustand ist damit vollständig: ein Zeitstempel für den Bogen und eine Zahl für die
 Marker-Farbe. Beide liegen in `powerups/mend.js` — weil die Lebensabhängigkeit der einzige
@@ -74,22 +80,23 @@ Satz steht, auch in einer Datei stehen kann.
 
 ### Festgelegte Werte
 
-| Konstante                 | Wert      | Warum                                                                            |
-| ------------------------- | --------- | -------------------------------------------------------------------------------- |
-| `AEGIS_DURATION_MS`       | 6500 ms   | lang genug, eine Formation zu überstehen, kurz genug, ihn ausgeben zu müssen     |
-| `OVERDRIVE_DURATION_MS`   | 6000 ms   | etwa eine Arenaquerung bei erhöhtem Tempo                                        |
-| `OVERDRIVE_FACTOR`        | 1,6       | spürbar; siehe §4                                                                |
-| `SPAWN_INTERVAL_MS`       | 9000 ms   | seltener als eine Welle (15 s), häufiger als ein Leben verloren geht             |
-| `MARKER_LIFETIME_MS`      | 12 000 ms | ein Marker, der ewig liegt, ist keine Entscheidung mehr                          |
-| `OBSTACLE_RETIRE_FADE_MS` | 350 ms    | Rücknahme eines verdeckten Markers; siehe §3                                     |
-| `MAX_MARKERS`             | 2         | mehr macht die Arena zur Sammelaufgabe                                           |
-| `MIN_SPAWN_DISTANCE`      | 220 px    | Abstand zum Spieler und zwischen Markern                                         |
-| `MIN_OBSTACLE_CLEARANCE`  | 70 px     | Markerradius 27 + Spielerradius 16 + Reserve                                     |
-| `COLLECT_RADIUS`          | 39 px     | größer als die Zeichnung (27 px); siehe §3                                       |
-| `SHATTER_MS`              | 350 ms    | Dauer der Splitteranimation                                                      |
-| `MEND_SEGMENTS`           | 1         | voll heilen macht die vorherige Runde bedeutungslos; siehe §4                    |
-| `INERT_FADE_MS`           | 300 ms    | Übergang eines Mend-Markers nach Slate und zurück                                |
-| `MEND_ARC_SECONDS`        | 0,45 s    | lang genug, um im Blickfeld zu landen, kurz genug, um kein Restzeitbogen zu sein |
+| Konstante                         | Wert      | Warum                                                                            |
+| --------------------------------- | --------- | -------------------------------------------------------------------------------- |
+| `AEGIS_DURATION_MS`               | 6500 ms   | lang genug, eine Formation zu überstehen, kurz genug, ihn ausgeben zu müssen     |
+| `AEGIS_ABSORB_INVULNERABILITY_MS` | 1000 ms   | Unverwundbarkeit ab dem Treffer, der den Schild bricht; siehe §4                 |
+| `OVERDRIVE_DURATION_MS`           | 6000 ms   | etwa eine Arenaquerung bei erhöhtem Tempo                                        |
+| `OVERDRIVE_FACTOR`                | 1,6       | spürbar; siehe §4                                                                |
+| `SPAWN_INTERVAL_MS`               | 9000 ms   | seltener als eine Welle (15 s), häufiger als ein Leben verloren geht             |
+| `MARKER_LIFETIME_MS`              | 12 000 ms | ein Marker, der ewig liegt, ist keine Entscheidung mehr                          |
+| `OBSTACLE_RETIRE_FADE_MS`         | 350 ms    | Rücknahme eines verdeckten Markers; siehe §3                                     |
+| `MAX_MARKERS`                     | 2         | mehr macht die Arena zur Sammelaufgabe                                           |
+| `MIN_SPAWN_DISTANCE`              | 220 px    | Abstand zum Spieler und zwischen Markern                                         |
+| `MIN_OBSTACLE_CLEARANCE`          | 70 px     | Markerradius 27 + Spielerradius 16 + Reserve                                     |
+| `COLLECT_RADIUS`                  | 39 px     | größer als die Zeichnung (27 px); siehe §3                                       |
+| `SHATTER_MS`                      | 350 ms    | Dauer der Splitteranimation                                                      |
+| `MEND_SEGMENTS`                   | 1         | voll heilen macht die vorherige Runde bedeutungslos; siehe §4                    |
+| `INERT_FADE_MS`                   | 300 ms    | Übergang eines Mend-Markers nach Slate und zurück                                |
+| `MEND_ARC_SECONDS`                | 0,45 s    | lang genug, um im Blickfeld zu landen, kurz genug, um kein Restzeitbogen zu sein |
 
 Die Werte liegen im Modul, nicht in `gameConfig.js` — wie schon die Schweif-Konstanten
 in `renderer/dashTrail.js`. `gameConfig.js` trägt, was über Modulgrenzen hinweg gilt;
@@ -229,26 +236,41 @@ gehört an die einzige Uhr des Spiels — sonst driftet er mit der Bildrate.
 
 ### Aegis
 
-Aegis frisst genau einen Treffer und ist damit verbraucht — unabhängig davon, was sein
-Zeitbogen noch anzeigte. Dauer und Ladung sind derselbe Zustand: ein Schild, der
-absorbiert, ist vorbei.
+Aegis bricht am ersten Treffer — unabhängig davon, was sein Zeitbogen noch anzeigte.
+Dauer und Ladung sind derselbe Zustand: ein Schild, der absorbiert, ist vorbei. Was er
+hinterlässt, ist ein **Fenster** von `AEGIS_ABSORB_INVULNERABILITY_MS` ab genau diesem
+Treffer, in dem jeder weitere Treffer ebenfalls kostenlos ist.
 
 Der Schild wird nur befragt, wenn der Treffer tatsächlich zählen würde:
 
 ```
 if isPlayerInvulnerable(roundData):  return          # Gnadenfrist, kostet ohnehin nichts
-if powerups.absorbHit(t):            return          # Schild frisst ihn und ist weg
+if powerups.absorbHit(t):            return          # Schild bricht, oder sein Fenster läuft
 registerHit(roundData)
 ```
 
 Die Reihenfolge ist die Aussage. Ein Schild, der während der 900-ms-Gnadenfrist nach
 einem Treffer verbraucht würde, wäre auf Schaden verschwendet, den es gar nicht gab.
 
-Aegis ist ausdrücklich **kein** zweiter Unverwundbarkeitszeitraum: ein absorbierter
-Treffer setzt `lastHitAtSimulationMs` nicht, also kostet der nächste Treffer sofort
-wieder ein Leben. Wer den Schild verbraucht hat, steht danach ungeschützt im Schwarm.
-Der Lebensabzug bleibt vollständig bei `registerHit` — dem einzigen Trichter, durch den
-jeder Schaden geht.
+Das Fenster ist eine **Korrektur einer früheren Festlegung**, nicht eine zusätzliche
+Wirkung. Ursprünglich fraß Aegis genau einen Treffer und war danach weg; damit war er für
+den einen Zug unbrauchbar, für den er gedacht ist. Ein Dash durch eine Formation setzt drei
+oder vier Boids innerhalb weniger Schritte auf den Spieler — der erste hat den Schild
+gefressen, der zweite kostete trotzdem ein Leben, und der Unterschied zwischen „Schild
+aufgesammelt" und „Schild nicht aufgesammelt" war für diesen Zug null. Eine Ladung kauft
+deshalb eine Passage, nicht ihren ersten Boid.
+
+Getragen wird das Fenster von `PowerupField` (`_absorbInvulnerableUntilMs`) und nicht von
+`roundData`: `lastHitAtSimulationMs` gehört dem verlorenen Leben, und ein absorbierter
+Treffer hat keines gekostet. Die Fähigkeit hält damit ihren eigenen Zustand, und der
+Lebensabzug bleibt vollständig bei `registerHit` — dem einzigen Trichter, durch den jeder
+Schaden geht.
+
+Sichtbar wird das Fenster über `playerInvulnerable` im renderState, das aus **zwei** Quellen
+verodert wird: der Gnadenfrist nach einem Treffer und dem Fenster eines gebrochenen Schilds.
+Der amberfarbene Spieler ist das bestehende Wort des Spiels für „unantastbar" — Aegis ist
+derselbe Zustand, nur früher gekauft, und braucht dafür keine zweite Optik. Der Shatter
+(350 ms) bleibt das Ereignis „der Schild ist weg"; die restlichen 650 ms trägt die Farbe.
 
 ### Overdrive
 
@@ -380,7 +402,8 @@ sein Verschwinden.
 | Beide Buffs gleichzeitig                       | unabhängig; zwei Bögen (36 px amber, 42 px cyan), zwei HUD-Zeilen                                     |
 | Denselben Buff erneut aufnehmen                | Dauer startet neu auf voll, **kein** Stapeln                                                          |
 | Treffer während der Gnadenfrist mit Aegis      | Schild bleibt erhalten, es gab keinen Schaden zu fressen                                              |
-| Zweiter Treffer direkt nach einer Absorption   | kostet ein Leben; eine Absorption startet keine Gnadenfrist                                           |
+| Zweiter Treffer direkt nach einer Absorption   | kostenlos, solange das Fenster läuft; danach kostet er sofort wieder ein Leben                        |
+| Aegis aufgesammelt, während das Fenster läuft  | bleibt unangetastet — es gab keinen Schaden zu fressen, genau wie in der Gnadenfrist                  |
 | Rundenneustart                                 | `reset()` in `beginRound()` — dort springt `simulationTimeMs` auf 0, jeder Zeitstempel muss mit       |
 | Countdown vor dem Rundenstart                  | die Welt steht, `step()` läuft nicht, es wird nichts gezeichnet                                       |
 | Mehrschritt-Frame                              | `step()` läuft pro Simulationsschritt, nicht pro Bild — bei 144 Hz wird gleich gesammelt wie bei 60   |
@@ -415,6 +438,16 @@ Platzieren gilt, aber nicht für das Liegenbleiben, ist eine halbe Regel.
 `PowerupField` bekommt seinen Zufallsgenerator im Konstruktor (`random = Math.random`),
 sodass die Vitest-Suite Marker exakt platzieren kann. Damit sind Spawn-Intervall,
 Abstandsregeln, Aufnahme, Ablauf, Absorption und Rundenreset vollständig unter Unit-Test.
+
+Die beiden Buffs am Spieler liegen dabei in `powerups/powerupBuffs.test.js`, das mit einem
+eigenen Treiber auf dasselbe Feld schaut wie `powerups.test.js` — abgespalten, als die
+400-Zeilen-Grenze erreicht war, entlang derselben Naht wie `mend.test.js`. Geprüft sind dort
+der Ablauf beider Buffs, der Restzeitbogen und die vier Aussagen über das Aegis-Fenster:
+dass der Bruch es öffnet, dass es Treffer darin kostenlos macht, dass es endet, und dass
+ein währenddessen aufgesammelter Schild unangetastet bleibt. Dass es als
+`playerInvulnerable` beim Renderer ankommt, ohne dass ein Leben verloren ging, steht in
+`loop/renderState.test.js` — das ist die Naht, an der die beiden Quellen desselben Zustands
+verodert werden, und die einzige Stelle, an der ein Vergessen davon sichtbar wäre.
 
 Mend ist über drei Ebenen geprüft, und die Aufteilung folgt den Modulgrenzen:
 

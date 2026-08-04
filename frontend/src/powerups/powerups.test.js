@@ -1,27 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-// Everything `PowerupField` shares between the three kinds: the spawn interval, the distance
-// rules, collection, the two buffs and the round reset. Mend's own rules live in
-// `mend.test.js`, which drives the same field through a harness of its own — that file was
-// split off this one when the 400-line limit was reached, the same way
-// `playerObstacleBlock.test.js` was split off `playerController.test.js`.
+// Everything `PowerupField` puts **in the arena**: the spawn interval, the distance rules,
+// collection and the round reset. Two halves of the same class live beside this file, each with
+// a harness of its own, and both were split off here when the 400-line limit was reached — the
+// same way `playerObstacleBlock.test.js` was split off `playerController.test.js`:
+// `mend.test.js` for Mend's rules, `powerupBuffs.test.js` for the two buffs on the player.
 
-import {
-  OBSTACLE_STRIDE,
-  PLAYER_DASH_SPEED,
-  PLAYER_MAX_SPEED,
-  PLAYER_STARTING_LIVES,
-  SIMULATION_STEP_MS,
-} from '../gameConfig.js';
+import { OBSTACLE_STRIDE, PLAYER_STARTING_LIVES, SIMULATION_STEP_MS } from '../gameConfig.js';
 import { PICKUP_RADIUS } from '../renderer/powerupMarkerLayer.js';
 import { MIN_OBSTACLE_CLEARANCE } from './markerClearance.js';
 import { MARKER_LIFETIME_MS } from './markerLifetime.js';
 import {
-  AEGIS_DURATION_MS,
   COLLECT_RADIUS,
   MAX_MARKERS,
   MIN_SPAWN_DISTANCE,
-  OVERDRIVE_FACTOR,
   PowerupField,
   SPAWN_INTERVAL_MS,
 } from './powerups.js';
@@ -75,10 +67,6 @@ class Driver {
 
   grant(kind) {
     this.field.grant(kind, this.nowMs);
-  }
-
-  absorbHit() {
-    return this.field.absorbHit(this.nowMs);
   }
 }
 
@@ -246,106 +234,6 @@ describe('collecting', () => {
 
     driver.idle(400);
     expect(driver.snapshot().powerupCollects).toHaveLength(0);
-  });
-});
-
-describe('aegis', () => {
-  it('absorbs exactly one hit and is spent afterwards', () => {
-    const driver = new Driver();
-    driver.grant('aegis');
-
-    expect(driver.absorbHit()).toBe(true);
-    expect(driver.absorbHit()).toBe(false);
-    expect(driver.field.isActive('aegis')).toBe(false);
-  });
-
-  it('absorbs nothing when it is not running', () => {
-    expect(new Driver().absorbHit()).toBe(false);
-  });
-
-  it('shows the shatter briefly and then stops', () => {
-    const driver = new Driver();
-    driver.grant('aegis');
-    driver.absorbHit();
-
-    expect(driver.snapshot().aegisShatterAge).toBeGreaterThanOrEqual(0);
-
-    driver.idle(500);
-    expect(driver.snapshot().aegisShatterAge).toBeUndefined();
-  });
-
-  it('runs out on its own when no hit ever comes', () => {
-    const driver = new Driver();
-    driver.grant('aegis');
-
-    driver.idle(AEGIS_DURATION_MS - 300);
-    expect(driver.field.isActive('aegis')).toBe(true);
-
-    driver.idle(600);
-    expect(driver.field.isActive('aegis')).toBe(false);
-  });
-
-  it('drains its arc from full to empty', () => {
-    const driver = new Driver();
-    driver.grant('aegis');
-    expect(driver.snapshot().powerupBuffs.aegis).toBeCloseTo(1, 1);
-
-    driver.idle(AEGIS_DURATION_MS / 2);
-    expect(driver.snapshot().powerupBuffs.aegis).toBeCloseTo(0.5, 1);
-  });
-});
-
-describe('overdrive', () => {
-  it('is the only thing that touches the speed multiplier', () => {
-    const driver = new Driver();
-    expect(driver.field.speedMultiplier()).toBe(1);
-
-    driver.grant('overdrive');
-    expect(driver.field.speedMultiplier()).toBe(OVERDRIVE_FACTOR);
-  });
-
-  it('stays below dash speed, so it opens no new tunnelling window', () => {
-    expect(PLAYER_MAX_SPEED * OVERDRIVE_FACTOR).toBeLessThan(PLAYER_DASH_SPEED);
-  });
-
-  it('gives the speed back when it expires', () => {
-    const driver = new Driver();
-    driver.grant('overdrive');
-
-    driver.idle(7000);
-    expect(driver.field.speedMultiplier()).toBe(1);
-  });
-
-  it('does not absorb hits — that is the other one', () => {
-    const driver = new Driver();
-    driver.grant('overdrive');
-
-    expect(driver.absorbHit()).toBe(false);
-  });
-});
-
-describe('both at once', () => {
-  it('runs them independently, each with its own arc', () => {
-    const driver = new Driver();
-    driver.grant('aegis');
-    driver.grant('overdrive');
-
-    const buffs = driver.snapshot().powerupBuffs;
-    expect(buffs.aegis).toBeGreaterThan(0);
-    expect(buffs.overdrive).toBeGreaterThan(0);
-
-    driver.absorbHit();
-    expect(driver.snapshot().powerupBuffs.aegis).toBeUndefined();
-    expect(driver.field.speedMultiplier()).toBe(OVERDRIVE_FACTOR);
-  });
-
-  it('restarts a buff at full duration instead of stacking it', () => {
-    const driver = new Driver();
-    driver.grant('overdrive');
-    driver.idle(3000);
-    driver.grant('overdrive');
-
-    expect(driver.snapshot().powerupBuffs.overdrive).toBeCloseTo(1, 1);
   });
 });
 

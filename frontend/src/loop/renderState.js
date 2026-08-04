@@ -52,7 +52,11 @@ export function buildRenderState(roundData, player, powerups, timing) {
 
   return {
     ...shared,
-    playerInvulnerable: isPlayerInvulnerable(roundData),
+    // Two sources of the same state, so they are OR-ed rather than picked between: the grace
+    // period a lost life buys, and the window a broken shield leaves behind. The renderer only
+    // needs to know that the player cannot be hurt, not which of the two is the reason.
+    playerInvulnerable:
+      isPlayerInvulnerable(roundData) || powerups.isInvulnerable(roundData.simulationTimeMs),
     dashCooldownProgress: playerDashCooldownProgress(roundData),
     deltaSeconds: timing.renderDeltaSeconds,
     playerSpeed: Math.hypot(player.velocity.x, player.velocity.y),

@@ -31,6 +31,18 @@ export const AEGIS_DURATION_MS = 6500;
 export const OVERDRIVE_DURATION_MS = 6000;
 
 /**
+ * How long the shield keeps covering the player **after** it broke on a hit.
+ *
+ * A shield that stops at exactly one hit cannot be used for the one move it should pay for:
+ * dashing through a swarm puts three or four boids on you inside a handful of steps, so the
+ * first one ate the shield and the second one still cost a life. The charge therefore buys a
+ * window rather than a single hit — long enough to be on the far side of a formation, and a
+ * touch longer than the 900 ms a lost life buys, because protection is this ability's whole
+ * job and it must never feel stingier than being hit.
+ */
+export const AEGIS_ABSORB_INVULNERABILITY_MS = 1000;
+
+/**
  * Deliberately below dash speed (1100 px/s): the dash already is the fastest the collision
  * resolution ever has to cope with, so Overdrive introduces no new tunnelling risk.
  */
@@ -96,6 +108,7 @@ export class PowerupField {
     this._worldHeight = 0;
     this._nextSpawnMs = SPAWN_INTERVAL_MS;
     this._shatterAtMs = -1;
+    this._absorbInvulnerableUntilMs = -1;
     this._nextKind = 0;
     // Everything to do with lives sits in there, so this class keeps none of it.
     this._mend = new MendState(PLAYER_STARTING_LIVES);
@@ -120,6 +133,7 @@ export class PowerupField {
     this._collects = [];
     this._nextSpawnMs = SPAWN_INTERVAL_MS;
     this._shatterAtMs = -1;
+    this._absorbInvulnerableUntilMs = -1;
     this._nextKind = 0;
     this._mend.reset(maxLives);
   }
@@ -164,20 +178,43 @@ export class PowerupField {
    * burn it on damage that was free anyway.
    *
    * Duration and charge are one and the same state: a shield that absorbs is over, whatever
-   * its arc still showed. It deliberately starts no grace period of its own, so the next hit
-   * costs a life immediately.
+   * its arc still showed. What it leaves behind is `AEGIS_ABSORB_INVULNERABILITY_MS` of
+   * invulnerability, counted from the hit that broke it, so one charge covers a whole passage
+   * through a swarm rather than its first boid. Every hit inside that window is absorbed
+   * without a shield being present, which is also why a shield collected while the window runs
+   * survives it intact — there was no damage for it to eat.
    * @param {number} simulationMs - `gameData.simulationTimeMs`.
    * @returns {boolean} `true` when the hit was absorbed and must not be applied.
    */
   absorbHit(simulationMs) {
+    // The shield that broke earlier is still paying for this hit, whether or not a new one has
+    // been picked up since.
+    if (this.isInvulnerable(simulationMs)) {
+      return true;
+    }
+
     if (!this._buffs.has('aegis')) {
       return false;
     }
 
     this._buffs.delete('aegis');
     this._shatterAtMs = simulationMs;
+    this._absorbInvulnerableUntilMs = simulationMs + AEGIS_ABSORB_INVULNERABILITY_MS;
 
     return true;
+  }
+
+  /**
+   * Whether a broken shield is still covering the player.
+   *
+   * The renderer reads it so the player is drawn in the invulnerable colour for the whole
+   * window and not only for the 350 ms the shatter lasts — the amber player is the game's
+   * existing word for "untouchable", and this state is that state, just bought earlier.
+   * @param {number} simulationMs - `gameData.simulationTimeMs`.
+   * @returns {boolean} True while every hit is still absorbed for free.
+   */
+  isInvulnerable(simulationMs) {
+    return simulationMs < this._absorbInvulnerableUntilMs;
   }
 
   /**

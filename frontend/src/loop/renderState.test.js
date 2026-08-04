@@ -49,6 +49,20 @@ describe('buildRenderState — a live round', () => {
     expect(state.wallClockSeconds).toBe(12);
   });
 
+  it('reports the window a broken shield leaves behind as invulnerability', () => {
+    const round = makeRound();
+    const powerups = makePowerups();
+    powerups.grant('aegis', round.simulationTimeMs);
+
+    // No life was lost, so the round's own grace period says nothing here. The shield is the
+    // only reason the player cannot be hurt, and the renderer still has to hear about it.
+    expect(buildRenderState(round, PLAYER, powerups, TIMING).playerInvulnerable).toBe(false);
+
+    powerups.absorbHit(round.simulationTimeMs);
+
+    expect(buildRenderState(round, PLAYER, powerups, TIMING).playerInvulnerable).toBe(true);
+  });
+
   it('leaves out the countdown, so nothing dims a running round', () => {
     const state = buildRenderState(makeRound(), PLAYER, makePowerups(), TIMING);
 
