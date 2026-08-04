@@ -52,6 +52,17 @@ describe('isTooCloseToAnObstacle', () => {
     expect(isTooCloseToAnObstacle(100, farEnough, frame)).toBe(false);
   });
 
+  it('measures against whatever clearance the caller asks for', () => {
+    const radius = 40;
+    const frame = frameWithObstacle(0, 0, 200, 0, radius);
+    // A spot 30 px clear of the surface: too close to *place* a marker, but nowhere near close
+    // enough to take one back that is already lying there. One question, two thresholds.
+    const surfaceGap = 30;
+
+    expect(isTooCloseToAnObstacle(100, radius + surfaceGap, frame)).toBe(true);
+    expect(isTooCloseToAnObstacle(100, radius + surfaceGap, frame, 10)).toBe(false);
+  });
+
   it('ignores buffer entries past the reported count', () => {
     const frame = frameWithObstacle(0, 0, 200, 0, 40);
     // The buffer is reused across frames, so a stale entry must not be able to block a spawn.

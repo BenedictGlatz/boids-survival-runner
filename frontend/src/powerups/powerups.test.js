@@ -15,10 +15,10 @@ import {
 } from '../gameConfig.js';
 import { PICKUP_RADIUS } from '../renderer/powerupMarkerLayer.js';
 import { MIN_OBSTACLE_CLEARANCE } from './markerClearance.js';
+import { MARKER_LIFETIME_MS } from './markerLifetime.js';
 import {
   AEGIS_DURATION_MS,
   COLLECT_RADIUS,
-  MARKER_LIFETIME_MS,
   MAX_MARKERS,
   MIN_SPAWN_DISTANCE,
   OVERDRIVE_FACTOR,

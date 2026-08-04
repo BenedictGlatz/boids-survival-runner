@@ -18,6 +18,13 @@
 import { PLAYER_STARTING_LIVES } from '../gameConfig.js';
 import { LAUNCH_RING_SECONDS } from '../renderer/dashTrail.js';
 import { isTooCloseToAnObstacle } from './markerClearance.js';
+import {
+  hasLeftTheArena,
+  isCoveredByAnObstacle,
+  markerRemaining,
+  markerScale,
+  newMarker,
+} from './markerLifetime.js';
 import { MendState } from './mend.js';
 
 export const AEGIS_DURATION_MS = 6500;
@@ -30,7 +37,6 @@ export const OVERDRIVE_DURATION_MS = 6000;
 export const OVERDRIVE_FACTOR = 1.6;
 
 export const SPAWN_INTERVAL_MS = 9000;
-export const MARKER_LIFETIME_MS = 12000;
 export const MAX_MARKERS = 2;
 
 /** Spawn clearance from the player, so a marker is never collected by standing still. */
@@ -54,9 +60,6 @@ export const SHATTER_MS = 350;
  * from there rather than written down a second time.
  */
 const COLLECT_RING_MS = LAUNCH_RING_SECONDS * 1000;
-
-/** How long a fresh marker takes to scale in, in milliseconds. */
-const SPAWN_SCALE_IN_MS = 450;
 
 /** Rejection-sampling attempts before an interval is given up on. */
 const SPAWN_ATTEMPTS = 12;
@@ -141,7 +144,8 @@ export class PowerupField {
       }
     }
 
-    this._markers = this._markers.filter((marker) => simulationMs < marker.expiresAtMs);
+    this._retireMarkersUnderObstacles(simulationMs, frame);
+    this._markers = this._markers.filter((marker) => !hasLeftTheArena(marker, simulationMs));
     this._collects = this._collects.filter((pop) => simulationMs - pop.atMs < COLLECT_RING_MS);
 
     if (simulationMs >= this._nextSpawnMs) {
@@ -238,13 +242,8 @@ export class PowerupField {
       kind: marker.kind,
       x: marker.x,
       y: marker.y,
-      // Scales in so a marker never simply appears next to the player.
-      scale: Math.min(1, (simulationMs - marker.spawnedAtMs) / SPAWN_SCALE_IN_MS),
-      // How much of its time on the ground is left, for the ring that runs around it. The same
-      // fraction the buffs report, so the renderer can draw both with the same arc: a marker
-      // that is about to be taken back says so, instead of being there one frame and gone the
-      // next.
-      remaining: Math.max(0, (marker.expiresAtMs - simulationMs) / MARKER_LIFETIME_MS),
+      scale: markerScale(marker, simulationMs),
+      remaining: markerRemaining(marker, simulationMs),
       // A Mend marker with nothing to give drains to slate rather than disappearing: a marker
       // that vanishes in front of you feels stolen, one that goes grey explains itself.
       inert: marker.kind === 'mend' ? this._mend.inertAmount() : 0,
@@ -292,16 +291,7 @@ export class PowerupField {
       if (this._markers.some((m) => Math.hypot(m.x - x, m.y - y) < MIN_SPAWN_DISTANCE)) continue;
       if (isTooCloseToAnObstacle(x, y, frame)) continue;
 
-      // The expiry is stored as an absolute timestamp rather than derived from the spawn time,
-      // the same way `_buffs` holds `endsAtMs`: the spawn time is still needed for the scale-in,
-      // but only a stored expiry can be a *different* one per marker.
-      this._markers.push({
-        kind,
-        x,
-        y,
-        spawnedAtMs: simulationMs,
-        expiresAtMs: simulationMs + MARKER_LIFETIME_MS,
-      });
+      this._markers.push(newMarker(kind, x, y, simulationMs));
       this._nextKind += 1 + skipped;
 
       return;
@@ -309,6 +299,22 @@ export class PowerupField {
 
     // Every attempt was rejected. That is not an error: an arena with no room left simply
     // gets no marker this interval, and the next one follows on schedule.
+  }
+
+  /**
+   * Starts the fade on every marker a hazard has grown over since it was placed.
+   *
+   * Only ever set once per marker: an obstacle can expire out from under one mid-fade, and a
+   * marker that came back after starting to leave would flicker rather than read as either.
+   */
+  _retireMarkersUnderObstacles(simulationMs, frame) {
+    for (const marker of this._markers) {
+      if (marker.retiringSinceMs >= 0) continue;
+
+      if (isCoveredByAnObstacle(marker, frame)) {
+        marker.retiringSinceMs = simulationMs;
+      }
+    }
   }
 
   _collect(simulationMs, playerX, playerY) {
@@ -319,6 +325,10 @@ export class PowerupField {
 
       // An inert Mend marker is walked straight through — scenery until a life is lost.
       if (marker.kind === 'mend' && !this.canMend()) continue;
+
+      // Nor is one that is already leaving because a hazard grew over it. It is inside that
+      // hazard, so anything that reached it did not reach it fairly.
+      if (marker.retiringSinceMs >= 0) continue;
 
       this._markers.splice(index, 1);
       this._collects.push({

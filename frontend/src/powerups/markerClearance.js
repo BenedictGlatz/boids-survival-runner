@@ -51,17 +51,25 @@ export function distanceToSegment(pointX, pointY, startX, startY, endX, endY) {
 }
 
 /**
- * Whether a candidate spawn spot is too close to any obstacle in the arena.
+ * Whether a spot is too close to any obstacle in the arena.
  *
  * An obstacle is a capsule — a line segment with a radius — packed as
  * `startX, startY, endX, endY, radius, ...` in the engine's flat buffer.
- * @param {number} x - The candidate spot.
- * @param {number} y - The candidate spot.
+ *
+ * Two callers ask this with two different thresholds, and the gap between them is deliberate.
+ * **Placing** a marker uses the generous `MIN_OBSTACLE_CLEARANCE`, because a spot that is merely
+ * legal is not the same as a spot worth walking to. **Taking one back** — when an obstacle has
+ * since grown over it — uses a much tighter distance, because the alternative is deleting
+ * perfectly collectable markers for standing near a new hazard, which would be worse than the
+ * problem it fixes. Hysteresis, in other words: easy to leave alone, hard to throw away.
+ * @param {number} x - The spot to test.
+ * @param {number} y - The spot to test.
  * @param {object} [frame] - The engine's frame, read for `obstacles` and `obstacleCount`. May
  *   be absent, in which case there is nothing to keep clear of and the spot is accepted.
- * @returns {boolean} True when the spot has to be rejected.
+ * @param {number} [clearance] - How much room the spot needs from an obstacle's surface.
+ * @returns {boolean} True when the spot is closer than that.
  */
-export function isTooCloseToAnObstacle(x, y, frame) {
+export function isTooCloseToAnObstacle(x, y, frame, clearance = MIN_OBSTACLE_CLEARANCE) {
   const obstacles = frame?.obstacles;
   if (!obstacles) return false;
 
@@ -79,7 +87,7 @@ export function isTooCloseToAnObstacle(x, y, frame) {
         obstacles[offset + 3],
       ) - obstacles[offset + 4];
 
-    if (distanceToTheSurface < MIN_OBSTACLE_CLEARANCE) {
+    if (distanceToTheSurface < clearance) {
       return true;
     }
   }
