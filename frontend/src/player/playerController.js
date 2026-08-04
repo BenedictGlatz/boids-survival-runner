@@ -6,6 +6,7 @@ import {
   PLAYER_MAX_DELTA_SECONDS,
   PLAYER_MAX_SPEED,
   PLAYER_OBSTACLE_BOUNCE,
+  PLAYER_TURN_DECELERATION,
   PLAYER_VISUAL_RADIUS,
 } from '../gameConfig.js';
 
@@ -68,8 +69,7 @@ export class PlayerController {
     if (controls.dash === true && isMoving) {
       this._startDash(direction);
     } else if (isMoving) {
-      this.velocity.x += direction.x * PLAYER_ACCELERATION * safeDeltaSeconds;
-      this.velocity.y += direction.y * PLAYER_ACCELERATION * safeDeltaSeconds;
+      this._steer(direction, safeDeltaSeconds);
     } else {
       this.velocity.x = moveTowardZero(this.velocity.x, PLAYER_DECELERATION * safeDeltaSeconds);
       this.velocity.y = moveTowardZero(this.velocity.y, PLAYER_DECELERATION * safeDeltaSeconds);
@@ -89,6 +89,43 @@ export class PlayerController {
     this.clampToBounds(bounds);
 
     return this.getPosition();
+  }
+
+  /**
+   * Builds speed along the held direction and brakes the momentum that is going somewhere else.
+   *
+   * The second half is what makes a direction change feel like one. Accelerating can only ever
+   * add, so on its own it has to spend the old velocity before any of it counts towards the new
+   * one: a full reversal took twice as long as reaching top speed from a standstill, and a
+   * ninety-degree turn had nothing at all acting on the sideways part. Braking that part
+   * separately, and harder, is the whole change — a player pushing against their own momentum is
+   * steering, and steering is a decision the game should answer quickly.
+   *
+   * The velocity is split into the part already heading where the player points and the rest:
+   *
+   *     along   = velocity · direction
+   *     lateral = velocity - direction * along
+   *
+   * `direction` is a unit vector (`input/inputManager.js` normalises it, which is also why a
+   * diagonal is not faster), and the projection is only exact because of that.
+   *
+   * On the `along` axis it is either braking or accelerating, never both: "stop going the wrong
+   * way first, then go the right way" is a rule that fits in a sentence, and one that does both
+   * at once does not.
+   */
+  _steer(direction, deltaSeconds) {
+    const along = this.velocity.x * direction.x + this.velocity.y * direction.y;
+    const lateralX = this.velocity.x - direction.x * along;
+    const lateralY = this.velocity.y - direction.y * along;
+
+    const brake = PLAYER_TURN_DECELERATION * deltaSeconds;
+    const drivenAlong =
+      along < 0 ? moveTowardZero(along, brake) : along + PLAYER_ACCELERATION * deltaSeconds;
+
+    // Reassembled from the two parts rather than nudged in place, so the sideways momentum that
+    // was just braked cannot survive as a rounding remainder.
+    this.velocity.x = moveTowardZero(lateralX, brake) + direction.x * drivenAlong;
+    this.velocity.y = moveTowardZero(lateralY, brake) + direction.y * drivenAlong;
   }
 
   _startDash(direction) {
