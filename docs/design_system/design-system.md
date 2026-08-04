@@ -19,7 +19,7 @@ nimmt ihr die Lesbarkeit im Spiel.
 | Cyan `#38BDF8`          | **Du und dein Können** | Spieler, Dash-Bar, Score, Primärbutton, Timer-Fortschritt          |
 | Rot `#F03A5F`           | **Kostet dich etwas**  | Boids, Hindernis-_Kanten_, Boid-Zähler, Game-Over-Akzent           |
 | Amber `#FBBF24`         | **Zustandswechsel**    | Unverwundbarkeit, ablaufendes Hindernis, Wellenwechsel, Diagnostik |
-| Grün `#22C55E`          | **Leben**              | ausschließlich die Health-Segmente                                 |
+| Grün `#22C55E`          | **Leben**              | Health-Segmente und das Power-up, das sie zurückgibt               |
 | Slate `#94A3B8/#2A313F` | **Welt / inert**       | Grid, Hindernis-Körper, inaktive UI                                |
 
 Zwei Ableitungen daraus:
@@ -338,7 +338,7 @@ Präsentation aus Position und Geschwindigkeit, die das Frontend ohnehin hält.
 
 ---
 
-## 11) Power-ups — „Aegis" und „Overdrive"
+## 11) Power-ups — „Aegis", „Overdrive" und „Mend"
 
 ### Die vierte Form
 
@@ -350,27 +350,29 @@ oder Terrain. Kommt ein drittes Power-up dazu, ist es wieder ein Hex mit anderem
 
 Die Farben sind bereits vergeben und werden nicht erweitert:
 
-| Power-up      | Farbe           | Warum diese Farbe                                                                    |
-| ------------- | --------------- | ------------------------------------------------------------------------------------ |
-| **Aegis**     | Amber `#FBBF24` | §1 weist Amber „Unverwundbarkeit" schon zu, und Amber ist per Definition temporär    |
-| **Overdrive** | Cyan `#38BDF8`  | Cyan ist „du und dein Können" — Tempo ist eine Verstärkung von dir, kein Fremdkörper |
+| Power-up      | Farbe           | Warum diese Farbe                                                                     |
+| ------------- | --------------- | ------------------------------------------------------------------------------------- |
+| **Aegis**     | Amber `#FBBF24` | §1 weist Amber „Unverwundbarkeit" schon zu, und Amber ist per Definition temporär     |
+| **Overdrive** | Cyan `#38BDF8`  | Cyan ist „du und dein Können" — Tempo ist eine Verstärkung von dir, kein Fremdkörper  |
+| **Mend**      | Grün `#22C55E`  | Grün ist Leben. Mend gibt Leben zurück — es benutzt die Rolle, statt sie zu erweitern |
 
 Damit Cyan nicht mit dem Spieler verwechselt wird: der Overdrive-Marker ist **hohl**. Der
 Spieler ist und bleibt die einzige gefüllte cyane Fläche im Spiel.
 
 ### Der Marker in der Arena
 
-- Radius **27 px**, Aufsammelradius **39 px** — großzügiger als die Optik, damit ein Streifen
-  beim Dash zählt. Beide sind gegenüber dem Entwurf (18 px / 26 px) um die Hälfte gewachsen:
-  ein Pickup, das man schwer trifft, wird ignoriert. Das Verhältnis der beiden bleibt gleich,
-  der Aufsammelradius ist ein Anteil mehr als die Optik und kein fester Rand um sie.
+- Radius **18 px**, Aufsammelradius **26 px** — großzügiger als die Optik, damit ein Streifen
+  beim Dash zählt.
 - Kern mit `rgba(11,13,18,.85)` gefüllt, sonst läuft das Grid durch das Icon.
 - Kontur 2px in der Power-up-Farbe, Glow atmet über 1,6 s.
 - **3 px Sinus-Hub** (2,2 s) und **0,25 U/s Rotation**. Rotation ist das einzige, was sich in
   der Arena dreht — das macht einen Marker zwischen 90 Boids findbar, **ohne** heller zu sein
   als alles andere. Wer den Marker schlechter findet, dreht nicht am Glow.
 - Das **Icon innen dreht sich nicht mit**. Ein rotierendes Glyph liest sich als Trümmerteil.
-  Aegis: ein zweites Hex mit Kern — „Hülle um etwas". Overdrive: Doppel-Chevron.
+  Aegis: ein zweites Hex mit Kern — „Hülle um etwas". Overdrive: Doppel-Chevron. Mend: **drei
+  gestapelte Balken**, das Health-Meter, oberster Balken nur angedeutet. Die Lücke ist das
+  Icon. Ein Herz oder Kreuz wäre ein zweites Symbol für etwas, für das das Spiel schon eines
+  hat.
 - Spawn: 450 ms Scale-in. Ein Marker erscheint nie einfach.
 
 ### Aktiv am Spieler
@@ -395,6 +397,33 @@ Warnung, kein Ton und kein Text in der Arena.
 Der Bogen sitzt bewusst **am Spieler** und nicht im HUD: in Welle 5 schaut niemand an den
 Bildrand. Das HUD bekommt die Buffs trotzdem — unten Mitte über der Dash-Bar, Hex-Glyph plus
 62-px-Balken, nach oben gestapelt — aber als Zweitinformation.
+
+### Zustand oder Ereignis — die Regel für weitere Power-ups
+
+Aegis und Overdrive sind **Zustände**: sie laufen, also brauchen sie einen Restzeit-Bogen und
+eine HUD-Zeile. Mend ist ein **Ereignis**: es wirkt sofort und hat nichts, das man anzeigen
+könnte, sobald es vorbei ist — das Ergebnis steht im Health-Meter, und das gibt es schon.
+
+**Zustand → Bogen + HUD-Zeile. Ereignis → nur der Moment.** Nichts dazwischen.
+
+Mends Moment besteht aus drei Dingen: dem grünen Aufsammel-Ring, dem gewonnenen Segment, das
+weiß aufblitzt und sich setzt, und einem grünen Bogen, der **einmal gegen** den Uhrzeigersinn
+läuft (Radius 34, 0,45 s). Jeder Restzeit-Bogen im Spiel **leert** sich im Uhrzeigersinn;
+dieser **füllt** sich gegen ihn. Die Umkehrung ist die ganze Botschaft: etwas wurde
+hinzugefügt, nicht etwas läuft ab.
+
+### Mend bei voller Gesundheit
+
+Ein Heil-Power-up, das man nicht brauchen kann, ist ein toter Fund. Drei Regeln dagegen:
+
+- Bei voller Gesundheit **spawnt Mend nicht**; die Reihenfolge überspringt es.
+- Wird die Gesundheit voll, **während** ein Marker liegt, wird er **inert**: Kontur und Icon
+  driften über 0,3 s nach Slate `#94A3B8`, Glow und Rotation gehen aus, nur der Hub bleibt.
+  Aufsammeln ist nicht möglich, man läuft hindurch. Sinkt die Gesundheit, wird er auf demselben
+  Weg wieder grün. Ein Marker, der vor deinen Augen verschwindet, fühlt sich nach Diebstahl an;
+  einer, der grau wird, erklärt sich selbst.
+- Mend steht in der Spawn-Reihenfolge **zwischen** den anderen beiden, kann also nie zweimal
+  hintereinander kommen. Sonst kosten Treffer nichts mehr.
 
 ### Ende
 
@@ -423,6 +452,14 @@ und Wirkung sind Gameplay. Zwei Erleichterungen:
 - **Overdrive** ist ein Faktor auf `PLAYER_MAX_SPEED`, **nie** auf `PLAYER_DASH_SPEED`. Der
   Dash ist mit 1100 px/s ohnehin der schnellste Zustand; ihn zusätzlich zu skalieren tunnelt
   durch Hindernisse.
+- **Mend** ist die kleinste Änderung von allen: `+1` auf den Health-Zähler, geklemmt auf das
+  Maximum. Kein Buff-Zustand, keine Dauer, kein Faktor. Es heilt **ein** Segment, nicht alle —
+  voll heilen macht die vorherige Runde bedeutungslos; ein Segment ist eine Verlängerung, keine
+  Rücksetzung. Und es gibt **keine** Unverwundbarkeit dazu: das ist Aegis' Aufgabe, und zwei
+  Power-ups mit überlappender Wirkung sind eines zu viel.
+
+`PowerupField` bekommt die aktuelle Gesundheit in `step()` — der einzige Grund, warum es von
+Gesundheit überhaupt weiß, sind Mends Spawn- und Aufsammelregeln.
 
 Zahlen (6,5 s / 6 s / ×1,6 / alle 9 s / max. 2 Marker) sind Vorschläge, keine Designregel —
 die Optik hält jede Dauer aus. Details: `powerup-integration.md`.

@@ -2,7 +2,7 @@
 
 Designsystem für **Boids Survival Runner**. Ausgewählte Kombination: Hauptmenü
 **„Command Deck"** + Hindernis-Optik **„Hazard Tape"** + Dash-Schweif **„Ion Streak"** +
-Power-ups **„Aegis"** und **„Overdrive"**.
+Power-ups **„Aegis"**, **„Overdrive"** und **„Mend"**.
 Verworfene Varianten sind aus diesem Paket entfernt — was hier liegt, ist die eine zu
 bauende Richtung.
 
@@ -21,7 +21,7 @@ bauende Richtung.
 | `dash-trail-integration.md` | Die vier Einbaustellen in `canvasRenderer.js` und `round/` — mit Code.                        |
 | `powerups.js`               | Neues Modul `frontend/src/powerups/powerups.js`: Spawn, Einsammeln, Buff-Zustand.             |
 | `powerupLayer.js`           | Neues Modul `frontend/src/renderer/powerupLayer.js`: zeichnet Marker, Schild, Bögen.          |
-| `powerups.test.js`          | Vitest-Suite für Spawn, Einsammeln, Aegis-Ladung, Overdrive-Faktor.                           |
+| `powerups.test.js`          | Vitest-Suite für Spawn, Einsammeln, Aegis-Ladung, Overdrive-Faktor, Mend-Spawnregeln.         |
 | `powerup-integration.md`    | Die vier Einbaustellen für die Power-ups — mit Code und Zahlentabelle.                        |
 
 ## Einbauen
@@ -74,7 +74,9 @@ nicht als `@import` in der CSS — ein `@import` blockiert das Rendering der gan
    machbar; `npm test` deckt die Mathematik ab, den Rest die manuelle Liste am Ende der Datei.
 9. **Power-ups.** `powerups.js` + `powerupLayer.js` kopieren und `powerup-integration.md`
    folgen. **Als letztes bauen**: es ist der einzige Schritt, der Gameplay anfasst, und
-   Overdrive setzt auf dem Dash-Schweif aus Schritt 8 auf.
+   Overdrive setzt auf dem Dash-Schweif aus Schritt 8 auf. Reihenfolge innerhalb des Schritts:
+   Aegis (nutzt die bestehende Unverwundbarkeit), dann Mend (`+1` auf den Health-Zähler), dann
+   Overdrive (hängt am Schweif).
 
 ## Projektregeln, die das Handoff einhält
 

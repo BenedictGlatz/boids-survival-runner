@@ -22,12 +22,22 @@ export const PICKUP_COLLECT_RADIUS = 26;
 export const AEGIS_COLOR = '#FBBF24';
 export const OVERDRIVE_COLOR = '#38BDF8';
 
+/** `design-system.md` §1 gives green to life. Mend uses that role rather than widening it. */
+export const MEND_COLOR = '#22C55E';
+
+/** The slate an inert Mend marker drains toward — the system's "worth nothing" signal. */
+const INERT_COLOR = [148, 163, 184];
+
 /** Shell radius, clear of the player's own 16 px body and its glow. */
 const SHELL_RADIUS = 30;
 
 /** Aegis inside, Overdrive outside, so both buffs can run at once and stay apart. */
 const AEGIS_ARC_RADIUS = 36;
 const OVERDRIVE_ARC_RADIUS = 42;
+
+/** Mend's one-off arc, inside both — it is over long before either could clash with it. */
+const MEND_ARC_RADIUS = 34;
+const MEND_ARC_SECONDS = 0.45;
 
 const BOB_AMPLITUDE = 3;
 const BOB_SECONDS = 2.2;
@@ -47,7 +57,40 @@ const SHARD_COUNT = 6;
  * @returns {string} Hex colour.
  */
 export function powerupColor(kind) {
-  return kind === 'aegis' ? AEGIS_COLOR : OVERDRIVE_COLOR;
+  if (kind === 'aegis') return AEGIS_COLOR;
+  if (kind === 'mend') return MEND_COLOR;
+
+  return OVERDRIVE_COLOR;
+}
+
+const inertCache = new Map();
+
+/**
+ * Blends a live colour toward slate.
+ *
+ * Cached and quantised to sixths, because an inert marker is redrawn every frame and building
+ * a colour string per frame is precisely what this renderer does not do.
+ * @param {string} color - Hex colour.
+ * @param {number} amount - `0` live … `1` fully inert.
+ * @returns {string} CSS colour.
+ */
+export function towardInert(color, amount) {
+  const quantised = Math.round(Math.min(1, Math.max(0, amount)) * 6) / 6;
+  const key = color + '|' + quantised;
+  const cached = inertCache.get(key);
+
+  if (cached !== undefined) return cached;
+
+  const channel = (index) => {
+    const from = parseInt(color.slice(1 + index * 2, 3 + index * 2), 16);
+
+    return Math.round(from + (INERT_COLOR[index] - from) * quantised);
+  };
+
+  const blended = 'rgb(' + channel(0) + ', ' + channel(1) + ', ' + channel(2) + ')';
+  inertCache.set(key, blended);
+
+  return blended;
 }
 
 /**
@@ -88,15 +131,17 @@ export function hexPath(ctx, x, y, radius, rotation) {
  * @param {number} y - World position.
  * @param {number} seconds - Wall-clock seconds, for spin and bob.
  * @param {number} [scale] - `0`..`1` spawn-in scale.
+ * @param {number} [inert] - `0`..`1`. A Mend marker at full health: drains to slate, stops
+ *   turning and stops glowing, but keeps bobbing — it is still an object lying there.
  * @returns {void}
  */
-export function drawPowerupMarker(ctx, kind, x, y, seconds, scale = 1) {
+export function drawPowerupMarker(ctx, kind, x, y, seconds, scale = 1, inert = 0) {
   if (scale <= 0) return;
 
-  const color = powerupColor(kind);
+  const color = inert > 0 ? towardInert(powerupColor(kind), inert) : powerupColor(kind);
   const radius = PICKUP_RADIUS * scale;
   const bobY = y + Math.sin((seconds * Math.PI * 2) / BOB_SECONDS) * BOB_AMPLITUDE;
-  const rotation = seconds * SPIN_TURNS_PER_SECOND * Math.PI * 2;
+  const rotation = seconds * SPIN_TURNS_PER_SECOND * Math.PI * 2 * (1 - inert);
   const breathe = 0.5 + 0.5 * Math.sin((seconds * Math.PI * 2) / BREATHE_SECONDS);
 
   ctx.save();
@@ -107,9 +152,10 @@ export function drawPowerupMarker(ctx, kind, x, y, seconds, scale = 1) {
   ctx.fill();
 
   ctx.shadowColor = color;
-  ctx.shadowBlur = 12 + breathe * 10;
+  ctx.shadowBlur = (12 + breathe * 10) * (1 - inert);
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
+  ctx.globalAlpha = 1 - inert * 0.35;
   hexPath(ctx, x, bobY, radius, rotation);
   ctx.stroke();
   ctx.restore();
@@ -128,11 +174,37 @@ export function drawPowerupMarker(ctx, kind, x, y, seconds, scale = 1) {
     ctx.beginPath();
     ctx.arc(x, bobY, radius * 0.13, 0, Math.PI * 2);
     ctx.fill();
+  } else if (kind === 'mend') {
+    drawMeterGlyph(ctx, x, bobY, radius, color, inert);
   } else {
     drawChevrons(ctx, x, bobY, radius * 0.3);
   }
 
   ctx.restore();
+}
+
+/**
+ * The health meter itself, its top bar only hinted at. The gap IS the icon — a heart or a
+ * cross would be a second symbol for something the game already has one for.
+ */
+function drawMeterGlyph(ctx, x, y, radius, color, inert) {
+  const barWidth = radius * 0.72;
+  const barHeight = radius * 0.15;
+  const gap = radius * 0.17;
+
+  ctx.fillStyle = color;
+
+  for (let bar = 0; bar < 3; bar += 1) {
+    ctx.globalAlpha = bar === 0 ? 0.3 - inert * 0.15 : 1 - inert * 0.35;
+    ctx.fillRect(
+      x - barWidth / 2,
+      y - barHeight * 1.5 - gap + bar * (barHeight + gap),
+      barWidth,
+      barHeight,
+    );
+  }
+
+  ctx.globalAlpha = 1;
 }
 
 function drawChevrons(ctx, x, y, size) {
@@ -211,6 +283,37 @@ export function drawTimeArc(ctx, x, y, radius, remaining, color) {
 
   ctx.beginPath();
   ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + Math.min(1, remaining) * Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * Mend's one-off arc around the player.
+ *
+ * It runs **counter-clockwise and fills**, where every remaining-time arc in the game drains
+ * clockwise. That inversion is the whole message: something was added, not something is
+ * running out. It is also the only feedback Mend gets — an event has nothing left to display
+ * once it is over, so the moment itself has to carry it.
+ * @param {CanvasRenderingContext2D} ctx - Canvas context, in world space.
+ * @param {number} x - Player position.
+ * @param {number} y - Player position.
+ * @param {number} age - Seconds since the heal.
+ * @returns {void}
+ */
+export function drawMendArc(ctx, x, y, age) {
+  if (age < 0 || age > MEND_ARC_SECONDS) return;
+
+  const progress = age / MEND_ARC_SECONDS;
+
+  ctx.save();
+  ctx.globalAlpha = (1 - progress * progress) * 0.95;
+  ctx.strokeStyle = MEND_COLOR;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.shadowColor = MEND_COLOR;
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.arc(x, y, MEND_ARC_RADIUS, -Math.PI / 2, -Math.PI / 2 - progress * Math.PI * 2, true);
   ctx.stroke();
   ctx.restore();
 }

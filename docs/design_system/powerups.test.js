@@ -28,6 +28,29 @@ function idle(field, ms, x = 40, y = 40) {
   for (let step = 0; step < steps; step += 1) field.step(STEP, x, y);
 }
 
+/** Same, but reporting a wounded player, so Mend is in play. */
+function idleHurt(field, ms, x = 40, y = 40, health = 2) {
+  const steps = Math.round(ms / 1000 / STEP);
+  for (let step = 0; step < steps; step += 1) field.step(STEP, x, y, health);
+}
+
+/** Spawns markers until one of `kind` is lying in the arena, and returns it. */
+function spawnUntil(field, kind, health = 2) {
+  for (let round = 0; round < 6; round += 1) {
+    idleHurt(field, SPAWN_INTERVAL_MS + 100, 40, 40, health);
+
+    const marker = field.snapshot().powerupMarkers.find((m) => m.kind === kind);
+    if (marker) return marker;
+
+    // Clear the field so the next interval has room under MAX_MARKERS.
+    for (const lying of field.snapshot().powerupMarkers) {
+      field.step(STEP, lying.x, lying.y, health);
+    }
+  }
+
+  throw new Error('no ' + kind + ' marker spawned');
+}
+
 describe('spawning', () => {
   it('puts nothing in the arena before the first interval', () => {
     const field = makeField();
@@ -54,6 +77,23 @@ describe('spawning', () => {
 
     const second = field.snapshot().powerupMarkers[0].kind;
     expect(second).not.toBe(first);
+  });
+
+  it('cycles all three kinds when the player can use every one', () => {
+    const field = new PowerupField(Math.random);
+    field.reset(WORLD, WORLD);
+
+    const seen = new Set();
+    for (let round = 0; round < 8; round += 1) {
+      idleHurt(field, SPAWN_INTERVAL_MS + 100);
+
+      for (const marker of field.snapshot().powerupMarkers) {
+        seen.add(marker.kind);
+        field.step(STEP, marker.x, marker.y, 2);
+      }
+    }
+
+    expect([...seen].sort()).toEqual(['aegis', 'mend', 'overdrive']);
   });
 
   it('never exceeds the marker cap', () => {
@@ -247,6 +287,118 @@ describe('reset', () => {
     expect(snapshot.powerupMarkers).toHaveLength(0);
     expect(snapshot.powerupBuffs).toEqual({});
     expect(snapshot.aegisShatterAge).toBeUndefined();
+    expect(field.speedMultiplier()).toBe(1);
+  });
+
+  it('forgets a Mend arc as well', () => {
+    const field = makeField();
+    field.grant('mend');
+
+    field.reset(WORLD, WORLD);
+
+    expect(field.snapshot().mendArcAge).toBeUndefined();
+  });
+});
+
+describe('mend', () => {
+  it('has nothing to give at full health', () => {
+    const field = makeField();
+    field.step(STEP, 40, 40, 3);
+    expect(field.canMend()).toBe(false);
+
+    field.step(STEP, 40, 40, 2);
+    expect(field.canMend()).toBe(true);
+  });
+
+  it('does not spawn while the player is unhurt', () => {
+    const field = new PowerupField(Math.random);
+    field.reset(WORLD, WORLD);
+    idle(field, SPAWN_INTERVAL_MS * 6);
+
+    const kinds = field.snapshot().powerupMarkers.map((marker) => marker.kind);
+    expect(kinds).not.toContain('mend');
+  });
+
+  it('shows up once a segment is gone', () => {
+    const field = new PowerupField(Math.random);
+    field.reset(WORLD, WORLD);
+    expect(spawnUntil(field, 'mend').kind).toBe('mend');
+  });
+
+  it('is an event, not a buff: no duration, no HUD row', () => {
+    const field = makeField();
+    field.grant('mend');
+
+    expect(field.isActive('mend')).toBe(false);
+    expect(field.snapshot().powerupBuffs.mend).toBeUndefined();
+  });
+
+  it('draws its arc once and then stops', () => {
+    const field = makeField();
+    field.grant('mend');
+
+    expect(field.snapshot().mendArcAge).toBeGreaterThanOrEqual(0);
+    idleHurt(field, 700);
+    expect(field.snapshot().mendArcAge).toBeUndefined();
+  });
+
+  it('goes inert instead of vanishing when health fills up under it', () => {
+    const field = new PowerupField(Math.random);
+    field.reset(WORLD, WORLD);
+    spawnUntil(field, 'mend');
+
+    field.step(STEP, 40, 40, 3);
+
+    const marker = field.snapshot().powerupMarkers.find((m) => m.kind === 'mend');
+    expect(marker).toBeDefined();
+    expect(marker.inert).toBe(1);
+  });
+
+  it('cannot be collected while inert, and can be again once health drops', () => {
+    const field = new PowerupField(Math.random);
+    field.reset(WORLD, WORLD);
+    const marker = spawnUntil(field, 'mend');
+
+    expect(field.step(STEP, marker.x, marker.y, 3)).toBeNull();
+    expect(field.snapshot().powerupMarkers.some((m) => m.kind === 'mend')).toBe(true);
+
+    expect(field.step(STEP, marker.x, marker.y, 2)).toBe('mend');
+  });
+
+  it('leaves the other two markers alone at full health', () => {
+    const field = new PowerupField(Math.random);
+    field.reset(WORLD, WORLD);
+    idle(field, SPAWN_INTERVAL_MS + 100);
+
+    for (const marker of field.snapshot().powerupMarkers) {
+      expect(marker.inert).toBe(0);
+    }
+  });
+
+  it('never comes up twice in a row', () => {
+    const field = new PowerupField(Math.random);
+    field.reset(WORLD, WORLD);
+
+    const order = [];
+    for (let round = 0; round < 6; round += 1) {
+      idleHurt(field, SPAWN_INTERVAL_MS + 100);
+
+      for (const marker of field.snapshot().powerupMarkers) {
+        order.push(marker.kind);
+        field.step(STEP, marker.x, marker.y, 2);
+      }
+    }
+
+    for (let i = 1; i < order.length; i += 1) {
+      if (order[i] === 'mend') expect(order[i - 1]).not.toBe('mend');
+    }
+  });
+
+  it('grants no invulnerability — that is the other one', () => {
+    const field = makeField();
+    field.grant('mend');
+
+    expect(field.absorbHit()).toBe(false);
     expect(field.speedMultiplier()).toBe(1);
   });
 });
