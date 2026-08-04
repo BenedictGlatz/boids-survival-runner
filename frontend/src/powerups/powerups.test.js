@@ -1,20 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
+// Everything `PowerupField` shares between the three kinds: the spawn interval, the distance
+// rules, collection, the two buffs and the round reset. Mend's own rules live in
+// `mend.test.js`, which drives the same field through a harness of its own — that file was
+// split off this one when the 400-line limit was reached, the same way
+// `playerObstacleBlock.test.js` was split off `playerController.test.js`.
+
 import {
   OBSTACLE_STRIDE,
   PLAYER_DASH_SPEED,
   PLAYER_MAX_SPEED,
-  PLAYER_VISUAL_RADIUS,
+  PLAYER_STARTING_LIVES,
   SIMULATION_STEP_MS,
 } from '../gameConfig.js';
-import { PICKUP_RADIUS } from '../renderer/powerupLayer.js';
+import { PICKUP_RADIUS } from '../renderer/powerupMarkerLayer.js';
+import { MIN_OBSTACLE_CLEARANCE } from './markerClearance.js';
 import {
   AEGIS_DURATION_MS,
   COLLECT_RADIUS,
-  distanceToSegment,
   MARKER_LIFETIME_MS,
   MAX_MARKERS,
-  MIN_OBSTACLE_CLEARANCE,
   MIN_SPAWN_DISTANCE,
   OVERDRIVE_FACTOR,
   PowerupField,
@@ -40,13 +45,16 @@ class Driver {
 
   reset() {
     this.nowMs = 0;
-    this.field.reset(WORLD, WORLD);
+    // Full lives throughout, which is what keeps Mend out of every test in this file: at full
+    // lives the spawn order skips it, so the two buffs are the only kinds that can turn up.
+    this.lives = PLAYER_STARTING_LIVES;
+    this.field.reset(WORLD, WORLD, PLAYER_STARTING_LIVES);
   }
 
   step(x = FAR_AWAY, y = FAR_AWAY, frame) {
     this.nowMs += SIMULATION_STEP_MS;
 
-    return this.field.step(this.nowMs, x, y, frame);
+    return this.field.step(this.nowMs, x, y, frame, this.lives);
   }
 
   idle(ms, x = FAR_AWAY, y = FAR_AWAY, frame) {
@@ -85,21 +93,6 @@ function frameWithObstacle(startX, startY, endX, endY, radius) {
 
   return { obstacles, obstacleCount: 1 };
 }
-
-describe('distanceToSegment', () => {
-  it('measures the perpendicular when the foot lies on the segment', () => {
-    expect(distanceToSegment(50, 30, 0, 0, 100, 0)).toBe(30);
-  });
-
-  it('measures against the nearer end when the foot lies beyond it', () => {
-    expect(distanceToSegment(-40, 0, 0, 0, 100, 0)).toBe(40);
-    expect(distanceToSegment(140, 0, 0, 0, 100, 0)).toBe(40);
-  });
-
-  it('falls back to the point distance for a segment of no length', () => {
-    expect(distanceToSegment(3, 4, 0, 0, 0, 0)).toBe(5);
-  });
-});
 
 describe('spawning', () => {
   it('puts nothing in the arena before the first interval', () => {
@@ -371,19 +364,13 @@ describe('reset', () => {
   });
 });
 
-// The two numbers above that are only meaningful next to a number in another module. Every
-// other test here reads the constants it asserts on, so resizing a marker moves the tests
-// with it and none of them would notice the collect radius falling behind the glyph.
+// The one number here that is only meaningful next to a number in another module. Every other
+// test in this file reads the constant it asserts on, so resizing a marker moves the tests with
+// it and none of them would notice the collect radius falling behind the glyph.
 describe('the marker size against the drawn one', () => {
   it('collects from further out than the marker is drawn', () => {
     // Otherwise the player has to aim inside the hexagon, and a hit that looks like one
     // stops being one — which is the whole reason these are two numbers and not one.
     expect(COLLECT_RADIUS).toBeGreaterThan(PICKUP_RADIUS);
-  });
-
-  it('keeps a marker far enough from an obstacle to be stood on', () => {
-    // Room for the whole glyph plus the player's body outside the hazard, so a marker is
-    // never bait that costs a life to reach.
-    expect(MIN_OBSTACLE_CLEARANCE).toBeGreaterThanOrEqual(PICKUP_RADIUS + PLAYER_VISUAL_RADIUS);
   });
 });

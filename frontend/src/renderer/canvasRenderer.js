@@ -20,7 +20,8 @@ import {
 } from './entityPalette.js';
 import { drawObstacles } from './obstacleLayer.js';
 import { drawPlayerStatusBars } from './playerStatusBars.js';
-import { drawPlayerBuffs, drawPowerupMarkers } from './powerupLayer.js';
+import { drawPlayerBuffs } from './powerupLayer.js';
+import { drawPowerupMarkers } from './powerupMarkerLayer.js';
 import { drawSpawnMarkers } from './spawnMarkerLayer.js';
 import { drawDashTrails } from './trailLayer.js';
 import { sampleDashTrails } from './trailSampling.js';

@@ -259,8 +259,10 @@ function advanceCountdown(timestamp) {
 function beginRound() {
   beginRoundData(gameData);
   // Here and not in startGame(): every power-up timestamp is measured against
-  // simulationTimeMs, and that is the clock beginRoundData just set back to zero.
-  powerups.reset(WORLD_WIDTH, WORLD_HEIGHT);
+  // simulationTimeMs, and that is the clock beginRoundData just set back to zero. The life
+  // maximum comes from the round rather than from a constant of its own, so Mend can never
+  // disagree with the segments drawn under the player about what "full" means.
+  powerups.reset(WORLD_WIDTH, WORLD_HEIGHT, gameData.maxLives);
   scheduler.discardPendingTime();
 }
 

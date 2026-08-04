@@ -18,6 +18,7 @@
 
 import { PLAYER_VISUAL_RADIUS, WORLD_HEIGHT, WORLD_WIDTH } from '../gameConfig.js';
 import { PLAYER_COLOR } from './entityPalette.js';
+import { healFlashAlpha } from './mendPulse.js';
 
 /** Both bars share one width, so the stack reads as one object rather than two. */
 const BAR_WIDTH = 52;
@@ -35,9 +36,14 @@ const STACK_OFFSET = 10;
 const EDGE_MARGIN = 4;
 const BACKDROP_PADDING = 3;
 const BACKDROP_COLOR = 'rgba(7, 8, 11, 0.72)';
-/** Green is reserved for life and used nowhere else in the whole interface. */
+/**
+ * Green is reserved for life. The one other place it appears is the Mend marker, which gives
+ * life back — it uses the role rather than widening it.
+ */
 const HEALTH_SEGMENT_COLOR = '#22c55e';
 const HEALTH_SEGMENT_EMPTY_COLOR = 'rgba(242, 244, 248, 0.18)';
+/** What a segment flashes to at the instant Mend restores it, before settling into green. */
+const HEALTH_SEGMENT_FLASH_COLOR = '#FFFFFF';
 /**
  * The same two cyans the HUD's dash bar uses (`styles/hud.css`) — dim while the cooldown
  * recovers, the full player colour the moment it is available. One rule learned in one place
@@ -89,8 +95,8 @@ export function healthSegmentWidth(maxLives) {
  * layers: the lives are the one thing in the picture that may never be obscured.
  * @param {CanvasRenderingContext2D} ctx - Context, already carrying the world transform.
  * @param {{x: number, y: number}} playerPosition - Current player position.
- * @param {object} renderState - The loop's render state; `lives`, `maxLives` and
- *   `dashCooldownProgress` are read here.
+ * @param {object} renderState - The loop's render state; `lives`, `maxLives`,
+ *   `dashCooldownProgress` and `mendArcAge` are read here.
  * @returns {void}
  */
 export function drawPlayerStatusBars(ctx, playerPosition, renderState) {
@@ -110,7 +116,7 @@ export function drawPlayerStatusBars(ctx, playerPosition, renderState) {
     STACK_HEIGHT + BACKDROP_PADDING * 2,
   );
 
-  drawHealthSegments(ctx, stack, maxLives, renderState.lives);
+  drawHealthSegments(ctx, stack, maxLives, renderState.lives, renderState.mendArcAge);
 
   // A frozen frame before the first round carries no dash state at all, and drawing an empty
   // track there would claim the dash is spent when it is untouched.
@@ -119,14 +125,29 @@ export function drawPlayerStatusBars(ctx, playerPosition, renderState) {
   }
 }
 
-function drawHealthSegments(ctx, stack, maxLives, lives) {
+function drawHealthSegments(ctx, stack, maxLives, lives, mendArcAge) {
   const filledLives = Math.max(0, Math.min(lives, maxLives));
   const segmentWidth = healthSegmentWidth(maxLives);
+  // The segment Mend just gave back. It can only ever be the last filled one, because healing
+  // adds at the end of the row — so the flash needs no memory of which one it was.
+  const flashIndex = mendArcAge === undefined ? -1 : filledLives - 1;
 
   for (let index = 0; index < maxLives; index += 1) {
     const segmentX = stack.x + index * (segmentWidth + HEALTH_BAR_GAP);
     ctx.fillStyle = index < filledLives ? HEALTH_SEGMENT_COLOR : HEALTH_SEGMENT_EMPTY_COLOR;
     ctx.fillRect(segmentX, stack.y, segmentWidth, HEALTH_BAR_HEIGHT);
+
+    if (index !== flashIndex) {
+      continue;
+    }
+
+    // Laid over the green rather than replacing it, so the settle is a fade and not a colour
+    // change: at alpha zero the segment is already exactly the green it keeps.
+    ctx.save();
+    ctx.globalAlpha = healFlashAlpha(mendArcAge);
+    ctx.fillStyle = HEALTH_SEGMENT_FLASH_COLOR;
+    ctx.fillRect(segmentX, stack.y, segmentWidth, HEALTH_BAR_HEIGHT);
+    ctx.restore();
   }
 }
 

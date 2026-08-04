@@ -94,8 +94,85 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-03 | 1,5 | S-07 | Boids prallen an Hindernissen ab, statt beim Dash durch sie hindurchzufliegen: `resolve_player_movement` ist zu `resolve_movement_against_obstacles` (Rückgabe `MovementResolution`, Parameter `mover_radius`) verallgemeinert und `PLAYER_OBSTACLE_KNOCKBACK_DISTANCE` entsprechend zu `OBSTACLE_KNOCKBACK_DISTANCE` umbenannt, weil derselbe Streckentest jetzt Spieler **und** Boid bedient; neues `simulation/obstacle_bounce.rs` setzt ihn pro Boid an — Aufruf in `Flock::update` direkt nach `integrate` und **vor** `wrap_position`, sonst läuft die Prüfstrecke eines am Weltrand umgeschlagenen Boids quer durch die Arena; `bounced_velocity` nimmt den Anteil in die Oberfläche weg und gibt `BOID_OBSTACLE_BOUNCE` = 0,35 davon zurück, denselben Wert wie `PLAYER_OBSTACLE_BOUNCE` im Frontend; der Dash wird nicht abgebrochen, der Boid federt mit erhöhter Kappe zurück; `flock.rs` stand mit dem neuen Aufruf bei 427 Zeilen und ist durch das Verschieben seiner beiden Hindernis-Integrationstests (Weg um eine Stange nach `obstacle_bounce.rs`, Rettung aus einem neu erschienenen Hindernis nach `obstacle_pushout.rs`) auf 381 zurück; 10 neue Rust-Zusicherungen, davon eine über `Flock::update` gegen die Verdrahtung selbst |
 
 | 2026-08-03 | 0,5 | S-06 | Power-up-Marker um die Hälfte vergrößert, weil ein Pickup, das man schwer trifft, ignoriert wird: `PICKUP_RADIUS` 18 → 27, `COLLECT_RADIUS` 26 → 39 (gleicher Faktor, damit das eingespielte Verhältnis der beiden bleibt), `MIN_OBSTACLE_CLEARANCE` 60 → 70, weil der Abstand Glyphe **plus** Spielerkörper außerhalb der Kapsel halten muss; zwei neue Zusicherungen auf genau diese beiden Verhältnisse — jeder andere Test in `powerups.test.js` liest seine Konstante selbst und würde ein Nachhinken des Aufsammelradius hinter der Optik nicht bemerken; Kap. 11 des Design-Systems auf die neuen Zahlen gezogen |
+| 2026-08-04 | 2,0 | S-05 | Drittes Power-up **Mend** aus dem Design-Handoff umgesetzt (gibt ein Lebenssegment zurück): Wirkung ist `roundData.restoreLives` — Gegenstück zu `registerHit`, klemmt gegen `maxLives` an genau einer Stelle und vergibt bewusst **keine** Gnadenfrist, weil das Aegis' Aufgabe ist; `PowerupField.step` bekommt den Lebensstand hereingereicht und **liest** ihn nur, `KINDS` zyklt über drei Arten mit Übersprung bei voller Gesundheit (Zählstand wird erst nach erfolgreicher Platzierung fortgeschrieben, sonst schluckt eine zugestellte Arena ein Angebot); ein Marker, dessen Nutzen während seiner Liegezeit entfällt, wird über 300 ms **inert** statt zu verschwinden; Mend erzeugt keinen Buff, also keine HUD-Zeile und keinen Restzeitbogen, sondern nur den Moment (einmaliger Bogen **gegen** den Uhrzeigersinn, weiß aufblitzendes Segment); vier neue Module entlang bestehender Nähte, weil zwei Dateien am 400-Zeilen-Limit standen — `powerups/mend.js` (alles, was von Leben weiß), `powerups/markerClearance.js` (Spawn-Geometrie, `powerups.js` 356 → 331), `renderer/mendPulse.js` (importfreie Arithmetik) und `renderer/powerupMarkerLayer.js` (Boden gegen Spieler, `powerupLayer.js` 373 → 244); 44 neue Frontend-Zusicherungen (365 → 409), E2E-Suite unverändert 50 grün, Spec S-05b und Kap. 11 des Design-Systems fortgeschrieben |
 
 ## Entscheidungen
+
+### 2026-08-04 — Mend ist ein Ereignis, kein dritter Buff
+
+**Gewählt:** Aegis und Overdrive sind Zustände und bekommen deshalb je einen Restzeitbogen
+am Spieler und eine HUD-Zeile. Mend bekommt **beides nicht**: es wirkt im Moment der
+Aufnahme und ist danach vorbei. Sein Zustand besteht aus einem Zeitstempel für die
+Darstellung; in `_buffs` landet es nie. Die Rückmeldung ist entsprechend ausschließlich
+der Moment — Einsammelring, ein weiß aufblitzendes Lebenssegment und ein grüner Bogen, der
+**einmal gegen** den Uhrzeigersinn läuft, während jeder Restzeitbogen im Spiel sich im
+Uhrzeigersinn leert.
+
+**Verworfen:**
+
+| Alternative                                                   | Grund der Ablehnung                                                                                                                                                                                                                               |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Eine dritte HUD-Zeile analog zu den beiden anderen            | Sie hätte keinen Füllstand, den sie anzeigen könnte. Eine Zeile, die nach 450 ms wieder verschwindet, ist eine Animation im HUD und nicht eine Anzeige — und das Ergebnis steht bereits im Lebensbalken, den es seit S-03 gibt.                   |
+| Mend als kurzen Buff mit Dauer modellieren, um es einzureihen | Das hätte die Datenstruktur vereinheitlicht und die Aussage verfälscht: ein Buff, dessen Ablauf nichts beendet, lädt jeden späteren Leser dazu ein, ihm doch eine Wirkung über die Zeit zu geben. Die Uneinheitlichkeit ist hier die Information. |
+| Ein Herz oder Kreuz als Glyph                                 | Ein zweites Symbol für etwas, für das das Spiel schon eines hat. Der Glyph ist deshalb der Lebensbalken selbst: drei Balken, der oberste nur angedeutet — die Lücke ist das Icon.                                                                 |
+| Grün als neue Power-up-Farbe einführen                        | Grün ist laut §1 des Design-Systems bereits die Farbe des Lebens. Mend erweitert die Rolle nicht, es benutzt sie; damit kommt das dritte Power-up ohne eine vierte Farbe aus.                                                                     |
+| Mend zusätzlich mit Unverwundbarkeit ausstatten               | Überlappt mit Aegis. Zwei Power-ups mit derselben Wirkung sind eines zu viel, und das Heilmittel würde das Schild zum schlechteren Fund machen.                                                                                                   |
+| Volle Heilung statt eines Segments                            | Macht die Runde bis dahin bedeutungslos. Ein Segment ist eine Verlängerung, keine Rücksetzung — bei drei Startleben trotzdem ein Drittel der Gesamtressource.                                                                                     |
+
+**Warum:** Die Unterscheidung Zustand/Ereignis ist die verallgemeinerbare Hälfte dieser
+Umsetzung und steht als Regel in der Spec: **Zustand → Bogen + HUD-Zeile, Ereignis → nur
+der Moment, nichts dazwischen.** Wer ein viertes Power-up entwirft, entscheidet zuerst
+diese Frage und nicht die nach dem Symbol. Die Laufrichtung des Bogens trägt dabei die
+eigentliche Aussage: die Umkehrung gegen alle anderen Bögen sagt „etwas wurde
+hinzugefügt" statt „etwas läuft ab". Wer die beiden verwechselt, hat die Laufrichtung
+verloren und nicht die Farbe — die Diagnose beginnt also dort.
+
+**Konsequenz:** `PowerupField` schreibt keinen Lebenszähler, es liest ihn; die Gutschrift
+liegt in `roundData.restoreLives` und damit im selben Modul wie der Abzug. Weil Mend
+Leben kennen muss und sonst nichts im Power-up-Thema es kennt, liegt genau diese
+Abhängigkeit gesammelt in `powerups/mend.js` — ein Grund, der in einem Satz steht, kann
+auch in einer Datei stehen. Die Heilung wird im Simulationsschritt **vor** der
+Trefferauswertung verrechnet, damit Heilung und Treffer im selben Schritt sich in der
+Reihenfolge ihres Eintretens verrechnen und nicht gegenseitig verschlucken. Weil beide
+betroffenen Zeichendateien am 400-Zeilen-Limit standen, wurde die Zeichenseite entlang der
+Naht geteilt, die §11 des Design-Systems ohnehin zieht: `powerupMarkerLayer.js` für was am
+Boden liegt, `powerupLayer.js` für was auf dem Spieler reitet.
+→ Kap. 5, 7
+
+### 2026-08-04 — Ein unbrauchbarer Mend-Marker wird grau, statt zu verschwinden
+
+**Gewählt:** Bei voller Gesundheit **spawnt** Mend nicht — die Reihenfolge überspringt es.
+Wird die Gesundheit voll, **während** ein Marker schon liegt, bleibt er liegen und wird über
+`INERT_FADE_MS` = 300 ms inert: Kontur und Glyph driften nach Slate, Glow und Rotation gehen
+aus, der Hub bleibt. Aufsammeln ist dann nicht möglich, man läuft hindurch; sinkt die
+Gesundheit, kommt er auf demselben Weg zurück. Der Fortschritt dieser Blende läuft pro
+Simulationsschritt, nicht pro Bild.
+
+**Verworfen:**
+
+| Alternative                                                | Grund der Ablehnung                                                                                                                                                                                                          |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Den Marker bei voller Gesundheit entfernen                 | Er verschwindet dann vor den Augen des Spielers, und zwar genau in dem Moment, in dem dieser etwas Gutes getan hat. Das wirkt gestohlen; ein Marker, der grau wird, erklärt sich selbst und bleibt als Wegmarke erhalten.    |
+| Ihn unverändert liegen lassen und nur nicht aufsammeln     | Ein Marker, der voll leuchtet und rotiert, verspricht etwas. Ihn wortlos nicht einzusammeln liest sich als Fehler des Spiels, nicht als Regel.                                                                               |
+| Ihn trotzdem einsammelbar machen und die Wirkung verpuffen | Ein verbrauchter Fund ohne Wirkung ist die schlechteste der drei Varianten: er kostet den Weg dorthin und gibt nichts, und der Spieler erfährt den Grund nie.                                                                |
+| Hart umschalten statt über 300 ms zu blenden               | Ein Marker, der zwischen zwei Bildern die Farbe wechselt, wird als **anderer** Marker gelesen und nicht als derselbe, der leise wird. Drei Zehntelsekunden sind lang genug für die Bewegung und kurz genug für eine Antwort. |
+| Mend am Ende der Spawn-Reihenfolge einsortieren            | Dann kann es zweimal hintereinander an der Reihe sein, sobald der Zyklus umläuft. Zwei Treffer in Folge kosten damit nichts mehr, und ein Survival-Runner, in dem Treffer nichts kosten, hat sein Thema verloren.            |
+
+**Warum:** Ein Heil-Power-up ist das erste im Spiel, dessen Wert vom Spielstand abhängt —
+es ist damit auch das erste, das ein _toter Fund_ sein kann. Die drei Regeln greifen an drei
+verschiedenen Zeitpunkten: die Spawn-Regel, bevor es entsteht, die Inertheit, während es
+liegt, und die Aufsammelregel im Moment des Kontakts. Alle drei prüfen dieselbe Bedingung
+(`canMend()`), was der Grund ist, dass sie nicht auseinanderlaufen können.
+
+**Konsequenz:** Die Blende ist Darstellung, ihr Fortschritt hängt aber an der
+Simulationsuhr — sonst driftet ein grau werdender Marker mit der Bildrate, und ein
+144-Hz-Spieler sieht eine andere Übergangszeit als ein 60-Hz-Spieler. Damit gilt die
+Entscheidung vom 30.07. („Präsentationsanimationen laufen auf Wall Time") hier bewusst
+nicht: Rotation und Hub des Markers laufen weiter auf Wall Time, die Blende nicht, weil ihr
+Auslöser ein Spielereignis ist und keine Uhr. Die Farbmischung selbst ist auf Sechstel
+gerastert und gecacht, weil ein inerter Marker in jedem Bild neu gezeichnet wird und eine
+Farbzeichenkette pro Bild genau das ist, was dieser Renderer vermeidet.
+→ Kap. 5, 7
 
 ### 2026-08-03 — Ein Kollisionstest für eine Wand, statt einer je Bewegtem
 

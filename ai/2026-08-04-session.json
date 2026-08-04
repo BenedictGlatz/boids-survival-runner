@@ -1,0 +1,8 @@
+[
+  {
+    "model": "claude-opus-5",
+    "prompt": "Ich habe im Design Handhoff Ordner ein neues Design für einen Heal Powerup hinzugefügt, dieses soll beim Spieler einen Lebenspunkt wiederherstellten, bitte implentiere dieses neue Powerup",
+    "topic": "frontend-ui",
+    "use": "impl"
+  }
+]

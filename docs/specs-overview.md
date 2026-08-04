@@ -31,7 +31,7 @@ Detail-Specs:
 
 - [S-04b — Pause (Escape und Fokusverlust)](spec-s04b-pause.md)
 - [S-05a — Dash (Spieler und Boids)](spec-s05-dash.md)
-- [S-05b — Power-ups (Aegis und Overdrive)](spec-s05b-powerups.md)
+- [S-05b — Power-ups (Aegis, Overdrive und Mend)](spec-s05b-powerups.md)
 - [S-07 — Temporäre Hindernisse](spec-s07-hindernisse.md)
 
 ## 3) Aufwandsschätzung (grob)

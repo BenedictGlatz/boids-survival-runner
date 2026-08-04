@@ -12,6 +12,7 @@ import {
   playerDashCooldownProgress,
   registerDash,
   registerHit,
+  restoreLives,
   resumeCountdown,
   runSummary,
 } from './roundData.js';
@@ -157,6 +158,58 @@ describe('registerHit', () => {
     }
 
     expect(isPlayerDead(round)).toBe(true);
+  });
+});
+
+describe('restoreLives', () => {
+  it('gives a segment back after one was lost', () => {
+    const roundData = makeRound();
+    registerHit(roundData);
+
+    expect(restoreLives(roundData, 1)).toBe(true);
+    expect(roundData.lives).toBe(STARTING_LIVES);
+  });
+
+  it('never goes past the maximum the round started with', () => {
+    const roundData = makeRound();
+
+    expect(restoreLives(roundData, 1)).toBe(false);
+    expect(roundData.lives).toBe(STARTING_LIVES);
+  });
+
+  it('clamps a generous source rather than refusing it', () => {
+    const roundData = makeRound();
+    registerHit(roundData);
+
+    expect(restoreLives(roundData, 99)).toBe(true);
+    expect(roundData.lives).toBe(STARTING_LIVES);
+  });
+
+  it('grants no grace period — that belongs to being hit', () => {
+    const roundData = makeRound();
+    advanceBy(roundData, HIT_COOLDOWN * 2);
+    registerHit(roundData);
+    advanceBy(roundData, HIT_COOLDOWN * 2);
+
+    restoreLives(roundData, 1);
+
+    // The next hit costs a life immediately: a heal is not a second Aegis.
+    expect(isPlayerInvulnerable(roundData)).toBe(false);
+    expect(registerHit(roundData)).toBe(true);
+  });
+
+  it('buys back one mistake and not the whole run', () => {
+    const roundData = makeRound();
+    advanceBy(roundData, HIT_COOLDOWN * 2);
+    registerHit(roundData);
+    advanceBy(roundData, HIT_COOLDOWN * 2);
+    registerHit(roundData);
+
+    restoreLives(roundData, 1);
+
+    // Two lives spent, one back: an extension of the run rather than a reset of it.
+    expect(roundData.lives).toBe(STARTING_LIVES - 1);
+    expect(isPlayerDead(roundData)).toBe(false);
   });
 });
 

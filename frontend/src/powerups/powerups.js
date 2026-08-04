@@ -1,8 +1,9 @@
 /**
- * Power-up state: what lies in the arena, what is running on the player, and the moment a
- * shield eats a hit. The rules half of "Aegis and Overdrive"
- * (`docs/design_system/design-system.md` §11), where `renderer/powerupLayer.js` draws what
- * `snapshot()` reports and decides nothing.
+ * Power-up state: what lies in the arena, what is running on the player, and the two moments
+ * that are neither — a shield eating a hit and a life being given back. The rules half of
+ * "Aegis, Overdrive and Mend" (`docs/design_system/design-system.md` §11), where
+ * `renderer/powerupMarkerLayer.js` and `renderer/powerupLayer.js` draw what `snapshot()`
+ * reports and decide nothing.
  *
  * Free of canvas and DOM, so the rules are unit-testable in Node the way `dashCooldown.js`
  * is — and like that module it takes its clock as a parameter rather than keeping one.
@@ -14,8 +15,10 @@
  * outside this feature.
  */
 
-import { OBSTACLE_STRIDE } from '../gameConfig.js';
+import { PLAYER_STARTING_LIVES } from '../gameConfig.js';
 import { LAUNCH_RING_SECONDS } from '../renderer/dashTrail.js';
+import { isTooCloseToAnObstacle } from './markerClearance.js';
+import { MendState } from './mend.js';
 
 export const AEGIS_DURATION_MS = 6500;
 export const OVERDRIVE_DURATION_MS = 6000;
@@ -32,16 +35,6 @@ export const MAX_MARKERS = 2;
 
 /** Spawn clearance from the player, so a marker is never collected by standing still. */
 export const MIN_SPAWN_DISTANCE = 220;
-
-/**
- * Spawn clearance from an obstacle: marker radius 27 plus the player's 16 plus a little.
- *
- * Without it a marker can land inside a hazard capsule, and that is worse than unreachable —
- * the player is pushed out of an obstacle and loses a life doing it, so the marker would be
- * bait rather than a reward. It grew with the marker, and it has to: the slack over those two
- * radii is what the number is for, and leaving it at 60 would have spent all of it.
- */
-export const MIN_OBSTACLE_CLEARANCE = 70;
 
 /**
  * Larger than the marker is drawn, so a graze at dash speed still counts.
@@ -72,38 +65,12 @@ const SPAWN_ATTEMPTS = 12;
 const SPAWN_AREA_INSET_SHARE = 0.1;
 const SPAWN_AREA_SHARE = 0.8;
 
-const KINDS = ['aegis', 'overdrive'];
-
 /**
- * Distance from a point to a line segment.
- *
- * A zero-length segment falls back to the plain point distance on its own, which is what
- * makes a circular obstacle need no case of its own: it is a capsule whose line has no length.
- * @param {number} pointX - The point to measure from.
- * @param {number} pointY - The point to measure from.
- * @param {number} startX - One end of the segment.
- * @param {number} startY - One end of the segment.
- * @param {number} endX - The other end of the segment.
- * @param {number} endY - The other end of the segment.
- * @returns {number} The shortest distance between the point and the segment.
+ * Spawn order. Mend sits **between** the other two rather than at the end, so it can never be
+ * offered twice in a row — a healer on repeat turns a survival runner into a game where being
+ * hit costs nothing.
  */
-export function distanceToSegment(pointX, pointY, startX, startY, endX, endY) {
-  const spanX = endX - startX;
-  const spanY = endY - startY;
-  const spanLengthSquared = spanX * spanX + spanY * spanY;
-
-  if (spanLengthSquared === 0) {
-    return Math.hypot(pointX - startX, pointY - startY);
-  }
-
-  // How far along the segment the perpendicular foot sits, clamped to the segment itself so
-  // a point beyond either end measures against that end rather than against the infinite line.
-  const alongTheSegment =
-    ((pointX - startX) * spanX + (pointY - startY) * spanY) / spanLengthSquared;
-  const clamped = Math.min(Math.max(alongTheSegment, 0), 1);
-
-  return Math.hypot(pointX - (startX + clamped * spanX), pointY - (startY + clamped * spanY));
-}
+const KINDS = ['aegis', 'mend', 'overdrive'];
 
 /**
  * The markers on the ground and the buffs on the player.
@@ -127,6 +94,8 @@ export class PowerupField {
     this._nextSpawnMs = SPAWN_INTERVAL_MS;
     this._shatterAtMs = -1;
     this._nextKind = 0;
+    // Everything to do with lives sits in there, so this class keeps none of it.
+    this._mend = new MendState(PLAYER_STARTING_LIVES);
   }
 
   /**
@@ -136,9 +105,11 @@ export class PowerupField {
    * there, and every timestamp measured against it has to be re-seeded in the same place.
    * @param {number} worldWidth - Arena width in world units.
    * @param {number} worldHeight - Arena height in world units.
+   * @param {number} [maxLives] - Life segments at full, which is all Mend's rules need to know
+   *   about lives beyond the current count `step()` hands over.
    * @returns {void}
    */
-  reset(worldWidth, worldHeight) {
+  reset(worldWidth, worldHeight, maxLives = PLAYER_STARTING_LIVES) {
     this._worldWidth = worldWidth;
     this._worldHeight = worldHeight;
     this._markers = [];
@@ -147,6 +118,7 @@ export class PowerupField {
     this._nextSpawnMs = SPAWN_INTERVAL_MS;
     this._shatterAtMs = -1;
     this._nextKind = 0;
+    this._mend.reset(maxLives);
   }
 
   /**
@@ -156,9 +128,13 @@ export class PowerupField {
    * @param {number} playerY - Player position after the engine's obstacle correction.
    * @param {object} [frame] - The engine's frame, read for the obstacle geometry a marker has
    *   to keep clear of. May be absent, in which case only the player and marker distances apply.
-   * @returns {'aegis'|'overdrive'|null} The kind collected this step, if any.
+   * @param {number} [lives] - The player's current life count. Mend's spawn and collect rules
+   *   need it, and they are the only reason this class knows about lives at all.
+   * @returns {'aegis'|'mend'|'overdrive'|null} The kind collected this step, if any.
    */
-  step(simulationMs, playerX, playerY, frame) {
+  step(simulationMs, playerX, playerY, frame, lives) {
+    this._mend.observeLives(lives);
+
     for (const [kind, endsAtMs] of [...this._buffs]) {
       if (simulationMs >= endsAtMs) {
         this._buffs.delete(kind);
@@ -203,6 +179,15 @@ export class PowerupField {
   }
 
   /**
+   * Whether a Mend marker currently has anything to give. Drives both the collect check and
+   * the slate treatment of a marker already lying in the arena.
+   * @returns {boolean} `false` at full lives.
+   */
+  canMend() {
+    return this._mend.canMend();
+  }
+
+  /**
    * Factor on `PLAYER_MAX_SPEED`. Never applied to `PLAYER_DASH_SPEED`.
    * @returns {number} `1` or `OVERDRIVE_FACTOR`.
    */
@@ -211,7 +196,7 @@ export class PowerupField {
   }
 
   /**
-   * Whether a buff is currently running.
+   * Whether a buff is currently running. Never true for Mend, which holds no state.
    * @param {'aegis'|'overdrive'} kind - Which buff.
    * @returns {boolean} True while it is active.
    */
@@ -222,11 +207,19 @@ export class PowerupField {
   /**
    * Starts a buff, or restarts it at full duration if it was already running. Public because
    * a collected marker is not the only imaginable source (a wave reward, a debug key).
-   * @param {'aegis'|'overdrive'} kind - Which buff.
+   * @param {'aegis'|'mend'|'overdrive'} kind - Which power-up.
    * @param {number} simulationMs - `gameData.simulationTimeMs`.
    * @returns {void}
    */
   grant(kind, simulationMs) {
+    // Mend is an event: there is no buff to hold, only a moment to draw. The life itself is
+    // given back by the caller — this class never touches the life count, it only reads it.
+    if (kind === 'mend') {
+      this._mend.markGranted(simulationMs);
+
+      return;
+    }
+
     this._buffs.set(kind, simulationMs + durationOf(kind));
   }
 
@@ -234,10 +227,12 @@ export class PowerupField {
    * Everything the renderer and the HUD need, as plain data.
    * @param {number} simulationMs - `gameData.simulationTimeMs`.
    * @returns {{
-   *   powerupMarkers: Array<{kind: string, x: number, y: number, spawnScale: number}>,
+   *   powerupMarkers: Array<{kind: string, x: number, y: number, spawnScale: number,
+   *     inert: number}>,
    *   powerupCollects: Array<{kind: string, x: number, y: number, age: number}>,
    *   powerupBuffs: Record<string, number>,
    *   aegisShatterAge: number | undefined,
+   *   mendArcAge: number | undefined,
    * }} Render state fragment. Ages are in seconds, remaining times are fractions of 1.
    */
   snapshot(simulationMs) {
@@ -247,6 +242,9 @@ export class PowerupField {
       y: marker.y,
       // Scales in so a marker never simply appears next to the player.
       spawnScale: Math.min(1, (simulationMs - marker.spawnedAtMs) / SPAWN_SCALE_IN_MS),
+      // A Mend marker with nothing to give drains to slate rather than disappearing: a marker
+      // that vanishes in front of you feels stolen, one that goes grey explains itself.
+      inert: marker.kind === 'mend' ? this._mend.inertAmount() : 0,
     }));
 
     const buffs = {};
@@ -267,6 +265,7 @@ export class PowerupField {
       powerupBuffs: buffs,
       aegisShatterAge:
         this._shatterAtMs >= 0 && shatterAgeMs <= SHATTER_MS ? shatterAgeMs / 1000 : undefined,
+      mendArcAge: this._mend.arcAge(simulationMs),
     };
   }
 
@@ -275,9 +274,12 @@ export class PowerupField {
       return;
     }
 
-    // Alternating rather than random: two Aegis in a row is a dead draw for a player who is
-    // at full health, and randomness that produces dead draws is not interesting randomness.
-    const kind = KINDS[this._nextKind % KINDS.length];
+    // Cycling rather than random: two Aegis in a row is a dead draw for a player who is at
+    // full lives, and randomness that produces dead draws is not interesting randomness. A
+    // Mend nobody could use is passed over rather than spawned dead — and the skip is counted
+    // separately, so a spawn that finds no room does not silently consume the turn.
+    const skipped = KINDS[this._nextKind % KINDS.length] === 'mend' && !this.canMend() ? 1 : 0;
+    const kind = KINDS[(this._nextKind + skipped) % KINDS.length];
 
     for (let attempt = 0; attempt < SPAWN_ATTEMPTS; attempt += 1) {
       const x = this._worldWidth * (SPAWN_AREA_INSET_SHARE + this._random() * SPAWN_AREA_SHARE);
@@ -288,7 +290,7 @@ export class PowerupField {
       if (isTooCloseToAnObstacle(x, y, frame)) continue;
 
       this._markers.push({ kind, x, y, spawnedAtMs: simulationMs });
-      this._nextKind += 1;
+      this._nextKind += 1 + skipped;
 
       return;
     }
@@ -302,6 +304,9 @@ export class PowerupField {
       const marker = this._markers[index];
 
       if (Math.hypot(marker.x - playerX, marker.y - playerY) > COLLECT_RADIUS) continue;
+
+      // An inert Mend marker is walked straight through — scenery until a life is lost.
+      if (marker.kind === 'mend' && !this.canMend()) continue;
 
       this._markers.splice(index, 1);
       this._collects.push({
@@ -323,34 +328,4 @@ export class PowerupField {
 
 function durationOf(kind) {
   return kind === 'aegis' ? AEGIS_DURATION_MS : OVERDRIVE_DURATION_MS;
-}
-
-/**
- * An obstacle is a capsule — a line segment with a radius — packed as
- * `startX, startY, endX, endY, radius, ...` in the engine's flat buffer.
- */
-function isTooCloseToAnObstacle(x, y, frame) {
-  const obstacles = frame?.obstacles;
-  if (!obstacles) return false;
-
-  const obstacleCount = frame.obstacleCount ?? obstacles.length / OBSTACLE_STRIDE;
-
-  for (let index = 0; index < obstacleCount; index += 1) {
-    const offset = index * OBSTACLE_STRIDE;
-    const distanceToTheSurface =
-      distanceToSegment(
-        x,
-        y,
-        obstacles[offset],
-        obstacles[offset + 1],
-        obstacles[offset + 2],
-        obstacles[offset + 3],
-      ) - obstacles[offset + 4];
-
-    if (distanceToTheSurface < MIN_OBSTACLE_CLEARANCE) {
-      return true;
-    }
-  }
-
-  return false;
 }

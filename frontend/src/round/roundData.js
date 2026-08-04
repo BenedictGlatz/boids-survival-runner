@@ -132,6 +132,31 @@ export function registerHit(roundData, absorbHit) {
 }
 
 /**
+ * Gives life segments back, never past the number the round started with.
+ *
+ * The counterpart of `registerHit`, and like it the single funnel for its direction: whatever
+ * restores a life goes through here, so the clamp against `maxLives` exists once. How many
+ * segments a source is worth is the source's business and is passed in — `MEND_SEGMENTS` for
+ * the power-up that has the only claim on it today.
+ *
+ * It grants **no** invulnerability, and that is deliberate rather than an omission: the grace
+ * period belongs to being hit, and Aegis is already the ability that buys protection. Two
+ * abilities with overlapping effects is one too many.
+ * @param {object} roundData - The round state to credit the lives to.
+ * @param {number} segments - How many segments to restore; at least 1 to have any effect.
+ * @returns {boolean} True if at least one segment was actually restored, false at full lives.
+ */
+export function restoreLives(roundData, segments) {
+  if (roundData.lives >= roundData.maxLives) {
+    return false;
+  }
+
+  roundData.lives = Math.min(roundData.maxLives, roundData.lives + segments);
+
+  return true;
+}
+
+/**
  * Whether the round is over because the player ran out of lives.
  * @param {object} roundData - The round state to inspect.
  * @returns {boolean} True once no lives are left.

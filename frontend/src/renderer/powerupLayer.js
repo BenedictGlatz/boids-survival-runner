@@ -1,36 +1,29 @@
 /**
- * Draws the two power-ups — the hexagon vocabulary of `docs/design_system/design-system.md`
- * §11, where the hexagon is the fourth and last shape in the game: triangle boid, circle
- * player, capsule obstacle, hexagon pickup.
+ * Everything a power-up puts **on the player**: the Aegis shell, the remaining-time arcs, the
+ * shatter a spent shield leaves behind, and Mend's one-off arc.
  *
- * Three things live here: the marker lying in the arena, the shell and time arcs that sit on
- * the player while a buff runs, and the shatter the shield leaves behind when it eats a hit.
+ * The counterpart of `powerupMarkerLayer.js`, which draws what still lies in the arena. The
+ * shapes and colours come from there rather than being repeated here, because the shell on the
+ * player is the marker's own hexagon moved onto them — that is the entire explanation the
+ * effect gets, and it only works if the two are literally the same hexagon.
  *
- * Purely presentational, like `trailLayer.js`. Spawning, collection and the actual effects are
- * gameplay and live in `powerups/powerups.js`; nothing in this file decides anything, it is
- * handed a render state and draws it.
+ * The split between the two files also draws the line the design system draws
+ * (`docs/design_system/design-system.md` §11) between a **state** and an **event**: Aegis and
+ * Overdrive run, so they get a remaining-time arc and a HUD row. Mend happens, so it gets the
+ * moment and nothing else — there is nothing left to display once it is over, and the result
+ * is already in the life segments under the player.
+ *
+ * Purely presentational, like `trailLayer.js`. Nothing here decides anything.
  */
 
-import { launchRingAlpha, launchRingRadius, LAUNCH_RING_SECONDS } from './dashTrail.js';
-
-/**
- * Marker radius. Smaller than an obstacle, larger than a boid — reads as an item.
- *
- * Half again the 18 px it started at, because a pickup that is hard to hit is a pickup
- * that gets ignored. `COLLECT_RADIUS` in `powerups/powerups.js` was raised by the same
- * factor: the collect distance has to stay the *visibly* generous one, or a graze that
- * looks like a hit stops being one.
- */
-export const PICKUP_RADIUS = 27;
-
-/**
- * Amber is already the game's colour for a temporary state change, cyan the colour of the
- * player and their skill. Both are the values `styles/tokens.css` carries as `--warning` and
- * `--player`; a canvas cannot read a CSS custom property, which is the same duplication the
- * arena colours live with.
- */
-export const AEGIS_COLOR = '#FBBF24';
-export const OVERDRIVE_COLOR = '#38BDF8';
+import { mendArcAlpha, mendArcSweep, MEND_ARC_SECONDS } from './mendPulse.js';
+import {
+  AEGIS_COLOR,
+  hexPath,
+  MEND_COLOR,
+  OVERDRIVE_COLOR,
+  STROKE_WIDTH,
+} from './powerupMarkerLayer.js';
 
 /** Shell radius, clear of the player's own 16 px body and its glow. */
 const SHELL_RADIUS = 30;
@@ -39,23 +32,13 @@ const SHELL_RADIUS = 30;
 const AEGIS_ARC_RADIUS = 36;
 const OVERDRIVE_ARC_RADIUS = 42;
 
-/** Stroke width shared by every outline here, so the whole set reads as one motif. */
-const STROKE_WIDTH = 2;
-
-const BOB_AMPLITUDE = 3;
-const BOB_SECONDS = 2.2;
-const SPIN_TURNS_PER_SECOND = 0.25;
-const BREATHE_SECONDS = 1.6;
-
-/** Opaque core, or the arena grid runs straight through the glyph and it stops reading. */
-const MARKER_CORE_COLOR = 'rgba(11, 13, 18, 0.85)';
-const MARKER_GLOW_BASE = 12;
-const MARKER_GLOW_BREATH = 10;
-
-/** Glyph sizes as fractions of the marker radius. */
-const AEGIS_GLYPH_SHELL_SHARE = 0.46;
-const AEGIS_GLYPH_CORE_SHARE = 0.13;
-const OVERDRIVE_GLYPH_SHARE = 0.3;
+/**
+ * Mend's arc sits inside both of those. It is over long before either could clash with it, and
+ * being the innermost of the three is one more thing separating it from a countdown.
+ */
+const MEND_ARC_RADIUS = 34;
+const MEND_ARC_WIDTH = 2.5;
+const MEND_ARC_GLOW = 10;
 
 /** Below this fraction the time arc blinks — the only warning a buff is about to end. */
 const ARC_BLINK_BELOW = 0.17;
@@ -77,70 +60,15 @@ const SHATTER_FLASH_GROWTH = 26;
 const SHATTER_FLASH_WIDTH = 1.5;
 
 /**
- * Colour of a power-up kind.
- * @param {'aegis'|'overdrive'} kind - Which power-up.
- * @returns {string} Hex colour.
- */
-export function powerupColor(kind) {
-  return kind === 'aegis' ? AEGIS_COLOR : OVERDRIVE_COLOR;
-}
-
-/**
- * Traces a hexagon. Never fills or strokes itself — the caller decides, usually doing both.
- * @param {CanvasRenderingContext2D} ctx - Canvas context.
- * @param {number} x - Centre.
- * @param {number} y - Centre.
- * @param {number} radius - Centre to vertex.
- * @param {number} rotation - Radians.
- * @returns {void}
- */
-export function hexPath(ctx, x, y, radius, rotation) {
-  ctx.beginPath();
-
-  for (let corner = 0; corner < 6; corner += 1) {
-    const angle = rotation + (corner / 6) * Math.PI * 2;
-    const pointX = x + Math.cos(angle) * radius;
-    const pointY = y + Math.sin(angle) * radius;
-
-    if (corner === 0) {
-      ctx.moveTo(pointX, pointY);
-    } else {
-      ctx.lineTo(pointX, pointY);
-    }
-  }
-
-  ctx.closePath();
-}
-
-/**
- * Everything that lies on the ground: the markers and the rings left where one was picked up.
+ * Everything that sits on the player: the Aegis shell, both time arcs, the shatter, and the
+ * arc Mend runs once.
  *
- * Drawn over the obstacles and under the dash trail, because a marker is terrain the player
- * moves over rather than something in front of them.
- * @param {CanvasRenderingContext2D} ctx - Canvas context, in world space.
- * @param {object} renderState - The loop's render state; `powerupMarkers` and `powerupCollects`
- *   are read, and both may be absent while the world is frozen.
- * @param {number} seconds - Wall-clock seconds, for spin and bob.
- * @returns {void}
- */
-export function drawPowerupMarkers(ctx, renderState, seconds) {
-  for (const marker of renderState.powerupMarkers ?? []) {
-    drawPowerupMarker(ctx, marker.kind, marker.x, marker.y, seconds, marker.spawnScale);
-  }
-
-  for (const pop of renderState.powerupCollects ?? []) {
-    drawCollectRing(ctx, pop.x, pop.y, pop.age, pop.kind);
-  }
-}
-
-/**
- * Everything that sits on the player: the Aegis shell, both time arcs, and the shatter.
- *
- * Drawn after the player, because these lie on them rather than behind them.
+ * Drawn after the player, because these lie on them rather than behind them — and before the
+ * life segments, which may never be drawn over.
  * @param {CanvasRenderingContext2D} ctx - Canvas context, in world space.
  * @param {{x: number, y: number}} playerPosition - Current player position.
- * @param {object} renderState - The loop's render state; `powerupBuffs` and `aegisShatterAge`
- *   are read, and both may be absent while the world is frozen.
+ * @param {object} renderState - The loop's render state; `powerupBuffs`, `aegisShatterAge` and
+ *   `mendArcAge` are read, and all three may be absent while the world is frozen.
  * @param {number} seconds - Wall-clock seconds, for spin and breathing.
  * @returns {void}
  */
@@ -160,76 +88,11 @@ export function drawPlayerBuffs(ctx, playerPosition, renderState, seconds) {
   if (renderState.aegisShatterAge !== undefined) {
     drawAegisShatter(ctx, playerPosition.x, playerPosition.y, renderState.aegisShatterAge);
   }
-}
 
-/**
- * One marker lying in the arena.
- *
- * The shell turns and the marker bobs, both off wall-clock time — this is the only rotating
- * thing in the arena, which is what makes a pickup findable in a field of 90 boids without
- * being brighter than anything else. The pick-up distance is deliberately larger than what is
- * drawn here; `powerups.js` owns that number and this file never asks for it.
- *
- * The glyph inside does **not** turn with the shell: a rotating icon reads as debris.
- * @param {CanvasRenderingContext2D} ctx - Canvas context, in world space.
- * @param {'aegis'|'overdrive'} kind - Which power-up.
- * @param {number} x - World position.
- * @param {number} y - World position.
- * @param {number} seconds - Wall-clock seconds, for spin and bob.
- * @param {number} [scale] - `0`..`1` spawn-in scale.
- * @returns {void}
- */
-export function drawPowerupMarker(ctx, kind, x, y, seconds, scale = 1) {
-  if (scale <= 0) return;
-
-  const color = powerupColor(kind);
-  const radius = PICKUP_RADIUS * scale;
-  const bobY = y + Math.sin((seconds * Math.PI * 2) / BOB_SECONDS) * BOB_AMPLITUDE;
-  const rotation = seconds * SPIN_TURNS_PER_SECOND * Math.PI * 2;
-  const breathe = 0.5 + 0.5 * Math.sin((seconds * Math.PI * 2) / BREATHE_SECONDS);
-
-  ctx.save();
-  ctx.fillStyle = MARKER_CORE_COLOR;
-  hexPath(ctx, x, bobY, radius, rotation);
-  ctx.fill();
-
-  ctx.shadowColor = color;
-  ctx.shadowBlur = MARKER_GLOW_BASE + breathe * MARKER_GLOW_BREATH;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = STROKE_WIDTH;
-  hexPath(ctx, x, bobY, radius, rotation);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = STROKE_WIDTH;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-
-  if (kind === 'aegis') {
-    // A shell around a core — the same thing the buff does, at glyph size.
-    hexPath(ctx, x, bobY, radius * AEGIS_GLYPH_SHELL_SHARE, 0);
-    ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, bobY, radius * AEGIS_GLYPH_CORE_SHARE, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    // Hollow on purpose: the player is and stays the only filled cyan surface in the game.
-    drawChevrons(ctx, x, bobY, radius * OVERDRIVE_GLYPH_SHARE);
-  }
-
-  ctx.restore();
-}
-
-function drawChevrons(ctx, x, y, size) {
-  for (const offset of [-size * 0.75, size * 0.55]) {
-    ctx.beginPath();
-    ctx.moveTo(x + offset - size * 0.4, y - size);
-    ctx.lineTo(x + offset + size * 0.45, y);
-    ctx.lineTo(x + offset - size * 0.4, y + size);
-    ctx.stroke();
+  // Deliberately last of the four: it is the newest thing to have happened, and for its 450 ms
+  // it is the one the player is meant to read.
+  if (renderState.mendArcAge !== undefined) {
+    drawMendArc(ctx, playerPosition.x, playerPosition.y, renderState.mendArcAge);
   }
 }
 
@@ -304,6 +167,39 @@ export function drawTimeArc(ctx, x, y, radius, remaining, color) {
 }
 
 /**
+ * Mend's one-off arc around the player: a life was just given back.
+ *
+ * It runs **counter-clockwise and fills**, where every remaining-time arc in the game drains
+ * clockwise. That inversion is the whole message — something was added, not something is
+ * running out — and it is the reason the two cannot be confused despite being the same 2 px
+ * stroke around the same player. Anyone who does confuse them has lost the direction, not the
+ * colour, so that is where to start.
+ *
+ * It is also all the feedback Mend gets on the player: an event has nothing left to show once
+ * it is over, so the moment itself has to carry it.
+ * @param {CanvasRenderingContext2D} ctx - Canvas context, in world space.
+ * @param {number} x - Player position.
+ * @param {number} y - Player position.
+ * @param {number} age - Seconds since the heal; past `MEND_ARC_SECONDS` nothing is drawn.
+ * @returns {void}
+ */
+export function drawMendArc(ctx, x, y, age) {
+  if (age < 0 || age > MEND_ARC_SECONDS) return;
+
+  ctx.save();
+  ctx.globalAlpha = mendArcAlpha(age);
+  ctx.strokeStyle = MEND_COLOR;
+  ctx.lineWidth = MEND_ARC_WIDTH;
+  ctx.lineCap = 'round';
+  ctx.shadowColor = MEND_COLOR;
+  ctx.shadowBlur = MEND_ARC_GLOW;
+  ctx.beginPath();
+  ctx.arc(x, y, MEND_ARC_RADIUS, -Math.PI / 2, -Math.PI / 2 - mendArcSweep(age), true);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/**
  * The shield giving its life for you: a white flash, then the hexagon breaking into six shards
  * that drift outward. It has to look expensive, or nobody notices the shield is spent and the
  * next hit comes as a surprise.
@@ -343,31 +239,6 @@ export function drawAegisShatter(ctx, x, y, age) {
   ctx.strokeStyle = SHATTER_FLASH_COLOR;
   ctx.lineWidth = SHATTER_FLASH_WIDTH;
   hexPath(ctx, x, y, SHELL_RADIUS + progress * SHATTER_FLASH_GROWTH, 0.5);
-  ctx.stroke();
-  ctx.restore();
-}
-
-/**
- * The collection pop: the dash launch ring again, in the power-up's colour. Reusing the same
- * two functions keeps "something just happened at this spot" a single visual idea instead of
- * two that drift apart, and it is why `powerups.js` remembers a pickup for exactly
- * `LAUNCH_RING_SECONDS`.
- * @param {CanvasRenderingContext2D} ctx - Canvas context, in world space.
- * @param {number} x - Where it was collected.
- * @param {number} y - Where it was collected.
- * @param {number} age - Seconds since collection.
- * @param {'aegis'|'overdrive'} kind - Which power-up.
- * @returns {void}
- */
-export function drawCollectRing(ctx, x, y, age, kind) {
-  if (age < 0 || age > LAUNCH_RING_SECONDS) return;
-
-  ctx.save();
-  ctx.globalAlpha = launchRingAlpha(age);
-  ctx.strokeStyle = powerupColor(kind);
-  ctx.lineWidth = STROKE_WIDTH;
-  ctx.beginPath();
-  ctx.arc(x, y, launchRingRadius(age), 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
 }

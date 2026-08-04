@@ -14,12 +14,14 @@
 
 import { setWave, tick } from '../engine-bridge.js';
 import { buildControls } from '../input/controls.js';
+import { MEND_SEGMENTS } from '../powerups/mend.js';
 import {
   advanceClock,
   dueWaveNumber,
   isPlayerDashReady,
   registerDash,
   registerHit,
+  restoreLives,
 } from '../round/roundData.js';
 import { SIMULATION_STEP_SECONDS, WORLD_BOUNDS } from '../gameConfig.js';
 
@@ -84,7 +86,24 @@ export function runSimulationStep(roundData, input, player, powerups) {
   // After that correction, so nothing is ever collected from a position the player was just
   // pushed out of. It runs per simulation step and not per frame, or a 144 Hz player would
   // collect differently from a 60 Hz one.
-  powerups.step(roundData.simulationTimeMs, player.position.x, player.position.y, frame);
+  //
+  // The life count goes in because Mend's rules need it: a heal nobody can use must not spawn,
+  // and one already lying there must not be collected. Nothing about the count comes back out —
+  // the field reads it and never writes it.
+  const collected = powerups.step(
+    roundData.simulationTimeMs,
+    player.position.x,
+    player.position.y,
+    frame,
+    roundData.lives,
+  );
+
+  // The smallest of the three effects, and the only one that is not a buff: one segment back,
+  // clamped to the maximum. Applied before the hits below, so a heal and a hit landing on the
+  // same step settle in the order they happened rather than cancelling each other out.
+  if (collected === 'mend') {
+    restoreLives(roundData, MEND_SEGMENTS);
+  }
 
   // Every step's hits are consumed here, and both sources share one entry point so
   // they share the invulnerability window. Reading only the last frame of a multi-step
