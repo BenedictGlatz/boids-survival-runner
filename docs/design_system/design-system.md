@@ -360,8 +360,10 @@ Spieler ist und bleibt die einzige gefüllte cyane Fläche im Spiel.
 
 ### Der Marker in der Arena
 
-- Radius **18 px**, Aufsammelradius **26 px** — großzügiger als die Optik, damit ein Streifen
-  beim Dash zählt.
+- Radius **27 px**, Aufsammelradius **39 px** — großzügiger als die Optik, damit ein Streifen
+  beim Dash zählt. Beide sind gegenüber dem Entwurf (18 px / 26 px) um die Hälfte gewachsen:
+  ein Pickup, das man schwer trifft, wird ignoriert. Das Verhältnis der beiden bleibt gleich,
+  der Aufsammelradius ist ein Anteil mehr als die Optik und kein fester Rand um sie.
 - Kern mit `rgba(11,13,18,.85)` gefüllt, sonst läuft das Grid durch das Icon.
 - Kontur 2px in der Power-up-Farbe, Glow atmet über 1,6 s.
 - **3 px Sinus-Hub** (2,2 s) und **0,25 U/s Rotation**. Rotation ist das einzige, was sich in

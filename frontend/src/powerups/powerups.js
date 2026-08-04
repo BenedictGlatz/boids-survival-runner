@@ -34,16 +34,23 @@ export const MAX_MARKERS = 2;
 export const MIN_SPAWN_DISTANCE = 220;
 
 /**
- * Spawn clearance from an obstacle: marker radius 18 plus the player's 16 plus a little.
+ * Spawn clearance from an obstacle: marker radius 27 plus the player's 16 plus a little.
  *
  * Without it a marker can land inside a hazard capsule, and that is worse than unreachable —
  * the player is pushed out of an obstacle and loses a life doing it, so the marker would be
- * bait rather than a reward.
+ * bait rather than a reward. It grew with the marker, and it has to: the slack over those two
+ * radii is what the number is for, and leaving it at 60 would have spent all of it.
  */
-export const MIN_OBSTACLE_CLEARANCE = 60;
+export const MIN_OBSTACLE_CLEARANCE = 70;
 
-/** Larger than the marker is drawn, so a graze at dash speed still counts. */
-export const COLLECT_RADIUS = 26;
+/**
+ * Larger than the marker is drawn, so a graze at dash speed still counts.
+ *
+ * Raised with `PICKUP_RADIUS` by the same half again, which keeps the two in the ratio they
+ * were tuned in — the collect distance is a share more than the glyph, not a fixed margin
+ * around it, so a bigger marker stays as forgiving as the small one was rather than more so.
+ */
+export const COLLECT_RADIUS = 39;
 
 /** How long the shatter is drawn after a hit is absorbed. */
 export const SHATTER_MS = 350;

@@ -13,8 +13,15 @@
 
 import { launchRingAlpha, launchRingRadius, LAUNCH_RING_SECONDS } from './dashTrail.js';
 
-/** Marker radius. Smaller than an obstacle, larger than a boid — reads as an item. */
-export const PICKUP_RADIUS = 18;
+/**
+ * Marker radius. Smaller than an obstacle, larger than a boid — reads as an item.
+ *
+ * Half again the 18 px it started at, because a pickup that is hard to hit is a pickup
+ * that gets ignored. `COLLECT_RADIUS` in `powerups/powerups.js` was raised by the same
+ * factor: the collect distance has to stay the *visibly* generous one, or a graze that
+ * looks like a hit stops being one.
+ */
+export const PICKUP_RADIUS = 27;
 
 /**
  * Amber is already the game's colour for a temporary state change, cyan the colour of the

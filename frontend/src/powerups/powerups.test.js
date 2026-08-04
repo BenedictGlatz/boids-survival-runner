@@ -4,8 +4,10 @@ import {
   OBSTACLE_STRIDE,
   PLAYER_DASH_SPEED,
   PLAYER_MAX_SPEED,
+  PLAYER_VISUAL_RADIUS,
   SIMULATION_STEP_MS,
 } from '../gameConfig.js';
+import { PICKUP_RADIUS } from '../renderer/powerupLayer.js';
 import {
   AEGIS_DURATION_MS,
   COLLECT_RADIUS,
@@ -366,5 +368,22 @@ describe('reset', () => {
 
     driver.idle(300);
     expect(driver.markers()).toHaveLength(1);
+  });
+});
+
+// The two numbers above that are only meaningful next to a number in another module. Every
+// other test here reads the constants it asserts on, so resizing a marker moves the tests
+// with it and none of them would notice the collect radius falling behind the glyph.
+describe('the marker size against the drawn one', () => {
+  it('collects from further out than the marker is drawn', () => {
+    // Otherwise the player has to aim inside the hexagon, and a hit that looks like one
+    // stops being one — which is the whole reason these are two numbers and not one.
+    expect(COLLECT_RADIUS).toBeGreaterThan(PICKUP_RADIUS);
+  });
+
+  it('keeps a marker far enough from an obstacle to be stood on', () => {
+    // Room for the whole glyph plus the player's body outside the hazard, so a marker is
+    // never bait that costs a life to reach.
+    expect(MIN_OBSTACLE_CLEARANCE).toBeGreaterThanOrEqual(PICKUP_RADIUS + PLAYER_VISUAL_RADIUS);
   });
 });
