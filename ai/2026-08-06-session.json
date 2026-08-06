@@ -1,0 +1,8 @@
+[
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "In der Vergangenheit wurde die \"Trägheit\" des Spielercharakters zweimal geändert, ich möchte dass du die ursrpünglichen Werte wiederherstellst",
+    "topic": "loop-input",
+    "use": "impl"
+  }
+]

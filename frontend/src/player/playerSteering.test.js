@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  PLAYER_ACCELERATION,
-  PLAYER_DASH_SPEED,
-  PLAYER_MAX_SPEED,
-  PLAYER_TURN_DECELERATION,
-} from '../gameConfig.js';
+import { PLAYER_ACCELERATION, PLAYER_MAX_SPEED } from '../gameConfig.js';
 import { PlayerController } from './playerController.js';
 
 // What a direction change costs. Split off `playerController.test.js` at the 400-line limit, the
 // same way `playerObstacleBlock.test.js` was, and along a real seam: everything here is about the
-// velocity the player is trying to get *rid* of, which is the half `_steer` exists for.
+// velocity the player is trying to get *rid* of.
+//
+// The answer is deliberately "nothing gets rid of it directly". Holding a direction only ever adds
+// to the velocity, so the old momentum has to be spent through the acceleration itself, and the
+// sideways part of a turn is not acted on at all — it only bleeds away as the radial speed cap
+// redistributes what is there. That weight is the intended feel of the character, and these
+// assertions exist so that a future change to the movement code has to argue with it rather than
+// remove it by accident.
 //
 // Like its two neighbours this file imports the tuning constants instead of mirroring them —
 // `PlayerController` reads them straight from `gameConfig.js`, so a local copy could quietly
@@ -24,6 +26,9 @@ const LEFT = { x: -1, y: 0 };
 const DOWN = { x: 0, y: 1 };
 /** What `inputManager.js` hands over for two keys at once: normalised, so not faster. */
 const DOWN_RIGHT = { x: Math.SQRT1_2, y: Math.SQRT1_2 };
+
+/** The run-up from a standstill, which every other duration here is measured against. */
+const RUN_UP_SECONDS = PLAYER_MAX_SPEED / PLAYER_ACCELERATION;
 
 function makePlayerAtCentre() {
   const player = new PlayerController();
@@ -49,58 +54,67 @@ function runUpToSpeed(player, direction) {
   return speedOf(player);
 }
 
+/** How long holding `direction` takes to satisfy `isDone`, in seconds. */
+function secondsUntil(player, direction, isDone) {
+  let steps = 0;
+
+  while (!isDone(player)) {
+    step(player, direction);
+    steps += 1;
+
+    // A guard, so a regression fails as the assertion below rather than as a hung test.
+    expect(steps).toBeLessThan(600);
+  }
+
+  return steps * STEP_SECONDS;
+}
+
 describe('PlayerController.update — turning', () => {
-  it('brakes the sideways momentum of a ninety-degree turn instead of drifting through it', () => {
+  it('spends a full reversal through the acceleration, so it costs twice the run-up', () => {
+    // Nothing brakes while a direction is held, so the only force working against the old heading
+    // is the acceleration towards the new one: it has to undo `PLAYER_MAX_SPEED` before the first
+    // pixel of the new direction is earned. That doubling is the whole of the weight the player
+    // carries, and it is the cheapest of the two turns measured here.
     const player = makePlayerAtCentre();
     runUpToSpeed(player, RIGHT);
 
-    // The whole velocity is now sideways to the new input, so nothing but the turn brake acts on
-    // it. `PLAYER_MAX_SPEED / PLAYER_TURN_DECELERATION` seconds is what that should take.
-    const stepsToClear = Math.ceil(PLAYER_MAX_SPEED / PLAYER_TURN_DECELERATION / STEP_SECONDS);
+    const seconds = secondsUntil(player, LEFT, (p) => p.velocity.x <= -PLAYER_MAX_SPEED * 0.99);
 
-    for (let held = 0; held < stepsToClear; held += 1) {
-      step(player, DOWN);
-    }
-
-    expect(player.velocity.x).toBe(0);
+    expect(seconds).toBeGreaterThan(RUN_UP_SECONDS);
+    expect(seconds).toBeCloseTo(2 * RUN_UP_SECONDS, 1);
   });
 
-  it('brakes that momentum rather than switching it off', () => {
-    // One step must not be enough. A turn that completes inside a single step is not grip, it is
-    // a teleport, and the player would lose all sense of carrying weight.
+  it('leaves the sideways momentum of a ninety-degree turn to bleed away on its own', () => {
+    // The sideways part is orthogonal to the input, so the acceleration never touches it and there
+    // is no separate brake either. It survives only because the radial cap keeps rescaling the
+    // whole vector, which is a slow way to lose it — slower than a full reversal, and by a wide
+    // enough margin that this is a statement about the model rather than about a tuning value.
     const player = makePlayerAtCentre();
     runUpToSpeed(player, RIGHT);
+
+    const seconds = secondsUntil(
+      player,
+      DOWN,
+      (p) => Math.abs(p.velocity.x) <= PLAYER_MAX_SPEED * 0.01,
+    );
+
+    expect(seconds).toBeGreaterThan(2 * RUN_UP_SECONDS);
+  });
+
+  it('barely dents that sideways momentum in the first step of the turn', () => {
+    // A corner starts as a drift rather than as a change of heading: one step later almost the
+    // whole of the old velocity is still pointing the old way.
+    const player = makePlayerAtCentre();
+    const beforeTheTurn = runUpToSpeed(player, RIGHT);
 
     step(player, DOWN);
 
-    expect(player.velocity.x).toBeGreaterThan(0);
-    expect(player.velocity.x).toBeLessThan(PLAYER_MAX_SPEED);
-  });
-
-  it('reverses faster than acceleration alone ever could', () => {
-    // This is the assertion the whole change exists for. Without a separate brake the only thing
-    // working against the old velocity is the acceleration, so a reversal costs
-    // `2 * PLAYER_MAX_SPEED / PLAYER_ACCELERATION` seconds — twice the run-up from a standstill.
-    const player = makePlayerAtCentre();
-    runUpToSpeed(player, RIGHT);
-
-    const accelerationOnlySeconds = (2 * PLAYER_MAX_SPEED) / PLAYER_ACCELERATION;
-    let steps = 0;
-
-    while (player.velocity.x > -PLAYER_MAX_SPEED * 0.99) {
-      step(player, LEFT);
-      steps += 1;
-
-      // A guard, so a regression fails as this assertion rather than as a hung test.
-      expect(steps).toBeLessThan(600);
-    }
-
-    expect(steps * STEP_SECONDS).toBeLessThan(accelerationOnlySeconds);
+    expect(player.velocity.x).toBeGreaterThan(beforeTheTurn * 0.95);
   });
 
   it('does not overshoot the top speed while turning', () => {
-    // The braked sideways part and the freshly built forward part are added together, so the
-    // radial clamp still has to be the last word on how fast the player can be.
+    // The old velocity and the freshly built one are simply added together, so the radial clamp
+    // has to be the last word on how fast the player can be.
     const player = makePlayerAtCentre();
     runUpToSpeed(player, RIGHT);
 
@@ -121,26 +135,22 @@ describe('PlayerController.update — turning', () => {
   });
 
   it('holds a diagonal at the same top speed as an axis', () => {
-    // `inputManager` normalises the direction, and `_steer` projects onto it — the projection is
-    // only exact for a unit vector, so a diagonal drifting off the top speed would mean it is not.
+    // `inputManager` normalises the direction, so both components are built at a share of the
+    // acceleration each. A diagonal drifting off the top speed would mean it is not normalised.
     const player = makePlayerAtCentre();
 
     expect(runUpToSpeed(player, DOWN_RIGHT)).toBeCloseTo(PLAYER_MAX_SPEED, 4);
   });
 
-  it('lets a dash be steered out of, which is the one side effect of all this', () => {
-    // Deliberate rather than tolerated: the sideways brake acts on a dash's surplus too, so
-    // turning mid-lunge spends it. Dashing and holding the *same* direction is untouched, which
-    // is what keeps the dash distance in `playerController.test.js` where it was.
+  it('carries a dash through a turn instead of letting it be steered away', () => {
+    // The surplus of a dash is velocity like any other, so nothing brakes it either: turning
+    // mid-lunge changes where the player ends up, not how far the lunge carries. The dash is over
+    // when its raised speed limit has decayed, not when the player stops pointing along it.
     const player = makePlayerAtCentre();
     step(player, RIGHT, { dash: true });
+
+    step(player, DOWN);
+
     expect(player.velocity.x).toBeGreaterThan(PLAYER_MAX_SPEED);
-
-    const stepsToClear = Math.ceil(PLAYER_DASH_SPEED / PLAYER_TURN_DECELERATION / STEP_SECONDS);
-    for (let held = 0; held < stepsToClear; held += 1) {
-      step(player, DOWN);
-    }
-
-    expect(player.velocity.x).toBe(0);
   });
 });
