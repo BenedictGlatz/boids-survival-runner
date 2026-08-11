@@ -1,6 +1,7 @@
 use super::boid::Boid;
-use super::dash::{advance_dash_state, begin_dash_charge, is_dashing, step_speed_limit};
-use super::dash_selection::select_dash_group;
+use super::dash::{
+    advance_dash_state, begin_dash_charge, is_dashing, select_dash_group, step_speed_limit,
+};
 use super::obstacle::Obstacle;
 use super::obstacle_bounce::bounce_boid_off_obstacles;
 use super::obstacle_pushout::push_boids_out_of_obstacles;
@@ -109,8 +110,8 @@ mod tests {
         BOID_COLLISION_RADIUS, DASH_UNLOCK_DIFFICULTY_TIER, MAX_BOID_DIFFICULTY_TIER,
     };
     use crate::simulation::boid::BoidProperties;
+    use crate::simulation::dash::selection::{allowed_concurrent_dashers, count_busy_dashers};
     use crate::simulation::dash::{dash_properties_for_difficulty_tier, DashState};
-    use crate::simulation::dash_selection::{allowed_concurrent_dashers, count_busy_dashers};
 
     /// No obstacles at all, for the tests that are only about flocking.
     fn no_obstacles() -> Vec<Obstacle> {

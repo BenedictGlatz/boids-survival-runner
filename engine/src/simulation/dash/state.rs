@@ -1,9 +1,6 @@
-use super::boid::Boid;
-use super::dash_aim::{dash_speed, launch_direction};
+use super::aim::{dash_speed, launch_direction};
 use crate::math::vector::Vec2;
-
-// Re-exported so everything about the dash can be reached through this one module.
-pub use super::dash_properties::{dash_properties_for_difficulty_tier, DashProperties};
+use crate::simulation::boid::Boid;
 
 /// Which part of the dash cycle a boid is currently in.
 ///
@@ -142,6 +139,7 @@ mod tests {
     use super::*;
     use crate::constants::DASH_UNLOCK_DIFFICULTY_TIER;
     use crate::simulation::boid::BoidProperties;
+    use crate::simulation::dash::dash_properties_for_difficulty_tier;
 
     /// A boid of the lowest tier that is allowed to dash, standing at the origin.
     fn dash_capable_boid() -> Boid {

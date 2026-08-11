@@ -1,11 +1,11 @@
-use super::boid::Boid;
-use super::dash::DashState;
+use super::state::DashState;
 use crate::constants::{
     BOIDS_PER_EXTRA_DASH_SLOT, DASH_GROUP_RADIUS, DASH_SELECTION_INTERVAL_STEPS,
     MAXIMUM_DASH_SELECTION_DISTANCE, MAX_CONCURRENT_DASHING_BOIDS, MAX_DASH_GROUP_SIZE,
     MINIMUM_DASH_SELECTION_DISTANCE,
 };
 use crate::math::vector::Vec2;
+use crate::simulation::boid::Boid;
 
 // Multipliers that turn the selection round into a spread-out boid index. This is
 // the same integer-hash trick (and the same numbers) as `find_spawn_position`,

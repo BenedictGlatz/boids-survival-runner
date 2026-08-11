@@ -13,8 +13,8 @@
 //! aim at the start of the charge-up instead would turn the line into a promise and let a
 //! player walk out of every dash, which is a different game.
 
-use super::boid::Boid;
 use crate::math::vector::Vec2;
+use crate::simulation::boid::Boid;
 
 /// Aim once at where the player is standing at launch time.
 ///
@@ -69,8 +69,9 @@ mod tests {
     use super::*;
     use crate::constants::DASH_UNLOCK_DIFFICULTY_TIER;
     use crate::simulation::boid::BoidProperties;
-    use crate::simulation::dash::{advance_dash_state, begin_dash_charge, DashState};
-    use crate::simulation::dash_properties::dash_properties_for_difficulty_tier;
+    use crate::simulation::dash::{
+        advance_dash_state, begin_dash_charge, dash_properties_for_difficulty_tier, DashState,
+    };
 
     /// A boid of the lowest tier that is allowed to dash, standing at the origin.
     fn dash_capable_boid() -> Boid {
