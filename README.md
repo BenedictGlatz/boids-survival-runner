@@ -112,8 +112,10 @@ npm test          # single run
 npm run test:watch  # re-runs on file changes
 ```
 
-Uses [Vitest](https://vitest.dev/). Tests live next to the module they cover and are named
-`<module>.test.js`; the runner picks up `frontend/src/**/*.test.js`.
+Uses [Vitest](https://vitest.dev/). Tests live in a `__tests__/` folder inside the folder holding the
+module they cover and are named `<module>.test.js`; the runner picks up
+`frontend/src/**/__tests__/*.test.js`. That keeps a test one directory away from its module without
+letting the test files outnumber the modules in a folder listing.
 
 The suite is scoped to the **pure logic** modules — frame timing, the player controller, and the
 like. Those have no imports, so it runs in plain Node without a browser and **without a built

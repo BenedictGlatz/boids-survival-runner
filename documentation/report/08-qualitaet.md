@@ -66,7 +66,9 @@ bestimmtes Werkzeug auf einem bestimmten Target sehen kann.
 braucht weder Browser noch gebautes WASM-Paket — und genau daraus folgt ihre Grenze:
 Nur importfreie Logikmodule sind so testbar. Ein Test, der `engine-bridge.js`, den
 Canvas-Renderer oder ein DOM-Modul hereinzieht, läuft nicht. Testdateien liegen als
-`<modul>.test.js` neben dem Modul und spiegeln damit die Rust-Konvention.
+`<modul>.test.js` in einem Ordner `__tests__/` innerhalb des Ordners, dessen Module sie
+prüfen. Damit bleibt der Test wie in Rust bei seinem Code, aber ein Blick in `loop/`
+oder `renderer/` zeigt die Module und nicht doppelt so viele Testdateien daneben.
 
 **Coverage wird je Sprache getrennt erhoben und getrennt berichtet**
 (`@vitest/coverage-v8`, `cargo llvm-cov --lib`). Eine gemeinsame Kennzahl wäre die

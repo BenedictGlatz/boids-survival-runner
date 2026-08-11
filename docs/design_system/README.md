@@ -17,7 +17,7 @@ bauende Richtung.
 | `menuBackdrop.js`           | Neues Modul `frontend/src/ui/menuBackdrop.js`: Boid-Schwarm hinter dem Menü.                  |
 | `dashTrail.js`              | Neues Modul `frontend/src/renderer/dashTrail.js`: Trail-Historie + Schweif-Mathematik.        |
 | `trailLayer.js`             | Neues Modul `frontend/src/renderer/trailLayer.js`: zeichnet die Schweife.                     |
-| `dashTrail.test.js`         | Vitest-Suite für die Schweif-Mathematik. Nach `frontend/src/renderer/` kopieren.              |
+| `dashTrail.test.js`         | Vitest-Suite für die Schweif-Mathematik. Nach `frontend/src/renderer/__tests__/` kopieren.    |
 | `dash-trail-integration.md` | Die vier Einbaustellen in `canvasRenderer.js` und `round/` — mit Code.                        |
 | `powerups.js`               | Neues Modul `frontend/src/powerups/powerups.js`: Spawn, Einsammeln, Buff-Zustand.             |
 | `powerupLayer.js`           | Neues Modul `frontend/src/renderer/powerupLayer.js`: zeichnet Marker, Schild, Bögen.          |
@@ -32,10 +32,10 @@ cp handoff/obstacleLayer.js        frontend/src/renderer/obstacleLayer.js
 cp handoff/menuBackdrop.js         frontend/src/ui/menuBackdrop.js
 cp handoff/dashTrail.js            frontend/src/renderer/dashTrail.js
 cp handoff/trailLayer.js           frontend/src/renderer/trailLayer.js
-cp handoff/dashTrail.test.js       frontend/src/renderer/dashTrail.test.js
+cp handoff/dashTrail.test.js       frontend/src/renderer/__tests__/dashTrail.test.js
 cp handoff/powerupLayer.js         frontend/src/renderer/powerupLayer.js
 cp handoff/powerups.js             frontend/src/powerups/powerups.js
-cp handoff/powerups.test.js        frontend/src/powerups/powerups.test.js
+cp handoff/powerups.test.js        frontend/src/powerups/__tests__/powerups.test.js
 ```
 
 `frontend/index.html`, vor `main.css` (die Fonts liegen bewusst als `<link>` im Dokument,

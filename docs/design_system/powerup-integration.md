@@ -6,7 +6,7 @@ Wirkung sind Gameplay. Optik und Konstanten: `design-system.md` §11.
 ```
 cp handoff/powerupLayer.js   frontend/src/renderer/powerupLayer.js
 cp handoff/powerups.js       frontend/src/powerups/powerups.js
-cp handoff/powerups.test.js  frontend/src/powerups/powerups.test.js
+cp handoff/powerups.test.js  frontend/src/powerups/__tests__/powerups.test.js
 ```
 
 Drei Power-ups: **Aegis** (amber, fängt den nächsten Treffer ab), **Overdrive** (cyan,

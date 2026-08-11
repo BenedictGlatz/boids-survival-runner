@@ -42,7 +42,7 @@ export default [
   // Non-test source runs in the browser (canvas, keyboard, requestAnimationFrame).
   {
     files: ['src/**/*.js'],
-    ignores: ['**/*.test.js'],
+    ignores: ['src/**/__tests__/**'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -79,8 +79,12 @@ export default [
   // Test files: Vitest globals are imported explicitly, so no extra
   // environment is needed, and JSDoc — presence or content — is never
   // required on test helpers.
+  //
+  // The glob covers all of `src/**/__tests__/`, not only `*.test.js` inside it,
+  // so a shared fixture or helper placed there is exempt too — the same reason
+  // the e2e block below matches `e2e/**/*.js` rather than just its spec files.
   {
-    files: ['src/**/*.test.js'],
+    files: ['src/**/__tests__/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module' },
     rules: {
       'jsdoc/require-jsdoc': 'off',

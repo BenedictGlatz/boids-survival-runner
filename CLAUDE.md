@@ -36,7 +36,7 @@ cd engine && wasm-pack test --headless --chrome   # if Firefox is unavailable
 # Rust lint / format
 cd engine && cargo clippy && cargo fmt
 
-# Frontend unit tests (Vitest, all frontend/src/**/*.test.js)
+# Frontend unit tests (Vitest, all frontend/src/**/__tests__/*.test.js)
 cd frontend && npm test
 
 # Frontend tests in watch mode
@@ -51,7 +51,7 @@ cd frontend && npx playwright test e2e/boot.spec.js   # a single flow
 cd frontend && npm run test:e2e:report
 
 # A single frontend test file
-cd frontend && npx vitest run src/loop/frameMetrics.test.js
+cd frontend && npx vitest run src/loop/__tests__/frameMetrics.test.js
 
 # Frontend lint (ESLint flat config in frontend/eslint.config.js)
 cd frontend && npm run lint
@@ -70,7 +70,8 @@ ESLint (flat config, `frontend/eslint.config.js`) lints the frontend and must st
 and zero warnings**. `eslint-plugin-jsdoc` enforces JSDoc — presence _and_ typed
 `@param`/`@returns` with descriptions — on exported functions/classes and on public methods of an
 exported class. Deliberately out of scope: plain exported constants (`gameConfig.js`),
-underscore-prefixed private members (`_startDash`), and `*.test.js`. Both the presence rule and the
+underscore-prefixed private members (`_startDash`), and everything under `src/**/__tests__/` — the
+whole folder, not just its `*.test.js`, so a shared fixture beside them is exempt too. Both the presence rule and the
 content rules share one `JSDOC_REQUIRED_CONTEXTS` list, so they never disagree about what counts as
 public API. `cargo clippy` is the Rust counterpart.
 
@@ -85,15 +86,19 @@ Rust counterpart. Do not hand-format code that Prettier owns; run `npm run forma
 Vitest is configured in `frontend/vitest.config.js` and runs in the `node` environment, so the suite
 needs neither a browser nor a built WASM package. Only import-free logic modules are testable this
 way — a test that pulls in `engine-bridge.js`, the canvas renderer or any DOM module will not run.
-Test files sit beside the module they cover as `<module>.test.js`, mirroring the Rust `#[cfg(test)]`
-convention, and count against the same 400-line limit.
+Test files sit in a `__tests__/` folder inside the folder holding the module they cover, named
+`<module>.test.js`, and count against the same 400-line limit. The folder is the compromise between
+the two things a location has to do: the tests stay next to the code they exercise, the way the Rust
+`#[cfg(test)]` modules do, but a folder listing of `loop/` or `renderer/` shows the modules instead
+of burying them among twice as many test files. Never add a `*.test.js` loose beside a module —
+`vitest.config.js` only collects `src/**/__tests__/*.test.js`, so a misplaced file silently never runs.
 
 Playwright (`frontend/playwright.config.js`) covers everything Vitest structurally cannot: the WASM
 module loading, the menu, the HUD, the round lifecycle, and keyboard ownership. It runs against the
 **production build** — `npm run test:e2e` builds and serves `vite preview` itself — because the dev
 server serves the whole project directory and therefore hides anything the build forgets to copy;
 that is exactly how the missing `dist/locales/` went unnoticed. Specs live in `frontend/e2e/` as
-`*.spec.js`, deliberately disjoint from Vitest's `src/**/*.test.js` so neither runner collects the
+`*.spec.js`, deliberately disjoint from Vitest's `src/**/__tests__/*.test.js` so neither runner collects the
 other's files. Expected user-facing strings are read from `public/locales/en.json` rather than
 written into a spec, which keeps the no-hard-coded-strings rule intact and makes a missing key fail.
 Three limits are deliberate and documented in `08-qualitaet.md` §8.2: Chromium only, one worker (a

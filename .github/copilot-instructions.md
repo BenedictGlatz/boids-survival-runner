@@ -204,11 +204,11 @@ is the top priority — always favour clear, teachable code over clever or obscu
 
 #### Test runners
 
-| Layer           | Runner                        | Command                                            | Location of tests                      |
-| --------------- | ----------------------------- | -------------------------------------------------- | -------------------------------------- |
-| Engine (Rust)   | `cargo test`                  | `cd engine && cargo test`                          | `#[cfg(test)]` module in the same file |
-| Engine boundary | `wasm-pack test`              | `cd engine && wasm-pack test --headless --firefox` | `engine/tests/`                        |
-| Frontend (JS)   | [Vitest](https://vitest.dev/) | `cd frontend && npm test`                          | `<module>.test.js` beside the module   |
+| Layer           | Runner                        | Command                                            | Location of tests                                   |
+| --------------- | ----------------------------- | -------------------------------------------------- | --------------------------------------------------- |
+| Engine (Rust)   | `cargo test`                  | `cd engine && cargo test`                          | `#[cfg(test)]` module in the same file              |
+| Engine boundary | `wasm-pack test`              | `cd engine && wasm-pack test --headless --firefox` | `engine/tests/`                                     |
+| Frontend (JS)   | [Vitest](https://vitest.dev/) | `cd frontend && npm test`                          | `__tests__/<module>.test.js` in the module's folder |
 
 - The frontend suite runs in Node, not in a browser, and must not require a built WASM package.
   Keep the logic worth testing in modules that import nothing — the way `loop/frameScheduler.js` and

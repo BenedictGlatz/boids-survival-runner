@@ -6,7 +6,7 @@ WASM-Grenze. Regeln und Begründungen: `design-system.md` §10.
 ```
 cp handoff/dashTrail.js       frontend/src/renderer/dashTrail.js
 cp handoff/trailLayer.js      frontend/src/renderer/trailLayer.js
-cp handoff/dashTrail.test.js  frontend/src/renderer/dashTrail.test.js
+cp handoff/dashTrail.test.js  frontend/src/renderer/__tests__/dashTrail.test.js
 ```
 
 ---

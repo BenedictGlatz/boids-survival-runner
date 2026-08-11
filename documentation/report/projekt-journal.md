@@ -104,8 +104,35 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-06 | 0,5 | S-05 | Spielerhandling auf den Stand vor beiden Fassungen zurückgebaut, auf ausdrücklichen Wunsch: `_steer` und `PLAYER_TURN_DECELERATION` entfallen ersatzlos, `PLAYER_ACCELERATION` 1600 → 1200, `PLAYER_DECELERATION` 2000 → 1500, das Halten einer Richtung addiert wieder nur. Gegenprobe mit demselben Messtreiber wie am 2026-08-04 und exakt auf die Ausgangswerte zurück (90° 1,633 s, 180° 0,600 s, Anfahren 0,300 s, Anhalten 0,250 s), also ein Rückbau und kein dritter Zustand. `playerSteering.test.js` bleibt bestehen und dreht die Richtung: statt der Querbremse hält es jetzt fest, dass eine Wende teuer ist (180° = doppeltes Anfahren, 90° länger als das, erster Wendeschritt nimmt < 5 % der Querkomponente) — vier Zusicherungen ausgetauscht, drei modellunabhängige behalten (radiale Kappe, Overdrive-Kappe über eine Wende, Diagonale ohne Mehrgeschwindigkeit); die Dash-Zusicherung kehrt sich mit um, weil der Überschuss ohne Querbremse nicht mehr weglenkbar ist. Der `[Unreleased]`-Eintrag im Changelog wurde gestrichen statt widerrufen, weil die Änderung nie in einem Release stand. Frontend 470 Unit-Tests und 51 E2E-Tests grün, ESLint ohne Befund |
 | 2026-08-11 | 1,5 | S-01 | `engine/src/simulation/` von 22 flachen Dateien auf vier Einzeldateien plus vier Themenordner umgebaut (`steering/`, `dash/`, `obstacle/`, `wave/`), Namenspräfixe entfallen (`obstacle_bounce.rs` → `obstacle/bounce.rs`). Vier Commits, einer je Ordner, beginnend mit `wave/` als risikofreiem Probelauf — dieser Cluster hat null eingehende Kanten aus dem Rest der Simulation. Jeder Ordner bekommt ein Fassaden-`mod.rs` nach dem Muster, das `dash.rs` schon trug; dadurch blieben `boid.rs`, `overlap.rs` und die meisten `use`-Zeilen in `flock.rs` unverändert, und außerhalb von `simulation/` waren nur drei Dateien betroffen. Kein Dateiinhalt verändert: 206 Lib-Tests vor und nach jedem der vier Commits, `cargo clippy --all-targets -- -D warnings` und `cargo fmt --check` ohne Befund; die WASM-Grenze zusätzlich über `wasm-pack test` und die E2E-Suite gegen einen frisch gebauten Produktionsbuild geprüft, weil `cargo test` für `engine/tests/` grundsätzlich 0 meldet. Doku nachgezogen: der Engine-Abschnitt in `CLAUDE.md` (dabei den Altbestand korrigiert — `steering.rs`, alle neun Hindernis-Dateien und `math/segment.rs` fehlten dort seit ihrer Entstehung), die Diagramm-Tabelle in `00-index.md`, die Pfadnennungen in `04-systemnah-wasm-bausteine.md` und `spec-s05-dash.md`; historische Pfade in diesem Journal bleiben stehen, weil ein rückwirkend umgeschriebener Eintrag den Stand von damals falsch darstellen würde |
 | 2026-08-11 | 1,5 | D-01 | `documentation/codebase-ueberblick.md` geschrieben — ein Einstiegstext, den es bisher nicht gab: `README.md` deckt nur das Setup ab, die Kapitel 03/04/05 sind Gerüste unter Seitenbudget, `docs/spec-*.md` sind Feature-Specs. Der Überblick führt in der Reihenfolge, in der das Programm arbeitet (Boot → ein Frame von A bis Z → Engine ordnerweise → Frontend paketweise → die tragenden Invarianten), plus eine Landkarte „ich will X ändern → diese Datei" und ein Abschnitt zu den Änderungen der letzten Wochen. Bewusst ohne Nummernpräfix, damit er nicht als Berichtskapitel gelesen wird, und ohne LOC-, Test- oder Coverage-Zahlen — die stehen laut Konvention 1 aus `00-index.md` ausschließlich in Kapitel 09, auf das der Text verweist. Zusätzlich als gehostete HTML-Seite mit gerenderten Mermaid-Diagrammen veröffentlicht |
+| 2026-08-11 | 0,5 | T-01 | Alle 37 Frontend-Testdateien aus den Quellordnern in je ein `__tests__/` darin verschoben, auf Wunsch als Konvention für künftige Tests. Anlass war `src/loop/`: fünf Module, fünf Testdateien, eine Ordneransicht, in der die Hälfte der Einträge kein Programmcode ist — bei `renderer/` mit 15 Tests dasselbe Bild. Umgesetzt mit `git mv` (Umbenennungen bleiben in der Historie verfolgbar) und einer Ersetzung der relativen Importpfade um genau eine Ebene; kein Testinhalt geändert, 470 Zusicherungen vor und nach dem Umbau grün. Drei Konfigurationsstellen ziehen mit: `include` in `vitest.config.js` auf `src/**/__tests__/*.test.js` — die alte Angabe hätte weiter gegriffen, aber dann wäre eine lose abgelegte Datei still eingesammelt worden statt aufzufallen; in `eslint.config.js` beide Blöcke auf den Ordner statt auf `*.test.js`, damit eine gemeinsame Testhilfe ohne Endung `.test.js` dieselbe JSDoc-Ausnahme erbt wie die Specs unter `e2e/`. Playwright bleibt unberührt, die Disjunktheit der beiden Runner ist mit dem engeren Glob sogar strenger als vorher. Doku nachgezogen in `CLAUDE.md`, `README.md`, `.github/copilot-instructions.md`, Kap. 08 und den drei Handoff-Anleitungen unter `docs/design_system/`; der Zählbefehl in Kap. 09 brauchte keine Änderung, weil er ohnehin rekursiv sucht |
 
 ## Entscheidungen
+
+### 2026-08-11 — Testdateien in `__tests__/` statt neben dem Modul
+
+**Gewählt:** Ein Ordner `__tests__/` in dem Ordner, dessen Module er prüft —
+`src/loop/__tests__/frameScheduler.test.js` neben `src/loop/frameScheduler.js`.
+
+**Verworfen:** (1) der bisherige Zustand, Test direkt neben dem Modul, als Spiegel der
+Rust-Konvention `#[cfg(test)]`; (2) ein schlichter Ordnername `tests/`; (3) ein gespiegelter
+Baum `frontend/tests/loop/…` außerhalb von `src/`.
+
+**Warum:** Die Rust-Analogie trägt weniger weit, als sie aussieht: ein `#[cfg(test)]`-Modul
+ist ein Block **in** der Datei und kostet die Verzeichnisansicht nichts, während jede
+`*.test.js` dort ein eigener Eintrag ist — in `renderer/` standen 15 Tests neben 20 Modulen,
+in `loop/` fünf neben fünf. Ein gespiegelter Baum außerhalb von `src/` löst das, kostet aber
+die Nähe: der Test wäre nicht mehr im Blickfeld, wenn man das Modul öffnet, und jeder Import
+liefe über mehrere Ebenen. `__tests__/` ist die Konvention, die Vitest und Jest ohnehin
+kennen, was den Namen für Außenstehende erklärt, ohne ihn zu dokumentieren; `tests/` wäre
+lesbarer, kollidiert aber optisch mit `engine/tests/`, das etwas anderes bezeichnet (die
+WASM-Grenztests, die nur unter `wasm-pack` laufen).
+
+**Konsequenz:** Jeder Test importiert sein Modul eine Ebene höher (`../frameScheduler.js`),
+die 400-Zeilen-Grenze gilt unverändert, und die Regel ist nur solange verlässlich, wie
+`include` sie erzwingt — deshalb der engere Glob statt des weiterhin funktionierenden
+`src/**/*.test.js`. Eine versehentlich lose abgelegte Datei fällt jetzt dadurch auf, dass
+ihre Zusicherungen in der Gesamtzahl fehlen.
+→ Kap. 7, 8
 
 ### 2026-08-11 — `simulation/` bekommt Themenordner mit Fassaden-`mod.rs`
 

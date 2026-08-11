@@ -15,11 +15,12 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    // Tests live next to the module they cover, the same way the Rust code
-    // keeps its `#[cfg(test)]` modules beside the functions they exercise.
+    // Tests live in a `__tests__/` folder inside the folder whose modules they
+    // cover — close enough to stay findable, separate enough that a folder
+    // listing shows the modules and not twice as many test files next to them.
     // Deliberately disjoint from Playwright's `e2e/**/*.spec.js`, so neither
     // runner ever picks up the other one's files.
-    include: ['src/**/*.test.js'],
+    include: ['src/**/__tests__/*.test.js'],
     coverage: {
       provider: 'v8',
       reportsDirectory: 'coverage',
