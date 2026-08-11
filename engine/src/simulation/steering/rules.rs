@@ -1,8 +1,8 @@
-use super::boid::Boid;
-use super::obstacle::Obstacle;
-use super::obstacle_arming::is_armed;
 use crate::constants::{OBSTACLE_LOOK_AHEAD_SHARE, OBSTACLE_TANGENT_SHARE};
 use crate::math::vector::Vec2;
+use crate::simulation::boid::Boid;
+use crate::simulation::obstacle::Obstacle;
+use crate::simulation::obstacle_arming::is_armed;
 
 /// Separation: steers a boid away from overly close neighbours.
 pub fn separation(boid: &Boid, neighbours: &[Boid]) -> Vec2 {

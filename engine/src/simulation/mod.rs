@@ -15,6 +15,5 @@ pub mod obstacle_rules;
 pub mod obstacle_spawn;
 pub mod overlap;
 pub mod physics;
-pub mod rules;
 pub mod steering;
 pub mod wave;

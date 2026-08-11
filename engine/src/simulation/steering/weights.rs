@@ -1,7 +1,7 @@
-use super::boid::Boid;
-use super::obstacle::Obstacle;
 use super::rules::{alignment, avoid_obstacles, cohesion, seek_target, separation};
 use crate::math::vector::Vec2;
+use crate::simulation::boid::Boid;
+use crate::simulation::obstacle::Obstacle;
 
 // How the steering rules are weighed against each other. The rules themselves return
 // unweighted forces and know nothing about priority; the flock loop knows nothing about
