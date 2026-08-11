@@ -14,13 +14,21 @@ import {
 
 /**
  * Creates the state of a fresh round.
+ *
+ * The developer options arrive here as one object and are then part of the round rather than
+ * of the settings: a toggle flipped mid-round would change the rules of a run already in
+ * progress, and the loop would have to read a second source of truth on every step.
  * @param {number} startedAt - Wall-clock time the countdown starts at, in milliseconds.
  * @param {{entityCount: number}} initialFrame - Engine snapshot taken before the first step.
+ * @param {{invulnerable?: boolean}} [options] - Developer settings this round runs under.
  * @returns {object} The round state every other function in this module operates on.
  */
-export function createRoundData(startedAt, initialFrame) {
+export function createRoundData(startedAt, initialFrame, options = {}) {
   return {
     score: 0,
+    // A round nobody can lose, for measuring what the simulation costs after many waves.
+    // It is read in `registerHit` and nowhere else.
+    invulnerable: options.invulnerable === true,
     lives: PLAYER_STARTING_LIVES,
     maxLives: PLAYER_STARTING_LIVES,
     timerSeconds: 0,
@@ -106,17 +114,25 @@ export function isPlayerInvulnerable(roundData) {
  * grace period is what keeps a player who is leaning against something from
  * losing every life within a handful of steps.
  *
- * The order of the two escapes matters and is the reason `absorbHit` is a callback rather
- * than a flag: the grace period is checked first, so a shield is never spent on a hit that
+ * The order of the three escapes matters and is the reason `absorbHit` is a callback rather
+ * than a flag: the grace period is checked before it, so a shield is never spent on a hit that
  * would have cost nothing anyway. An absorbed hit deliberately starts no grace period —
  * `lastHitAtSimulationMs` stays where it was, so the next hit costs a life immediately and a
  * shield reads as a single charge rather than as a second invulnerability window.
+ *
+ * The developer mode is the first escape and leaves `lastHitAtSimulationMs` untouched, which is
+ * what keeps it out of the picture: an endless grace period would blink the player amber for the
+ * whole run, and the mode exists to leave a long round otherwise exactly as it is.
  * @param {object} roundData - The round state to charge the hit to.
  * @param {() => boolean} [absorbHit] - Asked only for a hit that would really land. Returning
  *   true consumes whatever absorbed it and cancels the damage.
  * @returns {boolean} True if a life was actually spent.
  */
 export function registerHit(roundData, absorbHit) {
+  if (roundData.invulnerable) {
+    return false;
+  }
+
   if (isPlayerInvulnerable(roundData)) {
     return false;
   }

@@ -74,6 +74,14 @@ describe('MenuSettings.toMenuOptions', () => {
     expect(settings.frameGraphMode).toBe(FRAME_GRAPH_MODE.COMBINED);
   });
 
+  it('writes the invulnerability toggle through', () => {
+    const settings = new MenuSettings();
+
+    settings.toMenuOptions().invulnerable.onToggle(true);
+
+    expect(settings.invulnerable).toBe(true);
+  });
+
   it('starts on the documented defaults', () => {
     // The menu is built before the first round, so these are what a player who
     // never opens the settings plays with.
@@ -81,5 +89,7 @@ describe('MenuSettings.toMenuOptions', () => {
 
     expect(settings.frameGraphEnabled).toBe(false);
     expect(settings.frameGraphMode).toBe(DEFAULT_FRAME_GRAPH_MODE);
+    // A round nobody can lose has to be asked for, never inherited.
+    expect(settings.invulnerable).toBe(false);
   });
 });

@@ -105,6 +105,41 @@ test.describe('start-menu settings', () => {
     expect(panel.backingHeight).toBeGreaterThanOrEqual(109);
   });
 
+  test('keeps the invulnerability switch off and behind the developer row', async ({ page }) => {
+    // A round nobody can lose is a measuring instrument, so it must not be reachable
+    // by accident: it exists only in the diagnostic submenu and starts out off.
+    await openStartMenu(page);
+
+    await expect(page.locator('#invulnerable-options')).toHaveCount(0);
+
+    await page.locator('#btn-developer').click();
+
+    const options = page.locator('#invulnerable-options button');
+
+    await expect(options.filter({ hasText: STRINGS.settings.off })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  test('remembers the invulnerability choice across leaving the submenu', async ({ page }) => {
+    // The submenu markup is rebuilt from the settings object on every render, so a
+    // choice that is not written through would silently fall back to off on re-entry.
+    await openStartMenu(page);
+    await page.locator('#btn-developer').click();
+    await page
+      .locator('#invulnerable-options button')
+      .filter({ hasText: STRINGS.settings.on })
+      .click();
+
+    await page.keyboard.press('Escape');
+    await page.locator('#btn-developer').click();
+
+    await expect(
+      page.locator('#invulnerable-options button').filter({ hasText: STRINGS.settings.on }),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
   test('leaves the frametime graph hidden by default', async ({ page }) => {
     await openStartMenu(page);
 

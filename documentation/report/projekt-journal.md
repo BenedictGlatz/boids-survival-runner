@@ -105,8 +105,63 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-11 | 1,5 | S-01 | `engine/src/simulation/` von 22 flachen Dateien auf vier Einzeldateien plus vier Themenordner umgebaut (`steering/`, `dash/`, `obstacle/`, `wave/`), Namenspräfixe entfallen (`obstacle_bounce.rs` → `obstacle/bounce.rs`). Vier Commits, einer je Ordner, beginnend mit `wave/` als risikofreiem Probelauf — dieser Cluster hat null eingehende Kanten aus dem Rest der Simulation. Jeder Ordner bekommt ein Fassaden-`mod.rs` nach dem Muster, das `dash.rs` schon trug; dadurch blieben `boid.rs`, `overlap.rs` und die meisten `use`-Zeilen in `flock.rs` unverändert, und außerhalb von `simulation/` waren nur drei Dateien betroffen. Kein Dateiinhalt verändert: 206 Lib-Tests vor und nach jedem der vier Commits, `cargo clippy --all-targets -- -D warnings` und `cargo fmt --check` ohne Befund; die WASM-Grenze zusätzlich über `wasm-pack test` und die E2E-Suite gegen einen frisch gebauten Produktionsbuild geprüft, weil `cargo test` für `engine/tests/` grundsätzlich 0 meldet. Doku nachgezogen: der Engine-Abschnitt in `CLAUDE.md` (dabei den Altbestand korrigiert — `steering.rs`, alle neun Hindernis-Dateien und `math/segment.rs` fehlten dort seit ihrer Entstehung), die Diagramm-Tabelle in `00-index.md`, die Pfadnennungen in `04-systemnah-wasm-bausteine.md` und `spec-s05-dash.md`; historische Pfade in diesem Journal bleiben stehen, weil ein rückwirkend umgeschriebener Eintrag den Stand von damals falsch darstellen würde |
 | 2026-08-11 | 1,5 | D-01 | `documentation/codebase-ueberblick.md` geschrieben — ein Einstiegstext, den es bisher nicht gab: `README.md` deckt nur das Setup ab, die Kapitel 03/04/05 sind Gerüste unter Seitenbudget, `docs/spec-*.md` sind Feature-Specs. Der Überblick führt in der Reihenfolge, in der das Programm arbeitet (Boot → ein Frame von A bis Z → Engine ordnerweise → Frontend paketweise → die tragenden Invarianten), plus eine Landkarte „ich will X ändern → diese Datei" und ein Abschnitt zu den Änderungen der letzten Wochen. Bewusst ohne Nummernpräfix, damit er nicht als Berichtskapitel gelesen wird, und ohne LOC-, Test- oder Coverage-Zahlen — die stehen laut Konvention 1 aus `00-index.md` ausschließlich in Kapitel 09, auf das der Text verweist. Zusätzlich als gehostete HTML-Seite mit gerenderten Mermaid-Diagrammen veröffentlicht |
 | 2026-08-11 | 0,5 | T-01 | Alle 37 Frontend-Testdateien aus den Quellordnern in je ein `__tests__/` darin verschoben, auf Wunsch als Konvention für künftige Tests. Anlass war `src/loop/`: fünf Module, fünf Testdateien, eine Ordneransicht, in der die Hälfte der Einträge kein Programmcode ist — bei `renderer/` mit 15 Tests dasselbe Bild. Umgesetzt mit `git mv` (Umbenennungen bleiben in der Historie verfolgbar) und einer Ersetzung der relativen Importpfade um genau eine Ebene; kein Testinhalt geändert, 470 Zusicherungen vor und nach dem Umbau grün. Drei Konfigurationsstellen ziehen mit: `include` in `vitest.config.js` auf `src/**/__tests__/*.test.js` — die alte Angabe hätte weiter gegriffen, aber dann wäre eine lose abgelegte Datei still eingesammelt worden statt aufzufallen; in `eslint.config.js` beide Blöcke auf den Ordner statt auf `*.test.js`, damit eine gemeinsame Testhilfe ohne Endung `.test.js` dieselbe JSDoc-Ausnahme erbt wie die Specs unter `e2e/`. Playwright bleibt unberührt, die Disjunktheit der beiden Runner ist mit dem engeren Glob sogar strenger als vorher. Doku nachgezogen in `CLAUDE.md`, `README.md`, `.github/copilot-instructions.md`, Kap. 08 und den drei Handoff-Anleitungen unter `docs/design_system/`; der Zählbefehl in Kap. 09 brauchte keine Änderung, weil er ohnehin rekursiv sucht |
+| 2026-08-11 | 1,0 | T-04 | Entwickleroption „Invulnerable Player" umgesetzt: Runden, in denen der Spieler keine Leben verliert, als Messinstrument für Langzeit-Frametimes — die interessanten Werte liegen jenseits von zehn Minuten Spielzeit, und dorthin kam man vorher nur durch Überleben. Die Fahne wird einmal beim Öffnen der Runde in `createRoundData` gelesen und in `registerHit` als erster von drei Ausstiegen geprüft; `lastHitAtSimulationMs` bleibt unberührt, damit die Optik der Runde unverändert bleibt. Abgedeckt auf drei Ebenen: vier Vitest-Zusicherungen in einer eigenen Datei `round/__tests__/invulnerableMode.test.js` (die bestehende Datei stand bei 399 Zeilen), zwei Playwright-Flows zum Schalter selbst und einer in `gameover.spec.js`, der 20 Sekunden Stillstand ohne Rundenende festnagelt — dieselbe Eingabe, die im Test darüber in unter fünf Sekunden drei Leben kostet. Der letzte Flow fand einen Altfehler: das Menü rendert aus einer Momentaufnahme der Einstellungen, zeigte also beim erneuten Betreten eines Untermenüs wieder den Ausgangswert; `Menu.showStart` bekommt die Optionen jetzt als Funktion und liest sie pro Render neu |
 
 ## Entscheidungen
+
+### 2026-08-11 — Unverwundbarkeit gehört der Runde, nicht den Einstellungen
+
+**Gewählt:** Die Entwickleroption wird beim Öffnen der Runde **einmal** gelesen und als
+Fahne `invulnerable` Teil von `roundData`; geprüft wird sie an genau einer Stelle, als
+erster von drei Ausstiegen in `registerHit`.
+
+**Verworfen:** (1) `registerHit` fragt pro Schritt die `MenuSettings`; (2) die Trefferzahlen
+werden im Simulationsschritt gar nicht erst ausgelesen, wenn der Modus läuft; (3) der Modus
+setzt `lastHitAtSimulationMs` dauerhaft in die Zukunft und nutzt damit die vorhandene
+Gnadenfrist.
+
+**Warum:** (1) hätte eine zweite Quelle der Wahrheit in den heißen Pfad gelegt, und ein
+mitten in der Runde umgelegter Schalter ändert die Regeln eines laufenden Laufs — eine
+Messung, deren Bedingungen sich währenddessen verschieben, ist keine. (2) färbt mehr als
+gedacht: Treffer sind auch Eingabe für die Power-up-Absorption und für das rote Aufleuchten,
+der Modus soll aber außer dem Lebensverlust nichts verändern. (3) hätte den Spieler die
+ganze Runde über im Bernstein der Unverwundbarkeit blinken lassen, weil `renderState.js`
+genau diesen Zeitstempel als Optik liest — die Messung wäre sichtbar geworden und hätte
+zusätzlich Zeichenarbeit erzeugt, also genau das verfälscht, was sie messen soll.
+
+**Konsequenz:** Der Modus ist eine Zeile im Runden-Zustand und eine Bedingung in der einen
+Schadensfunktion, durch die jede Schadensquelle läuft — Hindernisse blocken und stoßen
+weiter zurück, Aegis wird nicht verbraucht, Mend spawnt weiter und lehnt am vollen
+Lebensstand ab. Eine unverlierbare Runde endet nur über die Pausenkarte, und die schreibt
+bewusst keinen Rekord, also kann sie nicht in „Personal Best" landen. Testbar wurde das
+Ganze nur durch den vorhandenen Todesfall-Flow: Stillstand kostet dort in unter fünf
+Sekunden drei Leben, und eine Zusicherung darüber, dass etwas **nicht** passiert, ist nur
+neben dem Beweis etwas wert, dass es sonst passieren würde.
+→ Kap. 3, 8
+
+### 2026-08-11 — Das Menü liest seine Optionen pro Render, statt sie einmal zu bekommen
+
+**Gewählt:** `Menu.showStart` nimmt die Optionen als Funktion (`() => settings.toMenuOptions()`)
+und ruft sie in `_render` auf.
+
+**Verworfen:** (1) der Bestand, ein einmal übergebenes Objekt; (2) das Menü schreibt die
+gewählten Werte zusätzlich in seine eigene Kopie zurück; (3) `MenuSettings` liefert Objekte
+mit Gettern, die live auf die Felder zeigen.
+
+**Warum:** Der Bestand war fehlerhaft, und zwar nicht erst durch die neue Option: jedes
+Untermenü wird bei jedem Render aus dem Objekt neu gebaut, das Objekt hielt aber den Stand
+vom Öffnen des Decks. 30 fps wählen, zurück und wieder hinein — die Gruppe zeigte wieder
+die schnellste Stufe als gewählt, während der Loop längst mit 30 zeichnete. (2) hielte
+denselben Wert an zwei Stellen und verlagert die Frage nur; (3) funktioniert, versteckt aber
+Zustandsfluss hinter Getter-Syntax, was in einem Projekt für Rust- und JS-Einsteiger teurer
+ist als ein sichtbarer Funktionsaufruf.
+
+**Konsequenz:** Ein Fehler, den die drei bestehenden Optionen von Anfang an unauffällig
+trugen, weil er nur die Anzeige betraf. Bei der Unverwundbarkeit wäre er die teurere Sorte gewesen — „Off" im Menü
+bei einer Runde, die nicht verloren werden kann. Gefunden hat ihn der E2E-Test, der genau
+diesen Weg geht (wählen, verlassen, wieder betreten), und er gilt jetzt für alle vier
+Gruppen.
+→ Kap. 3, 8
 
 ### 2026-08-11 — Testdateien in `__tests__/` statt neben dem Modul
 

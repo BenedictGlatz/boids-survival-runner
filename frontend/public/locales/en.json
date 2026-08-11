@@ -43,6 +43,8 @@
     "frameGraphSeparate": "Separate",
     "frameGraphCombined": "Combined",
     "developerSettings": "Developer Settings",
+    "invulnerablePlayer": "Invulnerable Player",
+    "invulnerablePlayerHint": "For measuring long rounds: the player can no longer lose a life, so the round only ends when you end it from the pause card. Everything else is left exactly as it is — obstacles still block, the swarm still hunts, power-ups are still collected. A round nobody can lose is never written to Personal Best, because leaving through the pause card records nothing.",
     "on": "On",
     "off": "Off"
   },

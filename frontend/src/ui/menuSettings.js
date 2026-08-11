@@ -11,6 +11,7 @@
 import {
   DEFAULT_FRAME_GRAPH_ENABLED,
   DEFAULT_FRAME_GRAPH_MODE,
+  DEFAULT_PLAYER_INVULNERABLE,
   DEFAULT_TARGET_FPS,
   TARGET_FPS_OPTIONS,
 } from '../gameConfig.js';
@@ -28,6 +29,7 @@ export class MenuSettings {
     this._refreshRateHz = null;
     this._frameGraphEnabled = DEFAULT_FRAME_GRAPH_ENABLED;
     this._frameGraphMode = DEFAULT_FRAME_GRAPH_MODE;
+    this._invulnerable = DEFAULT_PLAYER_INVULNERABLE;
   }
 
   /** @returns {number} The chosen target framerate. */
@@ -43,6 +45,14 @@ export class MenuSettings {
   /** @returns {string} Which curves the frametime graph plots. */
   get frameGraphMode() {
     return this._frameGraphMode;
+  }
+
+  /**
+   * Read once per round, in `createRoundData`, and never again while it runs.
+   * @returns {boolean} Whether the next round starts with an invulnerable player.
+   */
+  get invulnerable() {
+    return this._invulnerable;
   }
 
   /**
@@ -64,8 +74,8 @@ export class MenuSettings {
   /**
    * The settings object `Menu.showStart` expects: current values plus the handler
    * each group calls when the player picks something.
-   * @returns {{targetFps: object, frameGraph: object, frameGraphMode: object}} One
-   *   entry per option group in the menu.
+   * @returns {{targetFps: object, frameGraph: object, frameGraphMode: object,
+   *            invulnerable: object}} One entry per option group in the menu.
    */
   toMenuOptions() {
     return {
@@ -87,6 +97,12 @@ export class MenuSettings {
         selected: this._frameGraphMode,
         onSelect: (mode) => {
           this._frameGraphMode = mode;
+        },
+      },
+      invulnerable: {
+        enabled: this._invulnerable,
+        onToggle: (enabled) => {
+          this._invulnerable = enabled;
         },
       },
     };

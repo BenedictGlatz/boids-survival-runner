@@ -118,7 +118,9 @@ function showStartMenu() {
     () => {
       void startGame();
     },
-    settings.toMenuOptions(),
+    // A function, not the object: the menu rebuilds a submenu on every render and has to
+    // see the values as they are then, not as they were when the deck opened.
+    () => settings.toMenuOptions(),
     // Read on every open rather than cached: the round that just ended wrote to it.
     readRecords(),
   );
@@ -160,7 +162,11 @@ async function openRound() {
   // again, so the ribbons still in the history belong to boids that no longer exist.
   renderer.resetTrails();
   await initEngine(WORLD_WIDTH, WORLD_HEIGHT, playerStartPosition);
-  gameData = createRoundData(performance.now(), snapshot());
+  // The developer options are read here, once, and travel with the round: flipping the
+  // invulnerability switch cannot change the rules of a run that is already going.
+  gameData = createRoundData(performance.now(), snapshot(), {
+    invulnerable: settings.invulnerable,
+  });
   state.transition(STATE.PLAYING);
   // Claims the space bar for the dash. Outside a round it has to stay with the
   // menu, where every button and the developer section are activated with it.

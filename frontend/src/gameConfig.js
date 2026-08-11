@@ -305,6 +305,12 @@ export const MAX_PLAUSIBLE_REFRESH_RATE_HZ = 500;
 export const DEFAULT_FRAME_GRAPH_ENABLED = false;
 
 /**
+ * Off by default, and there is no way to reach it except the developer submenu: an
+ * invulnerable player is a measuring instrument for long rounds, not a difficulty setting.
+ */
+export const DEFAULT_PLAYER_INVULNERABLE = false;
+
+/**
  * How many curves the graph plots. `SEPARATE` keeps simulation and draw time
  * apart, `COMBINED` plots their sum as a single line — easier to read when all
  * you want to know is whether the frame as a whole fits its budget.

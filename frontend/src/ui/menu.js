@@ -5,10 +5,12 @@ import {
   FPS_GROUP_ID,
   FRAME_GRAPH_GROUP_ID,
   FRAME_GRAPH_MODE_GROUP_ID,
-  FRAME_GRAPH_ON,
+  INVULNERABLE_GROUP_ID,
+  TOGGLE_ON,
   renderControlsLegend,
   renderFrameGraphGroup,
   renderFrameGraphModeGroup,
+  renderInvulnerableGroup,
   renderPanel,
   renderPersonalBest,
   renderTargetFpsGroup,
@@ -33,6 +35,21 @@ const VIEW = Object.freeze({
 });
 
 /**
+ * One entry per option group in the menu: the value the group is drawn from, plus the
+ * handler it calls when something is picked. Written by `ui/menuSettings.js`, which is
+ * where each entry is documented.
+ * @typedef {object} MenuOptions
+ * @property {{options: number[], selected: number, refreshRateHz: ?number,
+ *             onSelect: (fps: number) => void}} targetFps - The target framerate.
+ * @property {{enabled: boolean, onToggle: (enabled: boolean) => void}} frameGraph - The
+ *   frametime graph's on/off switch.
+ * @property {{selected: string, onSelect: (mode: string) => void}} frameGraphMode - Which
+ *   curves that graph plots.
+ * @property {{enabled: boolean, onToggle: (enabled: boolean) => void}} invulnerable - The
+ *   developer mode that makes the player unlosable.
+ */
+
+/**
  * Start-menu and game-over overlay UI.
  * Mutates the DOM only — no game logic.
  */
@@ -44,6 +61,7 @@ export class Menu {
     root.appendChild(this._el);
 
     this._view = VIEW.ROOT;
+    this._readSettings = null;
     this._settings = null;
     this._records = { best: null, last: null };
     this._onStart = null;
@@ -57,20 +75,21 @@ export class Menu {
    * Shows the start screen.
    *
    * Settings arrive as one object rather than as positional arguments, so adding
-   * a further setting does not keep widening the signature.
+   * a further setting does not keep widening the signature — and behind a function
+   * rather than as that object, because a submenu is rebuilt from it on every render.
+   * A snapshot taken once would leave every group showing the value it had when the
+   * menu opened: choose 30 fps, step back out and in again, and the group would claim
+   * the fastest option is still selected while the loop was already drawing at 30.
    * @param {() => void} onStart - Called when the play row is activated.
-   * @param {{targetFps: {options: number[], selected: number, refreshRateHz: ?number,
-   *                      onSelect: (fps: number) => void},
-   *          frameGraph: {enabled: boolean, onToggle: (enabled: boolean) => void},
-   *          frameGraphMode: {selected: string, onSelect: (mode: string) => void}}} settings -
-   *   Current option values and their change handlers.
+   * @param {() => MenuOptions} readSettings - Asked for the current option values before
+   *   every render.
    * @param {{best: ?object, last: ?object}} records - Stored runs for the personal-best
    *   panel, as read by `round/roundRecords.js`.
    * @returns {void}
    */
-  showStart(onStart, settings, records) {
+  showStart(onStart, readSettings, records) {
     this._onStart = onStart;
-    this._settings = settings;
+    this._readSettings = readSettings;
     this._records = records;
     this._render(VIEW.ROOT);
     this._el.style.display = 'block';
@@ -131,6 +150,10 @@ export class Menu {
 
   _render(view) {
     this._view = view;
+    // Re-read here, not stored once in showStart: the markup below is built from these
+    // values, and a group has to show what is actually set rather than what was set when
+    // the menu opened.
+    this._settings = this._readSettings();
     this._el.innerHTML = renderDeck({
       main: this._renderMain(view),
       aside: this._renderAside(view),
@@ -181,6 +204,7 @@ export class Menu {
     return `
       ${renderFrameGraphGroup(this._settings.frameGraph)}
       ${renderFrameGraphModeGroup(this._settings.frameGraphMode)}
+      ${renderInvulnerableGroup(this._settings.invulnerable)}
     `;
   }
 
@@ -226,11 +250,15 @@ export class Menu {
     });
 
     this._bindGroup(FRAME_GRAPH_GROUP_ID, (value) => {
-      this._settings.frameGraph.onToggle(value === FRAME_GRAPH_ON);
+      this._settings.frameGraph.onToggle(value === TOGGLE_ON);
     });
 
     this._bindGroup(FRAME_GRAPH_MODE_GROUP_ID, (value) => {
       this._settings.frameGraphMode.onSelect(value);
+    });
+
+    this._bindGroup(INVULNERABLE_GROUP_ID, (value) => {
+      this._settings.invulnerable.onToggle(value === TOGGLE_ON);
     });
   }
 

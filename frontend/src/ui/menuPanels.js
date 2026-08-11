@@ -17,10 +17,11 @@ import { FRAME_GRAPH_MODE } from '../gameConfig.js';
 export const FPS_GROUP_ID = 'fps-options';
 export const FRAME_GRAPH_GROUP_ID = 'frame-graph-options';
 export const FRAME_GRAPH_MODE_GROUP_ID = 'frame-graph-mode-options';
+export const INVULNERABLE_GROUP_ID = 'invulnerable-options';
 
-/** Raw values of the frametime-graph toggle, as carried in the DOM. */
-export const FRAME_GRAPH_ON = 'on';
-export const FRAME_GRAPH_OFF = 'off';
+/** Raw values of an on/off group, as carried in the DOM. */
+export const TOGGLE_ON = 'on';
+export const TOGGLE_OFF = 'off';
 
 /**
  * Wraps a group in a panel surface. Inside the left column a group stands on the deck
@@ -121,13 +122,41 @@ function renderFpsHint(refreshRateHz) {
  * @returns {string} HTML for the group.
  */
 export function renderFrameGraphGroup({ enabled }) {
-  return renderOptionGroup({
+  return renderToggleGroup({
     id: FRAME_GRAPH_GROUP_ID,
     label: t('settings.frameTimeGraph'),
     hint: t('settings.frameTimeGraphHint'),
+    enabled,
+  });
+}
+
+/**
+ * The invulnerable-player switch: the round runs until it is ended by hand.
+ * @param {{enabled: boolean}} setting - Whether the mode is currently on.
+ * @returns {string} HTML for the group.
+ */
+export function renderInvulnerableGroup({ enabled }) {
+  return renderToggleGroup({
+    id: INVULNERABLE_GROUP_ID,
+    label: t('settings.invulnerablePlayer'),
+    hint: t('settings.invulnerablePlayerHint'),
+    enabled,
+  });
+}
+
+/**
+ * Off first, on second, in every on/off group in the menu. The order is worth having in one
+ * place: two toggles that disagree about which side "on" sits on are two toggles you have to
+ * read instead of aim at.
+ */
+function renderToggleGroup({ id, label, hint, enabled }) {
+  return renderOptionGroup({
+    id,
+    label,
+    hint,
     options: [
-      { value: FRAME_GRAPH_OFF, label: t('settings.off'), selected: !enabled },
-      { value: FRAME_GRAPH_ON, label: t('settings.on'), selected: enabled },
+      { value: TOGGLE_OFF, label: t('settings.off'), selected: !enabled },
+      { value: TOGGLE_ON, label: t('settings.on'), selected: enabled },
     ],
   });
 }
