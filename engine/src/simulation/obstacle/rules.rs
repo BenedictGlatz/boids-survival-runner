@@ -1,4 +1,4 @@
-use super::obstacle::Obstacle;
+use super::shape::Obstacle;
 use crate::constants::{MINIMUM_CORRIDOR_WIDTH, MINIMUM_OBSTACLE_RADIUS, PLAYER_COLLISION_RADIUS};
 use crate::math::vector::Vec2;
 
@@ -63,7 +63,7 @@ pub fn candidate_is_acceptable(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::simulation::obstacle_spawn::build_spawn_candidate;
+    use crate::simulation::obstacle::spawn::build_spawn_candidate;
 
     const WORLD_WIDTH: f32 = 1600.0;
     const WORLD_HEIGHT: f32 = 900.0;

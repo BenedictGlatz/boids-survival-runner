@@ -68,11 +68,11 @@ sie direkt. `npm run docs:diagrams` extrahiert sie nach `rendered/*.svg` für Wo
 
 Drei Bausteinsichten sind gefordert:
 
-| Kapitel | Komponente                                                                                |
-| ------- | ----------------------------------------------------------------------------------------- |
-| 04      | `dash.rs` + `dash_properties.rs` + `dash_selection.rs` + Integration in `Flock::update()` |
-| 05      | `wasm_bridge/` ↔ `engine-bridge.js`, plus `sequenceDiagram` eines Frames                  |
-| 03      | `input/inputManager.js` + `input/controls.js`                                             |
+| Kapitel | Komponente                                                               |
+| ------- | ------------------------------------------------------------------------ |
+| 04      | `simulation/dash/` + Integration in `Flock::update()`                    |
+| 05      | `wasm_bridge/` ↔ `engine-bridge.js`, plus `sequenceDiagram` eines Frames |
+| 03      | `input/inputManager.js` + `input/controls.js`                            |
 
 In Word **SVG einfügen, nicht PNG** — SVG skaliert druckscharf.
 

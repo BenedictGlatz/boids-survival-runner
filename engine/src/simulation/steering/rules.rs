@@ -1,8 +1,7 @@
 use crate::constants::{OBSTACLE_LOOK_AHEAD_SHARE, OBSTACLE_TANGENT_SHARE};
 use crate::math::vector::Vec2;
 use crate::simulation::boid::Boid;
-use crate::simulation::obstacle::Obstacle;
-use crate::simulation::obstacle_arming::is_armed;
+use crate::simulation::obstacle::{is_armed, Obstacle};
 
 /// Separation: steers a boid away from overly close neighbours.
 pub fn separation(boid: &Boid, neighbours: &[Boid]) -> Vec2 {
@@ -175,7 +174,7 @@ pub fn avoid_obstacles(boid: &Boid, obstacles: &[Obstacle]) -> Vec2 {
 mod tests {
     use super::*;
     use crate::simulation::boid::BoidProperties;
-    use crate::simulation::obstacle_arming::begin_arming;
+    use crate::simulation::obstacle::arming::begin_arming;
 
     #[test]
     fn separation_uses_the_current_boids_perception_radius() {

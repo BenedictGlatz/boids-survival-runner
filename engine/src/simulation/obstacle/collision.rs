@@ -1,5 +1,5 @@
-use super::obstacle::Obstacle;
-use super::obstacle_arming::is_armed;
+use super::arming::is_armed;
+use super::shape::Obstacle;
 use crate::constants::OBSTACLE_KNOCKBACK_DISTANCE;
 use crate::math::segment::{closest_point_on_segment, distance_between_segments};
 use crate::math::vector::Vec2;
@@ -108,7 +108,7 @@ pub fn resolve_movement_against_obstacles(
 mod tests {
     use super::*;
     use crate::constants::{OBSTACLE_KNOCKBACK_DISTANCE, PLAYER_COLLISION_RADIUS};
-    use crate::simulation::obstacle_arming::begin_arming;
+    use crate::simulation::obstacle::arming::begin_arming;
 
     const LIFETIME: u32 = 1800;
     const ARMING: u32 = 90;

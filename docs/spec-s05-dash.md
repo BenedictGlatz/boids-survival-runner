@@ -308,8 +308,8 @@ Ein Eintrag existiert nur während `Charging`. Damit ist der Vorzeichentrick hie
 jeder Wert im Buffer ist ein echter. Der Ladefortschritt steht trotz `dash_phases` ein
 zweites Mal drin, weil genau der Index fehlt, mit dem man ihn dort fände.
 
-Die Geometrie kommt aus `simulation/dash_aim.rs`, und das ist der Punkt der ganzen
-Konstruktion: `launch_direction` und `dash_distance` liegen dort, `launch_dash` in `dash.rs`
+Die Geometrie kommt aus `simulation/dash/aim.rs`, und das ist der Punkt der ganzen
+Konstruktion: `launch_direction` und `dash_distance` liegen dort, `launch_dash` in `dash/state.rs`
 benutzt dieselbe Funktion. Die Linie kann also keine Richtung versprechen, die der Absprung
 nicht nimmt. Ein im Frontend nachgerechnetes `normalize(player − boid)` plus eine dort
 gespiegelte Reichweitentabelle wären zwei Kopien von Simulationswissen, die beim nächsten
@@ -385,23 +385,23 @@ dem Spieler, kommt dieser Boid von dort nicht an; läuft sie über ihn hinaus, k
 
 ### Engine (`cargo test`)
 
-`dash_properties.rs` — niedrige Tiers können nie dashen · Unlock-Tier kann dashen ·
+`dash/properties.rs` — niedrige Tiers können nie dashen · Unlock-Tier kann dashen ·
 höhere Tiers laden kürzer und dashen schneller, nie unter `MINIMUM_DASH_CHARGE_STEPS`.
 
-`dash.rs` — `begin_dash_charge` wird für nicht-dash-fähige Boids ignoriert · ein
+`dash/state.rs` — `begin_dash_charge` wird für nicht-dash-fähige Boids ignoriert · ein
 ladender Boid behält sein normales Speed-Limit · ein dashender bekommt ein erhöhtes ·
 die Aufladung endet mit einem Absprung zum Spieler · die Richtung bleibt eingefroren,
 wenn der Spieler wegläuft · ein Boid im Cooldown startet keinen zweiten Dash · der
 Cooldown endet in `Idle` · `dash_render_phase` ist 0 außerhalb des Dashs, in (0,1)
 beim Laden und dort monoton steigend, in [-1,0) beim Dashen.
 
-`dash_aim.rs` — die Distanz ist `dash_speed × dash_steps` · der Endpunkt liegt genau diese
+`dash/aim.rs` — die Distanz ist `dash_speed × dash_steps` · der Endpunkt liegt genau diese
 Distanz entfernt · die Richtung zeigt auf den Spieler · sie folgt ihm während des Aufladens ·
 Fallback auf das Heading, wenn der Spieler auf dem Boid steht, und auf `(1,0)`, wenn auch das
 fehlt · **die Linie lügt nicht**: das Ziel einen Schritt vor dem Absprung und die Richtung,
 die `launch_dash` dann schreibt, stimmen bei stehendem Spieler überein.
 
-`dash_selection.rs` — keine Auswahl zwischen Selektionsrunden · keine Auswahl wenn
+`dash/selection.rs` — keine Auswahl zwischen Selektionsrunden · keine Auswahl wenn
 kein Boid dashen darf · zu nahe und zu ferne Boids werden nicht gewählt · keine
 Auswahl bei vollen Slots · ein Boid im Cooldown belegt keinen Slot · größere Schwärme
 dürfen mehr Dasher · ein geeigneter Boid wird in einer Selektionsrunde gewählt ·

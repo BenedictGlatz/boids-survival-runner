@@ -9,11 +9,12 @@ verworfener Alternativen.
 
 ## 4.1 Wesentliche Komponenten
 
-> TODO: Tabelle `Modul | Aufgabe` aus CLAUDE.md §Architecture→Engine:
-> `math/vector.rs` · `simulation/boid.rs` · `simulation/rules.rs` ·
-> `simulation/physics.rs` · `simulation/dash.rs` + `dash_properties.rs` ·
-> `simulation/dash_selection.rs` · `simulation/overlap.rs` · `simulation/flock.rs` ·
-> `constants.rs` · `wasm_bridge/`.
+> TODO: Tabelle `Modul | Aufgabe` aus CLAUDE.md §Architecture→Engine.
+> Der Kern als Einzeldateien: `math/vector.rs` · `math/segment.rs` ·
+> `simulation/boid.rs` · `simulation/physics.rs` · `simulation/overlap.rs` ·
+> `simulation/flock.rs`. Die vier Systeme als Ordner mit Fassaden-`mod.rs`:
+> `simulation/steering/` · `simulation/dash/` · `simulation/obstacle/` ·
+> `simulation/wave/`. Dazu `constants.rs` und `wasm_bridge/`.
 > Kernaussage vorweg: Die Engine besitzt die **gesamte** Simulation und kennt weder
 > DOM noch Canvas noch Browser-APIs.
 
@@ -32,8 +33,8 @@ verworfener Alternativen.
 
 ### 4.2.1 Eine wesentliche Komponente: Darstellung des Aufbaus — Bausteinsicht
 
-> TODO: **Der Dash-Cluster** — `dash.rs` + `dash_properties.rs` +
-> `dash_selection.rs` + der Integrationspunkt in `Flock::update()`.
+> TODO: **Der Dash-Cluster** — `dash/state.rs` + `dash/properties.rs` +
+> `dash/selection.rs` + der Integrationspunkt in `Flock::update()`.
 >
 > Mermaid `flowchart LR` mit Subgraphen: `Flock::update()` → `dash_selection`
 > (Kandidatenwahl) → `dash` (Zustandsmaschine) → `dash_properties` (Tuning je Tier)
@@ -43,7 +44,7 @@ verworfener Alternativen.
 >
 > - Die Zustandsmaschine `Idle → Charging → Dashing → Cooling`; Dauern zählen in
 >   **Simulationsschritten**, nie in Millisekunden.
-> - Der Determinismus-Kern: `dash_selection.rs` leitet die Auswahl deterministisch
+> - Der Determinismus-Kern: `dash/selection.rs` leitet die Auswahl deterministisch
 >   aus `Flock::step_counter` ab, mit demselben Integer-Hash-Trick wie
 >   `find_spawn_position`. Es gibt **keine** `rand`-Abhängigkeit in der Engine, und
 >   eine hinzuzufügen würde die Reproduzierbarkeit brechen. Das ist die stärkste
@@ -103,7 +104,7 @@ verworfener Alternativen.
 > - Der `Flock` und die Ausgabepuffer leben über Tick-Grenzen; pro Frame wird
 >   **nichts** neu serialisiert oder alloziert. Hot-Path-Code minimiert Allokationen
 >   je Frame (copilot-instructions.md).
-> - `step_counter` ist die persistierte Uhr, aus der `dash_selection.rs` seinen
+> - `step_counter` ist die persistierte Uhr, aus der `dash/selection.rs` seinen
 >   Determinismus zieht. Derselbe Startzustand plus dieselbe Eingabefolge ergibt
 >   denselben Ablauf — reproduzierbar ohne Zufallsquelle.
 > - Abgrenzung: Es gibt keine Persistenz über den Seitenneuladen hinaus; die liegt im

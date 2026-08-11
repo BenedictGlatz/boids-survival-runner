@@ -1,8 +1,8 @@
-use super::obstacle::Obstacle;
-use super::obstacle_arming::begin_arming;
-use super::obstacle_density::obstacle_density_for_wave;
-use super::obstacle_rules::candidate_is_acceptable;
-use super::obstacle_spawn::build_spawn_candidate;
+use super::arming::begin_arming;
+use super::density::obstacle_density_for_wave;
+use super::rules::candidate_is_acceptable;
+use super::shape::Obstacle;
+use super::spawn::build_spawn_candidate;
 use crate::constants::{
     DEFAULT_OBSTACLE_LIFETIME_STEPS, MINIMUM_CORRIDOR_WIDTH, OBSTACLE_ARMING_STEPS,
     OBSTACLE_SPAWN_ATTEMPTS,
@@ -108,7 +108,7 @@ impl ObstacleField {
 mod tests {
     use super::*;
     use crate::constants::{DEFAULT_OBSTACLE_SPAWN_INTERVAL_STEPS, MAXIMUM_CONCURRENT_OBSTACLES};
-    use crate::simulation::obstacle_arming::is_armed;
+    use crate::simulation::obstacle::arming::is_armed;
 
     const WORLD_WIDTH: f32 = 1600.0;
     const WORLD_HEIGHT: f32 = 900.0;

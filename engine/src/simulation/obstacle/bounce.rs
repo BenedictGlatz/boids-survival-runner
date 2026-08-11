@@ -1,8 +1,8 @@
-use super::boid::Boid;
-use super::obstacle::Obstacle;
-use super::obstacle_collision::resolve_movement_against_obstacles;
+use super::collision::resolve_movement_against_obstacles;
+use super::shape::Obstacle;
 use crate::constants::{BOID_COLLISION_RADIUS, BOID_OBSTACLE_BOUNCE};
 use crate::math::vector::Vec2;
+use crate::simulation::boid::Boid;
 
 // What an obstacle does to a boid that *moved* into it: the same thing it does to the
 // player. The step is cut short at the surface and the velocity bounces off it.
@@ -83,7 +83,7 @@ mod tests {
     use super::*;
     use crate::simulation::dash::{is_dashing, DashState};
     use crate::simulation::flock::Flock;
-    use crate::simulation::obstacle_arming::begin_arming;
+    use crate::simulation::obstacle::arming::begin_arming;
 
     const LIFETIME: u32 = 1800;
     const ARMING: u32 = 90;

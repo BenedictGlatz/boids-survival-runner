@@ -102,8 +102,54 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-04 | 0,5 | S-05 | Spielerhandling nachgestimmt, weil die erste Fassung im Spieltest zu zackig lief — vor allem in Kurven: `PLAYER_TURN_DECELERATION` 3600 → 2200, `PLAYER_ACCELERATION` 2000 → 1600, `PLAYER_DECELERATION` 2600 → 2000, alle drei bewusst zwischen dem Stand vor dem Umbau und dem der ersten Fassung. Gemessen: 90°-Wende 0,10 → 0,17 s (vor dem Umbau 1,63 s), 180°-Wende 0,28 → 0,40 s (0,60 s), Anfahren 0,18 → 0,23 s (0,30 s), Anhalten 0,15 → 0,18 s (0,25 s). Kein Codepfad und kein Test geändert: alle Zusicherungen in `playerSteering.test.js` lesen ihre Konstanten aus `gameConfig.js` statt sie zu spiegeln, weshalb die Umstimmung eine Drei-Zeilen-Änderung ist — genau der Zweck dieser Testform. Die Umkehr-Zusicherung ist zugleich die **Untergrenze** der neuen Zahl: unterhalb von etwa `PLAYER_ACCELERATION` dauert das Wegbremsen der alten Richtung länger als das Durchbeschleunigen, die Querbremse verliert damit ihren Zweck; das steht jetzt als Kommentar an der Konstante, damit die nächste Nachstimmung die Grenze kennt |
 | 2026-08-04 | 0,5 | S-05 | Aegis nachgestimmt, weil der Schild im Spieltest genau den Zug nicht bezahlte, für den er gedacht ist: er fraß einen Treffer und war weg, ein Dash in eine Formation setzt aber drei oder vier Boids innerhalb weniger Schritte auf den Spieler — der zweite kostete trotzdem ein Leben. Der Bruch öffnet jetzt ein Fenster von `AEGIS_ABSORB_INVULNERABILITY_MS` = 1000 ms, in dem `absorbHit` jeden Treffer kostenlos macht; getragen von `PowerupField._absorbInvulnerableUntilMs`, nicht von `roundData.lastHitAtSimulationMs` (siehe Entscheidung). Sichtbarkeit ohne neue Optik: `playerInvulnerable` im renderState wird aus zwei Quellen verodert, der amberfarbene Spieler ist das bestehende Wort für „unantastbar" und trägt die 650 ms nach dem 350-ms-Shatter. `powerups.test.js` lief bei 434 Zeilen auf und wurde entlang derselben Naht geteilt, an der schon `mend.test.js` abging — `powerupBuffs.test.js` nimmt die beiden Buffs am Spieler mit eigenem Treiber, `powerups.test.js` behält die Arena (278 Zeilen). Sechs neue Zusicherungen zum Fenster, eine in `renderState.test.js` für die Verodung, Frontend-Suite 470 grün; Spec S-05b §2/§4/§6/§7 fortgeschrieben, inklusive der ausdrücklichen Rücknahme der Festlegung vom 2026-08-01 |
 | 2026-08-06 | 0,5 | S-05 | Spielerhandling auf den Stand vor beiden Fassungen zurückgebaut, auf ausdrücklichen Wunsch: `_steer` und `PLAYER_TURN_DECELERATION` entfallen ersatzlos, `PLAYER_ACCELERATION` 1600 → 1200, `PLAYER_DECELERATION` 2000 → 1500, das Halten einer Richtung addiert wieder nur. Gegenprobe mit demselben Messtreiber wie am 2026-08-04 und exakt auf die Ausgangswerte zurück (90° 1,633 s, 180° 0,600 s, Anfahren 0,300 s, Anhalten 0,250 s), also ein Rückbau und kein dritter Zustand. `playerSteering.test.js` bleibt bestehen und dreht die Richtung: statt der Querbremse hält es jetzt fest, dass eine Wende teuer ist (180° = doppeltes Anfahren, 90° länger als das, erster Wendeschritt nimmt < 5 % der Querkomponente) — vier Zusicherungen ausgetauscht, drei modellunabhängige behalten (radiale Kappe, Overdrive-Kappe über eine Wende, Diagonale ohne Mehrgeschwindigkeit); die Dash-Zusicherung kehrt sich mit um, weil der Überschuss ohne Querbremse nicht mehr weglenkbar ist. Der `[Unreleased]`-Eintrag im Changelog wurde gestrichen statt widerrufen, weil die Änderung nie in einem Release stand. Frontend 470 Unit-Tests und 51 E2E-Tests grün, ESLint ohne Befund |
+| 2026-08-11 | 1,5 | S-01 | `engine/src/simulation/` von 22 flachen Dateien auf vier Einzeldateien plus vier Themenordner umgebaut (`steering/`, `dash/`, `obstacle/`, `wave/`), Namenspräfixe entfallen (`obstacle_bounce.rs` → `obstacle/bounce.rs`). Vier Commits, einer je Ordner, beginnend mit `wave/` als risikofreiem Probelauf — dieser Cluster hat null eingehende Kanten aus dem Rest der Simulation. Jeder Ordner bekommt ein Fassaden-`mod.rs` nach dem Muster, das `dash.rs` schon trug; dadurch blieben `boid.rs`, `overlap.rs` und die meisten `use`-Zeilen in `flock.rs` unverändert, und außerhalb von `simulation/` waren nur drei Dateien betroffen. Kein Dateiinhalt verändert: 206 Lib-Tests vor und nach jedem der vier Commits, `cargo clippy --all-targets -- -D warnings` und `cargo fmt --check` ohne Befund; die WASM-Grenze zusätzlich über `wasm-pack test` und die E2E-Suite gegen einen frisch gebauten Produktionsbuild geprüft, weil `cargo test` für `engine/tests/` grundsätzlich 0 meldet. Doku nachgezogen: der Engine-Abschnitt in `CLAUDE.md` (dabei den Altbestand korrigiert — `steering.rs`, alle neun Hindernis-Dateien und `math/segment.rs` fehlten dort seit ihrer Entstehung), die Diagramm-Tabelle in `00-index.md`, die Pfadnennungen in `04-systemnah-wasm-bausteine.md` und `spec-s05-dash.md`; historische Pfade in diesem Journal bleiben stehen, weil ein rückwirkend umgeschriebener Eintrag den Stand von damals falsch darstellen würde |
+| 2026-08-11 | 1,5 | D-01 | `documentation/codebase-ueberblick.md` geschrieben — ein Einstiegstext, den es bisher nicht gab: `README.md` deckt nur das Setup ab, die Kapitel 03/04/05 sind Gerüste unter Seitenbudget, `docs/spec-*.md` sind Feature-Specs. Der Überblick führt in der Reihenfolge, in der das Programm arbeitet (Boot → ein Frame von A bis Z → Engine ordnerweise → Frontend paketweise → die tragenden Invarianten), plus eine Landkarte „ich will X ändern → diese Datei" und ein Abschnitt zu den Änderungen der letzten Wochen. Bewusst ohne Nummernpräfix, damit er nicht als Berichtskapitel gelesen wird, und ohne LOC-, Test- oder Coverage-Zahlen — die stehen laut Konvention 1 aus `00-index.md` ausschließlich in Kapitel 09, auf das der Text verweist. Zusätzlich als gehostete HTML-Seite mit gerenderten Mermaid-Diagrammen veröffentlicht |
 
 ## Entscheidungen
+
+### 2026-08-11 — `simulation/` bekommt Themenordner mit Fassaden-`mod.rs`
+
+**Gewählt:** Die 22 flachen Dateien in `engine/src/simulation/` werden zu vier Einzeldateien
+(`boid.rs`, `physics.rs`, `overlap.rs`, `flock.rs`) und vier Ordnern (`steering/`, `dash/`,
+`obstacle/`, `wave/`). Jeder Ordner hat ein `mod.rs`, das seine Untermodule deklariert **und**
+genau die Namen re-exportiert, die von außerhalb des Ordners benutzt werden. Die
+Namenspräfixe entfallen dabei: `obstacle_bounce.rs` wird `obstacle/bounce.rs`.
+
+**Verworfen:** (a) alles flach lassen und nur `mod.rs` kommentieren; (b) einen fünften Ordner
+`core/` für `boid.rs`, `physics.rs`, `overlap.rs`; (c) Ordner ohne Fassade, jeder Aufrufer
+schreibt den vollen Pfad `obstacle::shape::Obstacle`; (d) den Wellen-Ordner `spawn/` nennen,
+wie zunächst vorgesehen.
+
+**Warum:** (a) Die Cluster existieren bereits — neun Dateien beginnen mit `obstacle_`, vier mit
+`dash`, drei gehören zur Welle —, sie stehen nur im Dateinamen statt im Dateisystem, und ein
+Kommentar in `mod.rs` verhindert nicht, dass die nächste Datei wieder flach danebengelegt wird.
+(b) `boid.rs` wird von zehn Modulen benutzt und `flock.rs` ruft in jeden Ordner hinein; beide
+tiefer zu legen macht den Pfad länger, ohne etwas zu trennen — der Kern ist genau das, was
+keinem System gehört. (c) ist der eigentliche Grund, dass der Umbau klein blieb: mit Fassade
+lösen sich `use super::obstacle::Obstacle`, `use super::dash::is_dashing` und
+`use super::steering::{...}` unverändert auf, weshalb `boid.rs`, `overlap.rs` und weite Teile
+von `flock.rs` gar nicht angefasst werden mussten. Das Muster ist außerdem nicht neu: `dash.rs`
+trug seit seiner Entstehung ein `pub use super::dash_properties::{...}` mit derselben
+Begründung im Kommentar — die Ordner verallgemeinern es nur. (d) hätte `spawn::queue` neben
+`obstacle::spawn` gestellt, also zwei verschiedene „Spawns" nebeneinander; `wave` ist zudem das
+Wort, das die Domäne ohnehin führt (`set_wave`, `WAVE_SPAWN_WARNING_STEPS`).
+
+**Konsequenz:** Eine Regel für `use`-Zeilen, an der der Umbau hängt: innerhalb eines Ordners
+`use super::geschwister`, über eine Ordnergrenze hinweg immer der absolute Pfad
+`use crate::simulation::…`; `super::super` steht nirgends. Innerhalb eines `#[cfg(test)]`-Moduls
+zeigt `super` auf die **Datei**, nicht auf den Ordner — die Testmodule benutzen deshalb
+durchgängig den absoluten Pfad, was sie ohnehin schon taten. In die Fassade kommt nur, was
+produktiv über die Ordnergrenze geht: `dash_distance` und `begin_arming` sind bewusst draußen
+geblieben, weil ihre einzigen ordnerfremden Aufrufer Tests sind und ein Re-Export, den niemand
+liest, eine Zusage ist, die niemand prüft — `cargo clippy -- -D warnings` meldet beides
+zuverlässig. Außerhalb von `simulation/` waren genau drei Dateien betroffen
+(`wasm_bridge/mod.rs`, `boid_factory.rs`, `frame_buffers.rs`); die vier Testdateien unter
+`engine/tests/` kennen nur `GameEngine` und blieben unberührt, ebenso das gesamte Frontend —
+die WASM-Schnittstelle ändert sich nicht um ein Byte. Kein Dateiinhalt wurde verändert,
+gekürzt oder gesplittet; die Lib-Testzahl war vor und nach jedem der vier Commits identisch,
+was die eigentliche Zusicherung dieses Umbaus ist. Offen und bewusst nicht mitgemacht: die
+Sichtbarkeiten sind weiterhin durchgängig `pub`, obwohl vieles nur ordnerintern gebraucht wird.
+→ Kap. 4
 
 ### 2026-08-04 — Aegis kauft ein Fenster, nicht einen Treffer
 

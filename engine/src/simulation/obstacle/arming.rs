@@ -1,4 +1,4 @@
-use super::obstacle::Obstacle;
+use super::shape::Obstacle;
 
 // The materialising window of a new obstacle: the stretch of steps in which it is
 // already drawn but cannot yet be collided with.

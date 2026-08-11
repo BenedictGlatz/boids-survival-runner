@@ -1,7 +1,7 @@
-use super::boid::Boid;
-use super::dash::is_dashing;
-use super::obstacle::Obstacle;
-use super::obstacle_arming::is_armed;
+use super::arming::is_armed;
+use super::shape::Obstacle;
+use crate::simulation::boid::Boid;
+use crate::simulation::dash::is_dashing;
 
 // The safety net that frees a boid caught inside an obstacle. Split off from
 // `obstacle_collision.rs` for length alone, along the seam that file's header already
@@ -48,7 +48,7 @@ mod tests {
     use crate::math::vector::Vec2;
     use crate::simulation::dash::{begin_dash_charge, DashState};
     use crate::simulation::flock::Flock;
-    use crate::simulation::obstacle_arming::begin_arming;
+    use crate::simulation::obstacle::arming::begin_arming;
 
     const LIFETIME: u32 = 1800;
     const ARMING: u32 = 90;

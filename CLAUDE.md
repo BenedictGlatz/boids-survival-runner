@@ -131,57 +131,104 @@ Two independently testable layers with a deliberately narrow boundary between th
 
 Owns _all_ simulation. Has zero knowledge of the DOM, canvas, or browser APIs.
 
+`simulation/` is **four single files plus four folders**: the files are the core every system is
+built on, and each folder is one system sitting on that core. Every folder has a facade `mod.rs`
+that re-exports exactly the names used from outside it, so a caller writes `obstacle::Obstacle`
+rather than `obstacle::shape::Obstacle` and moving a file inside a folder is not a breaking change.
+Add a new file to a folder, not a new file to `simulation/`.
+
+**The maths and the core**
+
 - `math/vector.rs` — `Vec2` with pure operations (`add`, `sub`, `scale`, `limit`, `normalize`).
+- `math/segment.rs` — segment geometry the obstacle capsules are built from
+  (`closest_point_on_segment`, `distance_between_segments`, `segments_cross`). A zero-length
+  segment is a point, which is how a circular obstacle falls out of the same code as a bar.
 - `simulation/boid.rs` — `Boid` (position, velocity, acceleration, `difficulty_tier`) and
   `BoidProperties`. **Tuning values live per boid, not globally** — several variants coexist in one
   flock. `constants.rs` holds _defaults_, not invariants.
-- `simulation/rules.rs` — the four steering rules as pure functions: `separation`, `alignment`,
-  `cohesion`, `seek_target`. Each takes `&Boid` plus a neighbour slice and returns an unweighted force.
-  All four scale their desired velocity by `properties.max_speed`, so raising that property changes
-  steering strength as well as top speed — which is why a dash passes a speed cap instead.
 - `simulation/physics.rs` — `integrate(boid, speed_limit)`, `clamp_force`, `aabb_overlap`. The speed
   limit is a parameter, not read from the boid, so a dashing boid can exceed its normal `max_speed`
   for a few steps without its steering being rescaled.
-- `simulation/dash.rs` + `dash_properties.rs` — the per-boid dash state machine
-  (`Idle → Charging → Dashing → Cooling`), its tuning, the per-tier ramp, and `dash_render_phase`,
-  the single number the frontend draws the warning pulse from. Durations count in **simulation
-  steps**, never milliseconds.
-- `simulation/dash_aim.rs` — where a dash would go and how far it carries: `launch_direction`
-  (aim at the player), `dash_distance` and `dash_aim_end`. It is the **single** source of the
-  direction — `dash.rs` launches with it and the warning line the frontend draws is measured with
-  it, so the line cannot promise a direction the launch will not take. Nothing is stored on the
-  boid: the aim is decided in the step the dash launches, so during the charge-up the honest
-  answer is a fresh one every step, and it keeps following a player who moves.
-- `simulation/wave_spawn.rs` + `wave_spawn_placement.rs` — every wave after the first is
-  **announced before it exists**. Placement puts three gates on the world edge (the perimeter
-  is one number walked clockwise, so a gate slides along it and rounds corners by addition)
-  and keeps each clear of the player; the queue holds the boids for `WAVE_SPAWN_WARNING_STEPS`
-  and hands them over once that has elapsed. `set_wave` therefore adds **nothing** to the
-  world — `entity_count` deliberately lags the wave number by the warning window, because
-  that is how many boids are actually in the arena.
-- `simulation/dash_selection.rs` — who dashes next, derived deterministically from
-  `Flock::step_counter` with the same integer-hash trick as `find_spawn_position`. There is no `rand`
-  dependency anywhere in the engine, and adding one would break reproducibility.
 - `simulation/overlap.rs` — `resolve_boid_overlaps` and `wrap_position`. A dashing boid is immovable
   inside the relaxation so it keeps its line; the wrap uses `rem_euclid`, so a displacement larger
   than the world cannot leak a boid off-screen.
-- `simulation/flock.rs` — `Flock::update()` is the per-step core: it offers at most one new dash,
-  clones the boid vector into a **snapshot** so every boid steers against the _previous_ step's state,
-  advances each boid's dash state, applies weighted rules (a dashing boid gets separation only —
-  cohesion, alignment and seeking are off, which is what makes it break out of the swarm),
-  integrates, wraps at world edges, relaxes overlaps, then counts player hits. O(n²) in the boid count.
-- `wasm_bridge/` — the only `#[wasm_bindgen]` surface. `GameEngine` owns the flock, the obstacle
-  field, the wave spawn queue, world bounds, wave state, and the reusable output buffers.
-  `frame_buffers.rs` sits beside it with the strides and the one function that packs a frame into
-  those buffers, so `mod.rs` keeps the life cycle and the exports.
-  `boid_factory.rs` sits beside it and answers the one question none of the simulation modules do —
-  given a wave number, what kind of boid is that: `difficulty_tier_for_wave` /
-  `properties_for_difficulty_tier` are the design ramp, `build_boid` is the single place a tier
-  becomes a boid (shared by the first flock and the spawn gates, so they cannot drift), and
-  `find_spawn_position` is the free placement **only the first flock** still uses.
-- `simulation/world_edge.rs` — the world border as one number walked clockwise, plus
-  `safe_spawn_distance`. Shared by both placement rules and testable by walking the whole perimeter
+- `simulation/flock.rs` — `Flock::update()` is the per-step core and the only orchestrator: it
+  offers at most one new dash, clones the boid vector into a **snapshot** so every boid steers
+  against the _previous_ step's state, advances each boid's dash state, applies weighted rules (a
+  dashing boid gets separation only — cohesion, alignment and seeking are off, which is what makes
+  it break out of the swarm), integrates, bounces off obstacles, wraps at world edges, relaxes
+  overlaps, pushes boids out of obstacles, then counts player hits. O(n²) in the boid count.
+
+**`simulation/steering/`** — where a boid wants to go.
+
+- `rules.rs` — the five steering rules as pure functions: `separation`, `alignment`, `cohesion`,
+  `seek_target`, `avoid_obstacles`. Each takes `&Boid` plus a neighbour or obstacle slice and
+  returns an unweighted force. The first four scale their desired velocity by `properties.max_speed`,
+  so raising that property changes steering strength as well as top speed — which is why a dash
+  passes a speed cap instead. `avoid_obstacles` mixes the outward normal with the **tangent**, so a
+  boid curves past a hazard instead of stalling head-on against it.
+- `weights.rs` — `flocking_steering` and `dash_steering`, the one place that decides how much each
+  rule counts. The rules know nothing about priority and `flock.rs` knows nothing about which rules
+  exist; this file is the only thing that knows both.
+
+**`simulation/dash/`** — the boid lunge, along the life of one strike.
+
+- `properties.rs` — `DashProperties` and the per-tier ramp. Durations count in **simulation steps**,
+  never milliseconds.
+- `selection.rs` — who dashes next, derived deterministically from `Flock::step_counter` with the
+  same integer-hash trick as `find_spawn_position`. There is no `rand` dependency anywhere in the
+  engine, and adding one would break reproducibility.
+- `state.rs` — the per-boid state machine (`Idle → Charging → Dashing → Cooling`), the raised speed
+  cap during a dash, and `dash_render_phase`, the single number the frontend draws the warning pulse
+  from.
+- `aim.rs` — where a dash would go and how far it carries: `launch_direction` (aim at the player),
+  `dash_distance` and `dash_aim_end`. It is the **single** source of the direction — `state.rs`
+  launches with it and the warning line the frontend draws is measured with it, so the line cannot
+  promise a direction the launch will not take. Nothing is stored on the boid: the aim is decided in
+  the step the dash launches, so during the charge-up the honest answer is a fresh one every step,
+  and it keeps following a player who moves.
+
+**`simulation/obstacle/`** — the hazards standing in the arena.
+
+- `shape.rs` — the `Obstacle` capsule (spine + radius; a circle is a zero-length spine), its
+  lifetime and hit-flash fields, `SurfaceContact`, and the geometric queries.
+- `arming.rs` — the materialising window on top of those fields: `begin_arming`, `is_armed`, and the
+  sign-encoded `obstacle_render_phase`. An obstacle that is still fading up is drawn but **not
+  solid**, and this is the only module that knows the difference.
+- `collision.rs` — the one swept movement-vs-surface test, shared by the player and the boids.
+- `bounce.rs` — the boid-side reflection built on it, which is why a dashing boid cannot tunnel
+  through a thin bar in one step.
+- `pushout.rs` — the safety net for a boid that was _displaced_ into a hazard by the overlap
+  relaxation rather than having moved there.
+- `field.rs` — `ObstacleField`: which obstacles exist right now, ageing and expiry, spawn attempts,
+  and `drop_obstacles_outside` on resize.
+- `density.rs` — spawn interval and maximum concurrent count per wave, the crowding ramp.
+- `rules.rs` — `candidate_is_acceptable`, the four placement rules that provably make dead ends
+  impossible (clearance from other obstacles, from walls, from the player; minimum thickness).
+- `spawn.rs` — deterministic candidate generation (shape, position, size, orientation) that
+  `rules.rs` then judges.
+
+**`simulation/wave/`** — how the next wave is announced and where it enters.
+
+- `queue.rs` — the waiting room. Every wave after the first is **announced before it exists**: the
+  queue holds the boids for `WAVE_SPAWN_WARNING_STEPS` and hands them over once that has elapsed.
+  `set_wave` therefore adds **nothing** to the world — `entity_count` deliberately lags the wave
+  number by the warning window, because that is how many boids are actually in the arena.
+- `placement.rs` — three gates on the world edge, each kept clear of the player, plus the inward
+  velocity they fly in with.
+- `world_edge.rs` — the world border as one number walked clockwise (so a gate slides along it and
+  rounds corners by addition), plus `safe_spawn_distance`. Testable by walking the whole perimeter
   without a wave number in sight.
+
+**`wasm_bridge/`** — the only `#[wasm_bindgen]` surface. `GameEngine` owns the flock, the obstacle
+field, the wave spawn queue, world bounds, wave state, and the reusable output buffers.
+`frame_buffers.rs` sits beside it with the strides and the one function that packs a frame into
+those buffers, so `mod.rs` keeps the life cycle and the exports.
+`boid_factory.rs` sits beside it and answers the one question none of the simulation modules do —
+given a wave number, what kind of boid is that: `difficulty_tier_for_wave` /
+`properties_for_difficulty_tier` are the design ramp, `build_boid` is the single place a tier
+becomes a boid (shared by the first flock and the spawn gates, so they cannot drift), and
+`find_spawn_position` is the free placement **only the first flock** still uses.
 
 ### Frontend — `frontend/src/` (ES modules, Vite)
 

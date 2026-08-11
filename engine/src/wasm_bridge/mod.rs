@@ -10,8 +10,7 @@ use crate::constants::{
 };
 use crate::math::vector::Vec2;
 use crate::simulation::flock::Flock;
-use crate::simulation::obstacle_collision::resolve_movement_against_obstacles;
-use crate::simulation::obstacle_field::ObstacleField;
+use crate::simulation::obstacle::{resolve_movement_against_obstacles, ObstacleField};
 use crate::simulation::wave::{
     gate_perimeter_offset, gate_spawn_position, inward_velocity, PendingSpawn, WaveSpawnQueue,
 };
