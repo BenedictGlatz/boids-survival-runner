@@ -1,0 +1,8 @@
+[
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Ich möchte dass du folgendes planst:\n1. Im simulation ordner liegen sehr sehr viele Dateien, ich wünsche mir dass du diese stärker mit Unterordnern gruppierst.\n2. Ich möchte dass du mir einen strukturierten Überblick über die Codebase schreibst, der mich schritt für schritt an die Funktionsweise des Programms heranführt, ich möchte das repository später heute präsentieren und habe durch die vielen Änderungen in letzter Zeit etwas den Überblick verloren",
+    "topic": "engine",
+    "use": "impl"
+  }
+]

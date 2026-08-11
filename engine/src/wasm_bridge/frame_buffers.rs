@@ -17,7 +17,7 @@ use super::GameEngine;
 use crate::simulation::dash::{dash_render_phase, is_charging};
 use crate::simulation::dash_aim::dash_aim_end;
 use crate::simulation::obstacle_arming::obstacle_render_phase;
-use crate::simulation::wave_spawn::wave_spawn_warning_progress;
+use crate::simulation::wave::wave_spawn_warning_progress;
 
 /// Values per obstacle in the obstacle buffer. Kept in step with the frontend's
 /// OBSTACLE_STRIDE, and asserted on in the WASM boundary tests.

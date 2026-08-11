@@ -18,7 +18,7 @@ use crate::constants::{
 use crate::math::vector::Vec2;
 use crate::simulation::boid::{Boid, BoidProperties};
 use crate::simulation::dash::dash_properties_for_difficulty_tier;
-use crate::simulation::world_edge::safe_spawn_distance;
+use crate::simulation::wave::safe_spawn_distance;
 
 const GOLDEN_ANGLE: f32 = 2.399_963_1;
 
