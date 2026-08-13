@@ -17,7 +17,6 @@ Fließtext referenziert.
 > - Verzeichnisstruktur und Schichtenzuordnung (Engine / Frontend / Bridge)
 > - Modulübersicht Engine mit Aufgabe je Datei
 > - Modulübersicht Frontend mit Aufgabe je Datei
-> - Wertetabelle der `dash_phases`-Kodierung (aus docs/spec-s05-dash.md §4)
 > - Testübersicht je Verzeichnis
 > - Coverage je Modul, getrennt nach Sprache (Zahlen aus Kap. 9.2b) — sortiert nach
 >   Wert, damit die zweigipfelige Verteilung aus Kap. 8.1 sichtbar wird
@@ -44,6 +43,29 @@ Wellen bleiben ein reiner Schwarm zum Einlernen.
 
 Zum Vergleich: Der Spieler bewegt sich mit 360 px/s, also 6 px/Schritt. Ein Dash ist damit
 2,3- bis 3,1-mal so schnell wie der Spieler.
+
+### Die sieben Puffer eines Frames
+
+Langfassung des Puffer-Vertrags aus Kapitel 5.2.1 Der Puffer-Vertrag. Spalte _Anzahl_ nennt
+den Zähler, aus dem die Länge des Puffers folgt; die oberen vier teilen sich einen einzigen
+Zähler und sind untereinander index-aligniert, die unteren drei tragen je einen eigenen. Alle
+Angaben stammen aus `engine/src/wasm_bridge/response.rs` und
+`engine/src/wasm_bridge/frame_buffers.rs`.
+
+| Puffer          | Typ            | Werte je Eintrag          | Anzahl               | Inhalt eines Eintrags                                                         |
+| --------------- | -------------- | ------------------------- | -------------------- | ----------------------------------------------------------------------------- |
+| `positions`     | `Float32Array` | 2                         | `entity_count`       | Position eines Boids                                                          |
+| `velocities`    | `Float32Array` | 2                         | `entity_count`       | Geschwindigkeit, aus der der Renderer die Ausrichtung nimmt                   |
+| `tiers`         | `Uint32Array`  | 1                         | `entity_count`       | Schwierigkeitsstufe, entscheidet über die Farbe                               |
+| `dash_phases`   | `Float32Array` | 1                         | `entity_count`       | Dash-Renderzustand, vorzeichenkodiert (`0` = nichts, `+` = lädt, `−` = dasht) |
+| `obstacles`     | `Float32Array` | 7 (`OBSTACLE_STRIDE`)     | `obstacle_count`     | Kapsel (2 × Spine, Radius), `render_phase` vorzeichenkodiert, `hit_flash`     |
+| `spawn_markers` | `Float32Array` | 3 (`SPAWN_MARKER_STRIDE`) | `spawn_marker_count` | Eintrittspunkt eines angekündigten Boids und Fortschritt seiner Warnzeit      |
+| `dash_aims`     | `Float32Array` | 5 (`DASH_AIM_STRIDE`)     | `dash_aim_count`     | Vorwarnlinie eines ladenden Boids: Start, Ende, Ladefortschritt               |
+
+Dazu kommen fünf Skalare, die nur ein `tick()` erzeugen kann und die ein `snapshot()` auf null
+lässt: `player_x` / `player_y` (die gegen die Hindernisse aufgelöste Spielerposition),
+`obstacle_hit` und `block_normal_x` / `block_normal_y` (die Oberflächennormale des Kontakts).
+`hit_count` und das daraus abgeleitete `hit` zählen die Boid-Treffer dieses Schritts.
 
 ### Tech Stack Canvas — Langfassung
 
@@ -112,7 +134,8 @@ fortgeschrieben.
 >
 > 1. `dash_selection.rs` — die deterministische Auswahl per Integer-Hash über
 >    `step_counter`; der stärkste Beleg für das Fokus-Thema.
-> 2. `wasm_bridge/response.rs` — der Vier-Puffer-Vertrag.
+> 2. `wasm_bridge/response.rs` — der Puffer-Vertrag, exemplarisch an den vier
+>    index-alignierten Gettern.
 > 3. `Flock::update()` — Snapshot-Klon und Schrittreihenfolge.
 > 4. `dash_render_phase` — das Sign-Packing in einer Funktion.
 > 5. `loop/frameScheduler.js` — die Fixed-Timestep-Arithmetik mit Schuldenklemmung.

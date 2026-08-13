@@ -22,5 +22,11 @@
     "prompt": "bitte fahre mit kapitel 4 fort.",
     "topic": "prozess-doku",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "bitte schreibe die nötigen abschnitte für das kapitel 5 des repiorts",
+    "topic": "prozess-doku",
+    "use": "impl"
   }
 ]
