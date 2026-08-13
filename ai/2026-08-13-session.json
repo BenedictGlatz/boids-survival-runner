@@ -52,5 +52,17 @@
     "prompt": "Bitte fülle Kapitel 10 des reports aus",
     "topic": "prozess-doku",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Bitte fass die 13 report dateien und das Projekt journal in einer Datei zusammen. Kürze den Text nicht. Ich möchte dass du ihn unverändert zusammenkopierst, sodass ich den gesamten Text als eine Datei übergeben kann. Markiere die einzelnen Dateien in der neuen großen Datei als Kapitel",
+    "topic": "prozess-doku",
+    "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "bitte pushe meine lokalen änderungen und synchronisiere, sodass mein Kommiliton mit den Daten weiterarbeiten kann",
+    "topic": "tooling-tests",
+    "use": "impl"
   }
 ]
