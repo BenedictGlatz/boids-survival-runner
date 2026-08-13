@@ -224,6 +224,41 @@ Jedes Modul der unteren Gruppe ist DOM- oder WASM-gebunden und damit in der
 Node-Umgebung von Vitest strukturell nicht erreichbar; abgedeckt sind sie durch die
 Playwright-Suite aus 8.2 E2E Tests.
 
+### Kapazitätsplan je Maßnahme — Plan und Ist
+
+Aufschlüsselung der Blocktabelle aus 10.1.3 Ist gegen Plan. _Plan_ stammt aus
+`docs/specs-overview.md` §3, _Ist_ aus der Aufwandstabelle des Journals, aggregiert je
+Maßnahmen-ID, Stand 13.08.2026. Die Journal-IDs `S-04b` (Pause) und `S-05b` (Power-ups)
+sind in `S-04` bzw. `S-05` eingerechnet, weil die Planung sie dort führt. Die
+Ist-Spalte enthält nur die dokumentierte Projektphase ab dem 29.07.2026; die Gründe
+und die Folgen für die Differenz stehen in 10.1.2 Erfassung des Ist-Aufwands.
+
+| ID                     | Maßnahme                                    |  Plan (h) |  Ist (h) | Stand                                     |
+| ---------------------- | ------------------------------------------- | --------: | -------: | ----------------------------------------- |
+| `S-01`                 | Boid-Schwarm-Simulation                     |        18 |      1,5 | umgesetzt, überwiegend vor dem Journal    |
+| `S-02`                 | WASM-Bridge-API                             |         5 |      6,0 | umgesetzt                                 |
+| `S-03`                 | Rendering & HUD                             |        12 |     13,5 | umgesetzt, Design-Handoff eingearbeitet   |
+| `S-04` (inkl. `S-04b`) | Loop & Waves, Pause                         |        13 |      6,0 | umgesetzt, Kern vor dem Journal           |
+| `S-05` (inkl. `S-05b`) | Steuerung, Dash, Power-ups                  |        22 |     15,5 | umgesetzt, _Slow-Time_ bewusst gestrichen |
+| `S-06`                 | Querschnitt: i18n, Scoring, Build           |        12 |      2,0 | umgesetzt, überwiegend vor dem Journal    |
+| `S-07`                 | Temporäre Hindernisse                       |        16 |     14,5 | umgesetzt                                 |
+| —                      | Integrations- und Testzuschlag (~20 %)      |      ≈ 19 |        — | nicht separat erfasst, in den Zeilen      |
+| **Summe Specs**        |                                             | **≈ 118** | **59,0** |                                           |
+| `T-01`                 | ESLint, Prettier, JSDoc-Enforcement         |         5 |      4,0 | umgesetzt                                 |
+| `T-02`                 | TypeScript-Prüfung über `allowJs`/`checkJs` |         3 |      0,0 | offen, begründet in 7.6 TypeScript        |
+| `T-03`                 | Coverage beide Sprachen                     |       3,5 |      1,5 | umgesetzt                                 |
+| `T-04`                 | E2E-Tests inkl. Report                      |         6 |      5,0 | umgesetzt                                 |
+| `T-05`                 | CI/CD: GitHub-Actions-Pipeline              |         5 |      0,0 | offen, begründet in 8.3 CI/CD             |
+| `T-06`                 | Deployment auf GitHub Pages                 |         3 |      0,0 | offen, begründet in 7.10 Deployment       |
+| `T-07`                 | Unit-Test-Lücken schließen                  |         6 |      3,0 | teilweise umgesetzt                       |
+| `T-08`                 | GPU-Last messen, dann senken                |         9 |      6,0 | Stufe 1 umgesetzt, Stufe 2 offen          |
+| **Summe Tooling**      |                                             |  **40,5** | **19,5** |                                           |
+| `D-01`                 | Dokumentation, Diagramme, Layout            |        22 |     16,5 | Kapitel 01–10 im Entwurf                  |
+| **Gesamt**             |                                             | **≈ 181** | **95,0** |                                           |
+
+Die Summe der Ist-Spalte entspricht 56 Journal-Zeilen über neun Arbeitstage zwischen
+dem 29.07.2026 und dem 13.08.2026.
+
 ## 11.2 Abbildungen
 
 > TODO: Die gerenderten SVGs aus `rendered/`. Vorgesehen:
