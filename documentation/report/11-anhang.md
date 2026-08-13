@@ -17,13 +17,33 @@ Fließtext referenziert.
 > - Verzeichnisstruktur und Schichtenzuordnung (Engine / Frontend / Bridge)
 > - Modulübersicht Engine mit Aufgabe je Datei
 > - Modulübersicht Frontend mit Aufgabe je Datei
-> - Dash-Tuning je Schwierigkeits-Tier (aus docs/spec-s05-dash.md §3)
 > - Wertetabelle der `dash_phases`-Kodierung (aus docs/spec-s05-dash.md §4)
 > - Testübersicht je Verzeichnis
 > - Coverage je Modul, getrennt nach Sprache (Zahlen aus Kap. 9.2b) — sortiert nach
 >   Wert, damit die zweigipfelige Verteilung aus Kap. 8.1 sichtbar wird
 > - E2E-Flow-Tabelle in Langfassung, falls Kap. 8.2 gekürzt werden muss
 > - Vollständige npm-Script-Tabelle, falls Kap. 7.1 gekürzt werden muss
+
+### Dash-Tuning je Schwierigkeits-Tier
+
+Langfassung der beiden Endpunkte aus Kapitel 4.8 Implementierung der Fachlogik. Alle Werte
+sind aus `engine/src/constants.rs` und `engine/src/simulation/dash/properties.rs` abgeleitet,
+nicht gemessen; Sekundenangaben gelten bei 60 Simulationsschritten je Sekunde. Die Stufen 0
+und 1 (Wellen 1 und 2) fehlen, weil ihr `can_dash` fest `false` ist — die beiden ersten
+Wellen bleiben ein reiner Schwarm zum Einlernen.
+
+| Größe                             | Herleitung aus der Stufe  | Tier 2 (Welle 3) | Tier 3 (Welle 4) | Tier 4 (Welle 5+) |
+| --------------------------------- | ------------------------- | ---------------: | ---------------: | ----------------: |
+| Vorwarnung `charge_steps`         | `max(54 − 5 · Tier, 24)`  |    44 · (0,73 s) |    39 · (0,65 s) |     34 · (0,57 s) |
+| Dash-Dauer `dash_steps`           | `18 + 1 · Tier`           |    20 · (0,33 s) |    21 · (0,35 s) |     22 · (0,37 s) |
+| Cooldown `cooldown_steps`         | `300 − 30 · Tier`         |    240 · (4,0 s) |    210 · (3,5 s) |     180 · (3,0 s) |
+| Höchstgeschwindigkeit `max_speed` | `3,7 + 0,45 · Tier`       |             4,60 |             5,05 |              5,50 |
+| Dash-Faktor `speed_multiplier`    | `2,6 + 0,2 · Tier`        |              3,0 |              3,2 |               3,4 |
+| Dash-Geschwindigkeit              | Produkt der beiden Zeilen |  13,8 px/Schritt |  16,2 px/Schritt |   18,7 px/Schritt |
+| Reichweite                        | Geschwindigkeit × Dauer   |           276 px |           339 px |            411 px |
+
+Zum Vergleich: Der Spieler bewegt sich mit 360 px/s, also 6 px/Schritt. Ein Dash ist damit
+2,3- bis 3,1-mal so schnell wie der Spieler.
 
 ### Tech Stack Canvas — Langfassung
 

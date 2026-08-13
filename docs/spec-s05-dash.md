@@ -60,16 +60,21 @@ jedem Schritt weg, ein reiner Impuls wäre im selben Schritt wieder verschwunden
 Dass sie langsam zurückfällt statt hart abzureißen, ist genau das, was den Dash wie
 einen von Reibung abgebauten Stoß aussehen lässt.
 
-Dash-Distanz aus den Vorgabewerten (1100 px/s, Abbau 3000 px/s², Basis 360 px/s):
+Dash-Distanz aus den aktuellen Werten (1100 px/s, Abbau 1533 px/s², Basis 360 px/s):
 
 ```
-Dauer des Überschusses = (1100 - 360) / 3000 ≈ 0,247 s
-mittlere Geschwindigkeit ≈ (1100 + 360) / 2 = 730 px/s
-Distanz ≈ 730 * 0,247 ≈ 180 px
+Dauer der Rampe    = (1100 - 360) / 1533        ≈ 0,48 s
+Überschussdistanz  = (1100 - 360)² / (2 · 1533) ≈ 179 px
+Gesamtstrecke      ≈ (1100 + 360) / 2 · 0,48    ≈ 352 px
 ```
 
-180 px sind gut sechs Spielerradien (16 px) — genug, um aus einer sich schließenden
-Front zu kommen, zu wenig, um quer über den Bildschirm zu springen.
+Die 179 px kommen zu den ~174 px hinzu, die der Spieler in derselben Zeit ohnehin
+gelaufen wäre. Gut 350 px sind etwa elf Spielerdurchmesser (32 px) — genug, um aus
+einer sich schließenden Front zu kommen, zu wenig, um quer über den Bildschirm zu
+springen. Der Abbau stand ursprünglich auf 3000 px/s² (91 px Überschuss) und wurde
+in zwei Schritten auf 1533 gesenkt; die Reichweite wird bewusst dort und nicht an
+`PLAYER_DASH_SPEED` gestimmt, weil die Spitzengeschwindigkeit über das Tunneln durch
+dünne Hindernisse entscheidet.
 
 ### Cooldown
 
@@ -207,11 +212,13 @@ nie, `MAX_DASH_GROUP_SIZE` und die freien Slots tun es.
 Die Slot-Grenze ist unverändert die Obergrenze — nicht die Gruppengröße. Bleiben nur
 zwei Slots frei, dashen zwei Boids gemeinsam statt sechs.
 
-Erwartete Gleichzeitigkeit ≈ 4; harte Obergrenze 8 (36 Boids) bis 11 (156 Boids).
+Harte Obergrenze: `MAX_CONCURRENT_DASHING_BOIDS` (12) plus ein Slot je 40 Boids, also
+12 im Startschwarm und 15 bei 156 Boids. Die 12 sind mit der Verdichtung vom
+2026-08-01 aus 8 hervorgegangen, damit die Grenze zwei volle Gruppen trägt.
 
 Die Distanzschranken heißen `..._SELECTION_DISTANCE` und nicht `..._LAUNCH_DISTANCE`,
-weil der Boid während seiner ~44 Charge-Schritte weiter flockt und dabei bis zu ~170
-px näher kommt. Ein bei 340 px gewählter Boid springt typischerweise aus 170–300 px ab.
+weil der Boid während seiner ~44 Charge-Schritte weiter flockt und dabei bis zu gut
+200 px näher kommt (44 Schritte à 4,6 px). Ein bei 340 px gewählter Boid springt typischerweise aus 170–300 px ab.
 
 ### Tuning und Schwierigkeitskurve
 
@@ -235,8 +242,8 @@ Werte für die beiden Endpunkte der Kurve:
 
 Der Spieler bewegt sich mit 360 px/s = 6 px/Schritt, ein Dash also mit 2,3–3,1× der
 Spielergeschwindigkeit. Ein stehender Spieler wird getroffen; ein bewegter braucht
-~30 px Seitversatz (Spielerradius 16 + Boidradius 10 ⇒ 28 px Trefferschwelle) und hat
-0,57–0,73 s Vorwarnung dafür. `MINIMUM_DASH_CHARGE_STEPS = 24` ist die Untergrenze,
+gut 21 px Seitversatz (`BOID_HIT_RADIUS` = 10,5, verdoppelt — seit dem 2026-08-01 vom
+Hindernis-Radius des Spielers getrennt) und hat 0,57–0,73 s Vorwarnung dafür. `MINIMUM_DASH_CHARGE_STEPS = 24` ist die Untergrenze,
 damit der Puls immer lesbar bleibt.
 
 ### Overlap-Relaxation

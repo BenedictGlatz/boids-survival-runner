@@ -146,7 +146,7 @@ Add a new file to a folder, not a new file to `simulation/`.
 
 - `math/vector.rs` — `Vec2` with pure operations (`add`, `sub`, `scale`, `limit`, `normalize`).
 - `math/segment.rs` — segment geometry the obstacle capsules are built from
-  (`closest_point_on_segment`, `distance_between_segments`, `segments_cross`). A zero-length
+  (`closest_point_on_segment`, `distance_between_segments`, `segments_intersect`). A zero-length
   segment is a point, which is how a circular obstacle falls out of the same code as a bar.
 - `simulation/boid.rs` — `Boid` (position, velocity, acceleration, `difficulty_tier`) and
   `BoidProperties`. **Tuning values live per boid, not globally** — several variants coexist in one
