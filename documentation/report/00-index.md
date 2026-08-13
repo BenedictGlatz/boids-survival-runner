@@ -36,7 +36,7 @@ Status: `Gerüst` (nur Überschriften) → `Entwurf` (Inhalt steht, Sprache rau)
 | 03  | [Frontend: Struktur / Bausteine](03-frontend-bausteine.md)               |  ~5 S. | Entwurf   | Modulübersicht je Datei fehlt im Anhang |
 | 04  | [Systemnah / WASM: Struktur / Bausteine](04-systemnah-wasm-bausteine.md) |  ~5 S. | Entwurf   | Modulübersicht je Datei fehlt im Anhang |
 | 05  | [Frontend/Systemnah-Integration — WASM](05-integration-wasm.md)          |  ~2 S. | Entwurf   | —                                       |
-| 06  | [KI-driven Engineering & Prozess](06-ki-engineering-und-prozess.md)      |  ~2 S. | Gerüst    | —                                       |
+| 06  | [KI-driven Engineering & Prozess](06-ki-engineering-und-prozess.md)      |  ~2 S. | Entwurf   | —                                       |
 | 07  | [Tooling](07-tooling.md)                                                 |  ~3 S. | Gerüst    | T-01…T-06, je Werkzeug ein Absatz       |
 | 08  | [Qualität](08-qualitaet.md)                                              |  ~2 S. | Gerüst    | T-03, T-04, T-05                        |
 | 09  | [Quellcode-Übersicht](09-quellcode-uebersicht.md)                        |  ~1 S. | Gerüst    | Zahlen erst nach Code-Freeze            |

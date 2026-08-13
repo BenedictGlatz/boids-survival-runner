@@ -28,5 +28,11 @@
     "prompt": "bitte schreibe die nötigen abschnitte für das kapitel 5 des repiorts",
     "topic": "prozess-doku",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Bitte schreibe das kapitel 6 des reports",
+    "topic": "prozess-doku",
+    "use": "impl"
   }
 ]
