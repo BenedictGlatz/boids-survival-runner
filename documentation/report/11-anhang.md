@@ -15,7 +15,6 @@ Fließtext referenziert.
 > TODO: Sammelstelle. Vorgesehen:
 >
 > - Verzeichnisstruktur und Schichtenzuordnung (Engine / Frontend / Bridge)
-> - Tech Stack Canvas (Langfassung, falls Kap. 2 gekürzt werden muss)
 > - Modulübersicht Engine mit Aufgabe je Datei
 > - Modulübersicht Frontend mit Aufgabe je Datei
 > - Dash-Tuning je Schwierigkeits-Tier (aus docs/spec-s05-dash.md §3)
@@ -25,6 +24,47 @@ Fließtext referenziert.
 >   Wert, damit die zweigipfelige Verteilung aus Kap. 8.1 sichtbar wird
 > - E2E-Flow-Tabelle in Langfassung, falls Kap. 8.2 gekürzt werden muss
 > - Vollständige npm-Script-Tabelle, falls Kap. 7.1 gekürzt werden muss
+
+### Tech Stack Canvas — Langfassung
+
+Langfassung der Übersicht aus Kapitel 2.3 Tech Stack Canvas. Spalte _Deklariert_ ist der
+in `engine/Cargo.toml` bzw. `frontend/package.json` festgeschriebene Versionsbereich,
+Spalte _Aufgelöst_ die daraus gebaute Fassung aus den eingecheckten Lockfiles
+(`engine/Cargo.lock`, `frontend/package-lock.json`). „—" bedeutet, dass die Position nicht
+über einen Paketmanager verwaltet wird; „lokales CLI" bedeutet, dass sie auf dem
+Entwicklungsrechner installiert und nirgends im Repository festgelegt ist.
+
+| Schicht            | Position                    | Deklariert         | Aufgelöst           | Zweck                                    |
+| ------------------ | --------------------------- | ------------------ | ------------------- | ---------------------------------------- |
+| Simulation         | Rust                        | `edition = "2021"` | stable, lokales CLI | Sprache der Engine                       |
+| Simulation         | Cargo                       | —                  | mit Rust            | Abhängigkeiten und Build der Engine      |
+| Sprachgrenze       | `wasm-bindgen`              | `0.2`              | 0.2.122             | Rust-Typen als JavaScript-Gegenstück     |
+| Sprachgrenze       | `js-sys`                    | `0.3`              | 0.3.99              | `Float32Array` / `Uint32Array` im Frame  |
+| Sprachgrenze       | `wasm-pack`                 | —                  | lokales CLI         | Build nach `--target web`                |
+| Präsentation       | JavaScript, ES-Module       | —                  | —                   | Rendering, Eingabe, Spielzustand         |
+| Präsentation       | HTML5 Canvas 2D             | —                  | Browser-API         | Spielfeld, Boids, Hindernisse, Effekte   |
+| Präsentation       | CSS                         | —                  | —                   | Menü, HUD, Overlays                      |
+| Präsentation       | JSON                        | —                  | —                   | Sprachdateien unter `public/locales/`    |
+| Build              | Vite                        | `^5.0.0`           | 5.4.21              | Dev-Server, Produktionsbündel            |
+| Build              | npm                         | —                  | mit Node.js         | Paketverwaltung, Skripte                 |
+| Qualitätssicherung | Vitest                      | `^4.1.10`          | 4.1.10              | Unit-Tests der Frontend-Logik            |
+| Qualitätssicherung | `@vitest/coverage-v8`       | `^4.1.10`          | 4.1.10              | Coverage-Report Frontend                 |
+| Qualitätssicherung | `@playwright/test`          | `^1.62.0`          | 1.62.0              | E2E-Tests gegen den Produktionsbuild     |
+| Qualitätssicherung | `eslint` + `@eslint/js`     | `^9.9.0`           | 9.39.5              | Linter Frontend, Flat Config             |
+| Qualitätssicherung | `eslint-plugin-jsdoc`       | `^50.2.0`          | 50.8.0              | JSDoc-Pflicht auf öffentlicher API       |
+| Qualitätssicherung | `eslint-config-prettier`    | `^9.1.0`           | 9.1.2               | Trennung Formatierung / Semantik         |
+| Qualitätssicherung | `globals`                   | `^15.9.0`          | 15.15.0             | Umgebungs-Globals für ESLint             |
+| Qualitätssicherung | `prettier`                  | `^3.3.0`           | 3.9.6               | Formatter für JS, JSON, CSS, Markdown    |
+| Qualitätssicherung | `wasm-bindgen-test`         | `0.3`              | 0.3.72              | Tests der WASM-Grenze im Browser         |
+| Qualitätssicherung | `cargo test`/`clippy`/`fmt` | —                  | mit Rust            | Unit-Tests, Linter, Formatter der Engine |
+| Qualitätssicherung | `cargo-llvm-cov`            | —                  | lokales CLI         | Coverage-Report Engine                   |
+| _nicht vorhanden_  | TypeScript                  | —                  | —                   | offen als T-02, begründet in Kap. 7.6    |
+| _nicht vorhanden_  | GitHub Actions              | —                  | —                   | offen als T-05, begründet in Kap. 8.3    |
+| _nicht vorhanden_  | `vite.config.js`            | —                  | —                   | offen als T-06, begründet in Kap. 7.10   |
+
+Die Spalte _Aufgelöst_ ist der Stand der eingecheckten Lockfiles und wird beim
+Zusammenbau des Berichts noch einmal daraus erneuert, nicht aus dieser Tabelle
+fortgeschrieben.
 
 ## 11.2 Abbildungen
 

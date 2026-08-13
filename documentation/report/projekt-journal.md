@@ -107,8 +107,37 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-11 | 0,5 | T-01 | Alle 37 Frontend-Testdateien aus den Quellordnern in je ein `__tests__/` darin verschoben, auf Wunsch als Konvention für künftige Tests. Anlass war `src/loop/`: fünf Module, fünf Testdateien, eine Ordneransicht, in der die Hälfte der Einträge kein Programmcode ist — bei `renderer/` mit 15 Tests dasselbe Bild. Umgesetzt mit `git mv` (Umbenennungen bleiben in der Historie verfolgbar) und einer Ersetzung der relativen Importpfade um genau eine Ebene; kein Testinhalt geändert, 470 Zusicherungen vor und nach dem Umbau grün. Drei Konfigurationsstellen ziehen mit: `include` in `vitest.config.js` auf `src/**/__tests__/*.test.js` — die alte Angabe hätte weiter gegriffen, aber dann wäre eine lose abgelegte Datei still eingesammelt worden statt aufzufallen; in `eslint.config.js` beide Blöcke auf den Ordner statt auf `*.test.js`, damit eine gemeinsame Testhilfe ohne Endung `.test.js` dieselbe JSDoc-Ausnahme erbt wie die Specs unter `e2e/`. Playwright bleibt unberührt, die Disjunktheit der beiden Runner ist mit dem engeren Glob sogar strenger als vorher. Doku nachgezogen in `CLAUDE.md`, `README.md`, `.github/copilot-instructions.md`, Kap. 08 und den drei Handoff-Anleitungen unter `docs/design_system/`; der Zählbefehl in Kap. 09 brauchte keine Änderung, weil er ohnehin rekursiv sucht |
 | 2026-08-11 | 1,0 | T-04 | Entwickleroption „Invulnerable Player" umgesetzt: Runden, in denen der Spieler keine Leben verliert, als Messinstrument für Langzeit-Frametimes — die interessanten Werte liegen jenseits von zehn Minuten Spielzeit, und dorthin kam man vorher nur durch Überleben. Die Fahne wird einmal beim Öffnen der Runde in `createRoundData` gelesen und in `registerHit` als erster von drei Ausstiegen geprüft; `lastHitAtSimulationMs` bleibt unberührt, damit die Optik der Runde unverändert bleibt. Abgedeckt auf drei Ebenen: vier Vitest-Zusicherungen in einer eigenen Datei `round/__tests__/invulnerableMode.test.js` (die bestehende Datei stand bei 399 Zeilen), zwei Playwright-Flows zum Schalter selbst und einer in `gameover.spec.js`, der 20 Sekunden Stillstand ohne Rundenende festnagelt — dieselbe Eingabe, die im Test darüber in unter fünf Sekunden drei Leben kostet. Der letzte Flow fand einen Altfehler: das Menü rendert aus einer Momentaufnahme der Einstellungen, zeigte also beim erneuten Betreten eines Untermenüs wieder den Ausgangswert; `Menu.showStart` bekommt die Optionen jetzt als Funktion und liest sie pro Render neu |
 | 2026-08-13 | 1,0 | D-01 | Beginn der Schreibphase des Berichts: Kapitel 01 „Anforderungen und Ziele" von vier `TODO`-Blöcken auf Entwurfsstand ausgeschrieben (Themensteckbrief, Lösung mit den sieben Specs und drei bewussten Auslassungen, Projektrahmen, Fokus-Thema mit beiden tragenden Invarianten). Quellen waren `README.md`, `.github/copilot-instructions.md`, `docs/specs-overview.md` und der Code selbst; jede genannte Zahl gegen die Konstanten geprüft (drei Leben, 30 s Wellendauer, +12 Boids je Welle, fünf Varianten bis `MAX_BOID_DIFFICULTY_TIER`, Welt 1920 × 1080), jeder Querverweis gegen die Überschriften der Zielkapitel — zwei davon zeigten ins Leere („8.5 CI/CD" ist 8.3, 8.5 ist Lighthouse) und wurden korrigiert, was den Nutzen der Regel „Verweis mit Nummer **und** Titel" gleich am ersten Kapitel belegt. Der Ablauf für die restlichen Kapitel ist als eigener Abschnitt in `CLAUDE.md` festgehalten (Reihenfolge Muster- → Bedingungen-Referenz → Journal-`grep`, ein Kapitel je Commit, `CHANGELOG.md` bleibt unberührt, Statusspalte in `00-index.md` mitziehen) |
+| 2026-08-13 | 1,0 | D-01 | Kapitel 02 „Technik Stack" von drei `TODO`-Blöcken auf Entwurfsstand ausgeschrieben: Rahmenbedingungen (Zielplattform, Sprachwahl mit drei strukturellen Gründen für Rust, Sprachgrenze, Node.js nur als Entwicklungswerkzeug), die drei tragenden Architektur-Entscheidungen mit Begründung, fünf ausdrückliche Negativaussagen (kein Backend/DB/API/Konto, kein UI-Framework, keine Spielbibliothek, kein `rand`, keine Laufzeit-Abhängigkeit) und der Canvas als Fünf-Zeilen-Übersicht mit Langfassung im Anhang. Alle Versionen aus `Cargo.toml`/`package.json` und den beiden eingecheckten Lockfiles gezogen, nicht aus dem Gedächtnis. Drei Befunde beim Schreiben: `wasm-pack` und die Rust-Toolchain sind **nirgends** im Repository festgelegt (keine `rust-toolchain.toml`), der Build hängt also am Entwicklungsrechner — als offener Punkt zu T-05 benannt statt übergangen; `frontend/vite.config.js` existiert nicht, war aber in `specs-overview.md` als Teil von T-06 geplant, teilt also dessen Status; und `js-sys` steht tatsächlich nur an einer Stelle (`wasm_bridge/response.rs`), was per `grep` geprüft und als Belegsatz für die schmale Schnittstelle verwendet wurde. Nebenbefund außerhalb des Kapitels: `00-index.md` und `11-anhang.md` verweisen beide auf `npm run docs:diagrams`, ein Skript, das in `frontend/package.json` nicht existiert (dort stehen nur `docs:ki-verzeichnis` und `docs:check`) — offen, betrifft den Word-Zusammenbau |
 
 ## Entscheidungen
+
+### 2026-08-13 — Versionen zweispaltig in den Anhang, Kapitel 2 bleibt versionsfrei
+
+**Gewählt:** Kapitel 2.3 zeigt eine Fünf-Zeilen-Übersicht nach Schichten **ohne
+Versionsangaben**; die Langfassung im Anhang trägt zwei getrennte Spalten — _Deklariert_
+(der Bereich aus `Cargo.toml` / `package.json`) und _Aufgelöst_ (die gebaute Fassung aus
+`Cargo.lock` / `package-lock.json`).
+
+**Verworfen:** (1) den vollständigen Canvas samt Versionen in das Kapitel selbst nehmen,
+wie es der Anforderungskatalog wörtlich nahelegt; (2) nur eine Versionsspalte führen, und
+zwar die aufgelöste, weil sie die tatsächlich gebaute ist.
+
+**Warum:** (1) sprengt bei über 20 Positionen das Seitenbudget von zwei Seiten, und die
+Musterdokumentation macht es selbst umgekehrt — ihr Tech Canvas ist Tabelle 10 im Anhang,
+das Kapitel bleibt bei einer Seite. (2) verschweigt die eigentliche Aussage: Deklariert ist
+ein Bereich, nicht eine Version, und der Unterschied zwischen `^9.9.0` und dem gebauten
+9.39.5 ist genau der Grund, warum die Lockfiles eingecheckt sind. Zwei Spalten zeigen
+Absicht und Ist getrennt; eine Spalte müsste sich für eines von beiden entscheiden und
+würde die Frage der Reproduzierbarkeit gar nicht stellen.
+
+**Konsequenz:** Die aufgelösten Versionen sind ein Messwert wie jeder andere und veralten
+entsprechend. Die Tabelle sagt darum ausdrücklich, dass sie beim Word-Zusammenbau erneut
+aus den Lockfiles erzeugt und nicht aus sich selbst fortgeschrieben wird — dieselbe Regel,
+unter der Kapitel 09 seine Zahlen führt. Sichtbar wird dadurch außerdem, was **nicht**
+verwaltet ist: Rust-Toolchain und `wasm-pack` stehen in der Spalte _Aufgelöst_ als „lokales
+CLI" und sind damit als Reproduzierbarkeitslücke im Canvas selbst zu sehen, nicht nur im
+Fließtext.
+→ Kap. 2, 11
 
 ### 2026-08-13 — Fokus-Thema mit seinem eigenen Zielkonflikt darstellen
 
