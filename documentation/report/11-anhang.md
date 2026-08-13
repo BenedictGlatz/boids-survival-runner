@@ -18,8 +18,6 @@ Fließtext referenziert.
 > - Modulübersicht Engine mit Aufgabe je Datei
 > - Modulübersicht Frontend mit Aufgabe je Datei
 > - Testübersicht je Verzeichnis
-> - Coverage je Modul, getrennt nach Sprache (Zahlen aus Kap. 9.2b) — sortiert nach
->   Wert, damit die zweigipfelige Verteilung aus Kap. 8.1 sichtbar wird
 > - E2E-Flow-Tabelle in Langfassung, falls Kap. 8.2 gekürzt werden muss
 > - Vollständige npm-Script-Tabelle, falls Kap. 7.1 gekürzt werden muss
 
@@ -107,6 +105,124 @@ Entwicklungsrechner installiert und nirgends im Repository festgelegt ist.
 Die Spalte _Aufgelöst_ ist der Stand der eingecheckten Lockfiles und wird beim
 Zusammenbau des Berichts noch einmal daraus erneuert, nicht aus dieser Tabelle
 fortgeschrieben.
+
+### Coverage je Modul — Engine
+
+Langfassung zu 9.2b Coverage, erhoben mit `cargo llvm-cov --lib --summary-only`,
+Stand 13.08.2026, absteigend nach _Lines_ sortiert. `constants.rs` und `lib.rs`
+fehlen, weil sie keinen ausführbaren Code enthalten und der Report sie daher nicht
+ausweist.
+
+| Datei                              | Regions | Functions |   Lines |
+| ---------------------------------- | ------: | --------: | ------: |
+| `math/segment.rs`                  |   100 % |     100 % |   100 % |
+| `math/vector.rs`                   |   100 % |     100 % |   100 % |
+| `simulation/boid.rs`               |   100 % |     100 % |   100 % |
+| `simulation/dash/aim.rs`           |   100 % |     100 % |   100 % |
+| `simulation/dash/properties.rs`    |   100 % |     100 % |   100 % |
+| `simulation/dash/selection.rs`     |   100 % |     100 % |   100 % |
+| `simulation/flock.rs`              |   100 % |     100 % |   100 % |
+| `simulation/obstacle/arming.rs`    |   100 % |     100 % |   100 % |
+| `simulation/obstacle/collision.rs` |   100 % |     100 % |   100 % |
+| `simulation/obstacle/density.rs`   |   100 % |     100 % |   100 % |
+| `simulation/obstacle/pushout.rs`   |   100 % |     100 % |   100 % |
+| `simulation/overlap.rs`            |   100 % |     100 % |   100 % |
+| `simulation/physics.rs`            |   100 % |     100 % |   100 % |
+| `simulation/steering/rules.rs`     |   100 % |     100 % |   100 % |
+| `simulation/steering/weights.rs`   |   100 % |     100 % |   100 % |
+| `simulation/obstacle/shape.rs`     | 99,67 % |     100 % | 99,45 % |
+| `simulation/wave/queue.rs`         | 99,50 % |     100 % | 99,24 % |
+| `simulation/wave/world_edge.rs`    | 99,45 % |     100 % | 99,06 % |
+| `simulation/obstacle/spawn.rs`     | 99,34 % |     100 % | 98,99 % |
+| `simulation/obstacle/bounce.rs`    | 98,91 % |     100 % | 98,57 % |
+| `simulation/dash/state.rs`         | 98,34 % |   95,00 % | 97,44 % |
+| `simulation/wave/placement.rs`     | 98,01 % |     100 % | 98,40 % |
+| `simulation/obstacle/field.rs`     | 96,79 % |     100 % | 97,65 % |
+| `simulation/obstacle/rules.rs`     | 90,74 % |     100 % | 92,16 % |
+| `wasm_bridge/boid_factory.rs`      | 87,20 % |   92,31 % | 89,38 % |
+| `wasm_bridge/frame_buffers.rs`     |  0,00 % |    0,00 % |  0,00 % |
+| `wasm_bridge/mod.rs`               |  0,00 % |    0,00 % |  0,00 % |
+| `wasm_bridge/response.rs`          |  0,00 % |    0,00 % |  0,00 % |
+| **Gesamt**                         | 91,40 % |   92,49 % | 90,25 % |
+
+Die drei Nullen am Ende sind ein Messartefakt und kein Testloch; die Begründung
+steht in 9.2b Coverage.
+
+### Coverage je Modul — Frontend
+
+Langfassung zu 9.2b Coverage, erhoben mit `npm run test:coverage`
+(`@vitest/coverage-v8`), Stand 13.08.2026, absteigend nach _Lines_ sortiert.
+`gameConfig.js` ist per `exclude` ausgenommen — es enthält ausschließlich
+Konstanten. Die Sortierung macht die zweigipfelige Verteilung sichtbar: 28 Module
+bei 100 %, 23 bei 0 %, nur 9 dazwischen.
+
+| Modul                            | Statements | Branches | Functions |   Lines |
+| -------------------------------- | ---------: | -------: | --------: | ------: |
+| `gameState.js`                   |      100 % |    100 % |     100 % |   100 % |
+| `input/controls.js`              |      100 % |    100 % |     100 % |   100 % |
+| `loop/frameMetrics.js`           |      100 % |    100 % |     100 % |   100 % |
+| `loop/frameScheduler.js`         |      100 % |    100 % |     100 % |   100 % |
+| `loop/renderState.js`            |      100 % |    100 % |     100 % |   100 % |
+| `loop/staticFrameGate.js`        |      100 % |    100 % |     100 % |   100 % |
+| `player/dashCooldown.js`         |      100 % |    100 % |     100 % |   100 % |
+| `player/playerController.js`     |      100 % |    100 % |     100 % |   100 % |
+| `powerups/markerClearance.js`    |      100 % |  88,88 % |     100 % |   100 % |
+| `powerups/markerLifetime.js`     |      100 % |    100 % |     100 % |   100 % |
+| `powerups/mend.js`               |      100 % |    100 % |     100 % |   100 % |
+| `renderer/arenaLayer.js`         |      100 % |    100 % |     100 % |   100 % |
+| `renderer/dashAimLayer.js`       |      100 % |    100 % |     100 % |   100 % |
+| `renderer/dashPulse.js`          |      100 % |    100 % |     100 % |   100 % |
+| `renderer/dashTrail.js`          |      100 % |    100 % |     100 % |   100 % |
+| `renderer/dashTrailHistory.js`   |      100 % |    100 % |     100 % |   100 % |
+| `renderer/drawCallCounter.js`    |      100 % |    100 % |     100 % |   100 % |
+| `renderer/mendPulse.js`          |      100 % |    100 % |     100 % |   100 % |
+| `renderer/obstacleFade.js`       |      100 % |    100 % |     100 % |   100 % |
+| `renderer/spawnMarkerLayer.js`   |      100 % |    100 % |     100 % |   100 % |
+| `renderer/spawnMarkerPulse.js`   |      100 % |    100 % |     100 % |   100 % |
+| `renderer/trailSampling.js`      |      100 % |  71,05 % |     100 % |   100 % |
+| `renderer/worldTransform.js`     |      100 % |    100 % |     100 % |   100 % |
+| `round/roundData.js`             |      100 % |    100 % |     100 % |   100 % |
+| `round/waveTier.js`              |      100 % |    100 % |     100 % |   100 % |
+| `ui/drawnFrameRate.js`           |      100 % |    100 % |     100 % |   100 % |
+| `ui/frameGraphScale.js`          |      100 % |    100 % |     100 % |   100 % |
+| `ui/menuSettings.js`             |      100 % |    100 % |     100 % |   100 % |
+| `powerups/powerups.js`           |    98,18 % |  95,65 % |     100 % | 98,96 % |
+| `renderer/playerStatusBars.js`   |    90,74 % |  87,50 % |     100 % | 90,38 % |
+| `round/roundRecords.js`          |    89,47 % |  89,28 % |   87,50 % | 89,47 % |
+| `renderer/obstacleLayer.js`      |    85,34 % |  88,46 % |     100 % | 85,08 % |
+| `renderer/entityPalette.js`      |    70,37 % |   0,00 % |   60,00 % | 72,00 % |
+| `loop/refreshRate.js`            |    64,86 % |  75,00 % |   50,00 % | 63,88 % |
+| `renderer/arenaBackground.js`    |    53,12 % |  47,05 % |     100 % | 53,12 % |
+| `renderer/timeArc.js`            |    47,61 % |  66,66 % |   66,66 % | 50,00 % |
+| `renderer/powerupMarkerLayer.js` |    21,15 % |   0,00 % |    0,00 % | 22,44 % |
+| `engine-bridge.js`               |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `index.js`                       |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `input/inputManager.js`          |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `input/pauseControl.js`          |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `loop/simulationStep.js`         |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `loop/stateRenderer.js`          |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `renderer/canvasRenderer.js`     |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `renderer/powerupLayer.js`       |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `renderer/renderer.js`           |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `renderer/trailLayer.js`         |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/frameGraphOverlay.js`        |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/frameTimeGraph.js`           |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/gameOverCard.js`             |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/hud.js`                      |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/i18n.js`                     |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/menu.js`                     |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/menuBackdrop.js`             |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/menuDeck.js`                 |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/menuNavigation.js`           |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/menuPanels.js`               |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/optionGroup.js`              |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| `ui/pauseCard.js`                |     0,00 % |    100 % |    0,00 % |  0,00 % |
+| `ui/runStats.js`                 |     0,00 % |   0,00 % |    0,00 % |  0,00 % |
+| **Gesamt**                       |    45,39 % |  48,13 % |   50,25 % | 45,42 % |
+
+Jedes Modul der unteren Gruppe ist DOM- oder WASM-gebunden und damit in der
+Node-Umgebung von Vitest strukturell nicht erreichbar; abgedeckt sind sie durch die
+Playwright-Suite aus 8.2 E2E Tests.
 
 ## 11.2 Abbildungen
 
