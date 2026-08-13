@@ -106,8 +106,36 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-11 | 1,5 | D-01 | `documentation/codebase-ueberblick.md` geschrieben — ein Einstiegstext, den es bisher nicht gab: `README.md` deckt nur das Setup ab, die Kapitel 03/04/05 sind Gerüste unter Seitenbudget, `docs/spec-*.md` sind Feature-Specs. Der Überblick führt in der Reihenfolge, in der das Programm arbeitet (Boot → ein Frame von A bis Z → Engine ordnerweise → Frontend paketweise → die tragenden Invarianten), plus eine Landkarte „ich will X ändern → diese Datei" und ein Abschnitt zu den Änderungen der letzten Wochen. Bewusst ohne Nummernpräfix, damit er nicht als Berichtskapitel gelesen wird, und ohne LOC-, Test- oder Coverage-Zahlen — die stehen laut Konvention 1 aus `00-index.md` ausschließlich in Kapitel 09, auf das der Text verweist. Zusätzlich als gehostete HTML-Seite mit gerenderten Mermaid-Diagrammen veröffentlicht |
 | 2026-08-11 | 0,5 | T-01 | Alle 37 Frontend-Testdateien aus den Quellordnern in je ein `__tests__/` darin verschoben, auf Wunsch als Konvention für künftige Tests. Anlass war `src/loop/`: fünf Module, fünf Testdateien, eine Ordneransicht, in der die Hälfte der Einträge kein Programmcode ist — bei `renderer/` mit 15 Tests dasselbe Bild. Umgesetzt mit `git mv` (Umbenennungen bleiben in der Historie verfolgbar) und einer Ersetzung der relativen Importpfade um genau eine Ebene; kein Testinhalt geändert, 470 Zusicherungen vor und nach dem Umbau grün. Drei Konfigurationsstellen ziehen mit: `include` in `vitest.config.js` auf `src/**/__tests__/*.test.js` — die alte Angabe hätte weiter gegriffen, aber dann wäre eine lose abgelegte Datei still eingesammelt worden statt aufzufallen; in `eslint.config.js` beide Blöcke auf den Ordner statt auf `*.test.js`, damit eine gemeinsame Testhilfe ohne Endung `.test.js` dieselbe JSDoc-Ausnahme erbt wie die Specs unter `e2e/`. Playwright bleibt unberührt, die Disjunktheit der beiden Runner ist mit dem engeren Glob sogar strenger als vorher. Doku nachgezogen in `CLAUDE.md`, `README.md`, `.github/copilot-instructions.md`, Kap. 08 und den drei Handoff-Anleitungen unter `docs/design_system/`; der Zählbefehl in Kap. 09 brauchte keine Änderung, weil er ohnehin rekursiv sucht |
 | 2026-08-11 | 1,0 | T-04 | Entwickleroption „Invulnerable Player" umgesetzt: Runden, in denen der Spieler keine Leben verliert, als Messinstrument für Langzeit-Frametimes — die interessanten Werte liegen jenseits von zehn Minuten Spielzeit, und dorthin kam man vorher nur durch Überleben. Die Fahne wird einmal beim Öffnen der Runde in `createRoundData` gelesen und in `registerHit` als erster von drei Ausstiegen geprüft; `lastHitAtSimulationMs` bleibt unberührt, damit die Optik der Runde unverändert bleibt. Abgedeckt auf drei Ebenen: vier Vitest-Zusicherungen in einer eigenen Datei `round/__tests__/invulnerableMode.test.js` (die bestehende Datei stand bei 399 Zeilen), zwei Playwright-Flows zum Schalter selbst und einer in `gameover.spec.js`, der 20 Sekunden Stillstand ohne Rundenende festnagelt — dieselbe Eingabe, die im Test darüber in unter fünf Sekunden drei Leben kostet. Der letzte Flow fand einen Altfehler: das Menü rendert aus einer Momentaufnahme der Einstellungen, zeigte also beim erneuten Betreten eines Untermenüs wieder den Ausgangswert; `Menu.showStart` bekommt die Optionen jetzt als Funktion und liest sie pro Render neu |
+| 2026-08-13 | 1,0 | D-01 | Beginn der Schreibphase des Berichts: Kapitel 01 „Anforderungen und Ziele" von vier `TODO`-Blöcken auf Entwurfsstand ausgeschrieben (Themensteckbrief, Lösung mit den sieben Specs und drei bewussten Auslassungen, Projektrahmen, Fokus-Thema mit beiden tragenden Invarianten). Quellen waren `README.md`, `.github/copilot-instructions.md`, `docs/specs-overview.md` und der Code selbst; jede genannte Zahl gegen die Konstanten geprüft (drei Leben, 30 s Wellendauer, +12 Boids je Welle, fünf Varianten bis `MAX_BOID_DIFFICULTY_TIER`, Welt 1920 × 1080), jeder Querverweis gegen die Überschriften der Zielkapitel — zwei davon zeigten ins Leere („8.5 CI/CD" ist 8.3, 8.5 ist Lighthouse) und wurden korrigiert, was den Nutzen der Regel „Verweis mit Nummer **und** Titel" gleich am ersten Kapitel belegt. Der Ablauf für die restlichen Kapitel ist als eigener Abschnitt in `CLAUDE.md` festgehalten (Reihenfolge Muster- → Bedingungen-Referenz → Journal-`grep`, ein Kapitel je Commit, `CHANGELOG.md` bleibt unberührt, Statusspalte in `00-index.md` mitziehen) |
 
 ## Entscheidungen
+
+### 2026-08-13 — Fokus-Thema mit seinem eigenen Zielkonflikt darstellen
+
+**Gewählt:** Kapitel 1.4 nennt neben dem Leistungsziel des Fokus-Themas ausdrücklich das
+gleichrangige Lesbarkeitsziel und benennt den Konflikt zwischen beiden, inklusive der
+Entscheidung zu Gunsten der Lesbarkeit und der daraus folgenden Verzichte (`unsafe`,
+manuelles SIMD, räumlicher Index statt quadratischer Nachbarschaftssuche). Die drei
+gestrichenen Erweiterungen stehen mit **je eigener** Begründung schon in 1.2 statt erst im
+Projektbericht.
+
+**Verworfen:** (1) das Fokus-Thema als reines Performance-Argument schreiben und die
+Lesbarkeitsvorgabe nur in Kapitel 4 als Codestil erwähnen; (2) alle Auslassungen sammeln
+und ausschließlich in 10.1 als Kapazitätsfolge abhandeln.
+
+**Warum:** (1) wäre angreifbar, weil die naive quadratische Suche im Code steht und ein
+Prüfer sie findet — als unerklärter Widerspruch zum behaupteten Leistungsfokus liest sie
+sich wie ein Versäumnis, als offengelegte Abwägung wie eine Entscheidung. (2) hätte drei
+verschiedene Sachverhalte unter eine Ursache gezwungen: Slow-Time fällt aus einem
+inhaltlichen Grund (es müsste die tragende Invariante aufweichen), der WebGL-Renderer aus
+Kapazitätsgründen, der Server-Highscore wegen der Rahmenbedingung „serverlos" — er wäre
+auch mit unbegrenzter Zeit nicht gebaut worden.
+
+**Konsequenz:** Der Anforderungsteil trägt die Abgrenzung selbst, und Kapitel 10 muss nur
+noch den einen Posten erklären, der wirklich an der Kapazität hängt. Der Zielkonflikt aus
+1.4 ist zugleich der Anschluss für 8.6, wo die Regel „Optimierung nur gegen eine Messung"
+belegt wird.
+→ Kap. 1, 10
 
 ### 2026-08-11 — Unverwundbarkeit gehört der Runde, nicht den Einstellungen
 

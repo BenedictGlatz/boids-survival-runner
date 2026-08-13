@@ -406,3 +406,33 @@ This project is developed by university students learning Rust and WebAssembly.
 Spec-driven development is preferred: define the expected mathematical behaviour and edge cases
 before implementing. `docs/specs-overview.md` (German) tracks the feature specs and effort estimates.
 The game must stay installationless and server-free for end users.
+
+### Current phase (since 2026-08-13): writing the report
+
+The code is largely feature-complete; the active work is **filling in the report chapters** under
+`documentation/report/` that still consist of `> TODO:` blocks. Treat a chapter as the deliverable of
+its own change: one chapter (or one coherent group of sections) per commit, `docs:` type, scope
+`prozess-doku`, plus the usual prompt log and journal row. `CHANGELOG.md` is **not** touched for
+report prose — it records user-visible changes to the game, and a chapter is neither.
+
+Per chapter, in this order:
+
+1. Read `documentation/muster-referenz.md` §2 for the matching sample chapter (structure and depth)
+   and §3 (style), then `documentation/bedingungen-referenz.md` §2 for the bullet points the
+   examiner's slide demands of that chapter. Every demanded point must appear, however briefly — a
+   point this project does not fulfil is **named and justified**, never silently dropped.
+2. Harvest the facts from their sources rather than from memory: the `Entscheidungen` blocks in
+   `projekt-journal.md` (each carries a `→ Kap. n` tag, so writing a chapter is a `grep`),
+   `docs/specs-overview.md`, `docs/spec-*.md`, and the code itself. Verify every constant, path and
+   module name still resolves before printing it.
+3. Keep the two index conventions: all measured numbers (LOC, test counts, coverage, commits) live
+   only in chapter 09 and are referenced from elsewhere; tables beyond ~5 rows, all figures and all
+   code listings go to `11-anhang.md` and are referenced by number and title from the text.
+4. Cross-references name the target's real number **and** title, as in "siehe 8.3 CI/CD: GitHub
+   Actions Pipeline". Check that the target heading exists — chapter numbering has shifted before,
+   and two of chapter 01's first-draft references pointed at the wrong section.
+5. Update the status column for that chapter in `documentation/report/00-index.md`
+   (`Gerüst` → `Entwurf` → `Fertig`) in the same commit.
+
+Chapters 07, 08 and 12 keep growing per code change as before; 01–06, 09, 10 and 11 are the ones
+being composed now.

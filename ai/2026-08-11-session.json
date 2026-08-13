@@ -16,5 +16,17 @@
     "prompt": "Bitte implementiere in den developeroptionen einen optionalen modus in dem der Spieler unverwundbar ist. Damit wollen wir testen wie sich die performance in langen spielrunden verhält",
     "topic": "frontend-ui",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "warum benutzen wir hier bei for boid in mut self.boids eine mutable Version und nicht das Original? Müssen wir das danach nicht wieder übergeben an den Owner?",
+    "topic": "engine",
+    "use": "rein-informativ"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "was ist der unterschied zwischen einem enum und einem struct in rust?",
+    "topic": "engine",
+    "use": "rein-informativ"
   }
 ]

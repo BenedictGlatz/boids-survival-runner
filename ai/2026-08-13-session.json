@@ -1,0 +1,8 @@
+[
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Der Code ist jetzt weitgehend fertig, ich möchte mit der implementation des Reports anfangen. Dort sind viele Kapitel noch als to-do markiert, diese werde wir jetzt schreiben, bitte notiere das in der Claude.md.\n\nBitte beginne damit kapitel 01-anforderungen auszufüllen",
+    "topic": "prozess-doku",
+    "use": "impl"
+  }
+]

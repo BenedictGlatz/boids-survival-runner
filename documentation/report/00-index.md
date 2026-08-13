@@ -31,7 +31,7 @@ Status: `Gerüst` (nur Überschriften) → `Entwurf` (Inhalt steht, Sprache rau)
 
 | #   | Kapitel                                                                  | Budget | Status    | Blocker                                   |
 | --- | ------------------------------------------------------------------------ | -----: | --------- | ----------------------------------------- |
-| 01  | [Anforderungen und Ziele](01-anforderungen-und-ziele.md)                 |  ~2 S. | Gerüst    | —                                         |
+| 01  | [Anforderungen und Ziele](01-anforderungen-und-ziele.md)                 |  ~2 S. | Entwurf   | —                                         |
 | 02  | [Technik Stack](02-tech-stack.md)                                        |  ~2 S. | Gerüst    | wächst mit T-01…T-06                      |
 | 03  | [Frontend: Struktur / Bausteine](03-frontend-bausteine.md)               |  ~5 S. | Gerüst    | Dateiliste erst nach T-01/T-02 einfrieren |
 | 04  | [Systemnah / WASM: Struktur / Bausteine](04-systemnah-wasm-bausteine.md) |  ~5 S. | Gerüst    | — (Fokus-Thema, zuerst schreiben)         |
