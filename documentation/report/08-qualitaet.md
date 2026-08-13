@@ -1,6 +1,6 @@
 # 8 Qualität
 
-`Seitenbudget: ~2 S. | Status: 8.1/8.2/8.4 geschrieben, 8.3/8.5 offen | Quellen: frontend/vitest.config.js, frontend/playwright.config.js, engine/tests/, CLAUDE.md §Commands`
+`Seitenbudget: ~2 S. | Status: Entwurf, alle Abschnitte geschrieben; 8.3 und 8.5 als begründete Negativbefunde, 8.6 wartet auf die Messreihe | Quellen: frontend/vitest.config.js, frontend/playwright.config.js, engine/tests/, .github/, CLAUDE.md §Commands`
 
 **Dieses Kapitel wächst pro Commit** — wie Kap. 7, ein Absatz je Maßnahme am Tag
 ihres Landens.
@@ -10,7 +10,9 @@ Die Teststrategie folgt einer einzigen Leitfrage: Welche Stufe kann eine Eigensc
 Logik; eine eigene Stufe im Browser für den Buffer-Vertrag, weil dessen Typen
 außerhalb einer JavaScript-Laufzeit nicht existieren; E2E gegen den gebauten Stand für
 alles, was erst im ausgelieferten Artefakt entsteht; statische Analyse für Stil und
-Typen; und CI als die Instanz, die all das erzwingt statt es zu empfehlen. Die
+Schnittstellendokumentation — für Typen ist sie offen, siehe Kap. 7.6 TypeScript; und CI
+als die Instanz, die all das erzwingen soll statt es zu empfehlen, und die als einziger
+namentlich geforderter Punkt dieses Kapitels noch fehlt (8.3). Die
 Aufteilung ist damit nicht nach Aufwand gewählt, sondern nach Erreichbarkeit — und wo
 eine Stufe strukturell nichts sehen kann, steht das hier ausdrücklich, statt von einer
 grünen Ausgabe verdeckt zu werden.
@@ -24,7 +26,7 @@ je eigenem Werkzeug und eigener Ausführungsumgebung:
 | Ebene             | Werkzeug                             | Läuft in           | Deckt ab                                   |
 | ----------------- | ------------------------------------ | ------------------ | ------------------------------------------ |
 | Engine-Unit       | `cargo test`, `#[cfg(test)]` in-file | Host (native)      | Mathematik und Simulation                  |
-| Sprachgrenze      | `wasm-pack test`, `engine/tests/`    | Browser (`wasm32`) | Der Vier-Buffer-Vertrag der Bridge         |
+| Sprachgrenze      | `wasm-pack test`, `engine/tests/`    | Browser (`wasm32`) | Der Puffer-Vertrag der Bridge              |
 | Frontend-Unit     | Vitest                               | Node               | Importfreie Logikmodule                    |
 | _(E2E, Kap. 8.2)_ | Playwright                           | Browser            | Alles, was nur im gebauten Spiel existiert |
 
@@ -212,16 +214,58 @@ die Zusammenfassung.
 
 ## 8.3 CI/CD: GitHub Actions Pipeline
 
-> TODO: nach T-05 schreiben. `.github/workflows/ci.yml`, ausgelöst bei Push und Pull
-> Request. Jobs beschreiben und begründen, in welcher Reihenfolge und was parallel
-> läuft:
-> Rust (`cargo fmt --check`, `cargo clippy`, `cargo test`) · Frontend (`lint`,
-> `format:check`, `typecheck`, `test`, `test:coverage`) · Build (WASM + `vite build`)
-> · Deploy nach GitHub Pages auf `main`.
-> Erwähnen, dass die Pipeline die Toolchain-Kopplung erzwingt: Ohne
-> `wasm-pack`-Schritt schlägt der Frontend-Build fehl.
-> `docs:check` als **nicht blockierender** Job — Begründung: Ein blockierender Hook
-> für Doku-Disziplin wird umgangen, eine sichtbare Warnung nicht.
+**Eine Pipeline existiert nicht.** Unter `.github/` liegt allein
+`copilot-instructions.md`, kein `workflows/`-Verzeichnis. Die Maßnahme T-05 ist mit 5 h
+geplant und offen; damit fehlt der einzige Punkt des Anforderungskatalogs, der in diesem
+Kapitel namentlich gefordert ist und den das Projekt nicht erfüllt. Der Befund wird
+deshalb hier benannt, mit seiner Wirkung und mit dem Entwurf, der ihn schließt.
+
+**Die Wirkung der Absenz ist präzise beschreibbar**, und sie ist kleiner, als sie
+klingt, aber nicht null. Alle Prüfungen, die eine Pipeline ausführen würde, existieren
+schon und sind jeweils ein einzelner Befehl — die Liste in Kap. 7.1 Scripts in
+package.json ist vollständig. Was fehlt, ist nicht die Prüfung, sondern die **Instanz,
+die sie erzwingt**: Derzeit hält die Disziplin, weil jede Änderung von Hand gegen `lint`,
+`format:check`, `cargo clippy` und die Testbefehle gefahren wird. Eine übersprungene
+Prüfung fällt damit erst beim nächsten bewussten Lauf auf, und ein Stand, der nur auf
+diesem Entwicklungsrechner baut, fiele überhaupt nicht auf. Genau letzteres ist der
+Punkt, den eine Pipeline über die reine Wiederholung hinaus leistet: Sie baut in einer
+leeren Umgebung. Die Toolchain-Kopplung aus Kap. 7.8 Dev Build — ohne
+`wasm-pack`-Schritt schlägt der Frontend-Build fehl — ist auf diesem Rechner
+unsichtbar, weil das Paket dort längst liegt.
+
+**Entworfen ist die Pipeline als vier Jobs** in `.github/workflows/ci.yml`, ausgelöst bei
+Push und Pull Request:
+
+| Job        | Inhalt                                                         | Abhängigkeit |
+| ---------- | -------------------------------------------------------------- | ------------ |
+| `rust`     | `cargo fmt --check`, `cargo clippy`, `cargo test`              | keine        |
+| `frontend` | `lint`, `format:check`, `typecheck` (T-02), `test`, `coverage` | keine        |
+| `build`    | `build:wasm` + `vite build`, danach `test:e2e`                 | `rust`       |
+| `deploy`   | Veröffentlichung nach GitHub Pages, nur auf `main`             | `build`      |
+
+Die Reihenfolge folgt den Laufzeiten und nicht der Kapitelreihenfolge: `rust` und
+`frontend` laufen parallel, weil sie nichts voneinander brauchen und beide in unter einer
+Minute fertig sind — ein Formatierungsfehler soll nicht hinter einem kalten Rust-Build
+warten. `build` hängt an `rust`, weil ein WASM-Paket aus nicht kompilierendem Code
+sinnlos ist, und trägt die E2E-Suite, weil die den gebauten Stand ohnehin selbst
+herstellt (Kap. 8.2 E2E Tests). `deploy` ist an `main` gebunden und damit die eine
+Stelle, an der die Branch-Rollen aus Kap. 7.7 Branch-Struktur eine technische
+Konsequenz bekommen statt nur eine Verabredung zu sein.
+
+**Ein Job ist bewusst als nicht blockierend vorgesehen:** `docs:check`, die Prüfung der
+Dokumentationsdisziplin (Prompt-Log, Journal, Changelog). Die Begründung ist eine
+Erfahrung aus dem Projekt selbst: Das Prompt-Logging war über Wochen lückenhaft, und die
+Ursache war strukturell — es verlangt einen Eintrag _vor_ der Antwort, während der
+Changelog-Eintrag an der funktionierenden Gewohnheit „Commit-Zeit" hängt. Ein
+blockierender Hook gegen dieses Muster wird nachts um zwei mit `--no-verify` umgangen und
+verliert damit jede Aussagekraft; eine sichtbare Warnung, die im Pull Request stehen
+bleibt, nicht. Ein rotes Kreuz muss bedeuten, dass der Code kaputt ist, sonst wird die
+Farbe bedeutungslos.
+
+Das Aufsetzen selbst ist damit absehbar günstig — die Jobs rufen vorhandene, lokal grüne
+Befehle auf, und Schwellwerte für die Coverage sind aus dem in 8.1 genannten Grund noch
+nicht gesetzt, könnten also auch keinen Job rot machen. Teuer ist an T-05 nicht die
+Pipeline, sondern das Deployment daran (Kap. 7.10 Deployment).
 
 ## 8.4 Kommentare — Visuelle Strukturierung des Quellcodes
 
@@ -268,12 +312,42 @@ Die Regel ohne Werkzeug hielt also gerade dort nicht, wo sie am wichtigsten war.
 
 ## 8.5 Lighthouse
 
-> TODO: nach T-06 schreiben, wenn ein Pages-Deployment existiert. Anwendbar, weil es
-> eine statisch ausgelieferte Web-Anwendung ist. Score für Performance,
-> Accessibility, Best Practices, SEO angeben und **interpretieren**, nicht nur
-> abbilden — insbesondere: Accessibility-Befunde einer Canvas-Anwendung sind
-> strukturell begrenzt, und der Tastatur-Trade-off aus Kap. 3.2.2 ist hier
-> anschlussfähig.
+Der Katalog fordert diesen Punkt mit dem Zusatz „falls anwendbar", und die ehrliche
+Antwort besteht aus zwei Teilen: **Ein Lighthouse-Lauf ist nicht durchgeführt**, und er
+wäre auch bei durchgeführtem Lauf nur zur Hälfte aussagekräftig.
+
+**Warum nicht durchgeführt.** Lighthouse bewertet eine ausgelieferte Seite. Ein
+Deployment existiert nicht (Kap. 7.10 Deployment), und ein Lauf gegen `vite preview` auf
+`localhost` liefert für die Hälfte der Kategorien andere Zahlen als ein Lauf gegen Pages —
+ohne Netzwerklatenz, ohne Kompression durch den Server, ohne Cache-Header. Eine Messung
+zu drucken, die unter der Zieladresse anders ausfällt, wäre schlechter als keine: Sie
+sähe wie ein Befund aus. Der Lauf ist deshalb an T-06 gebunden und gehört mit dessen
+Abschluss in dieses Kapitel.
+
+**Warum die Anwendbarkeit von vorn herein begrenzt ist**, und zwar nicht wegen des
+fehlenden Deployments, sondern strukturell — Lighthouse prüft vier Kategorien, und dieses
+Projekt bietet nur zwei davon eine Angriffsfläche:
+
+| Kategorie      | Aussagekraft hier                                                                                                                                                                                                                                                                                                                             |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Performance    | Teilweise aussagekräftig. Gemessen wird die **Ladezeit** bis zum ersten Bild, und dafür ist die Größe des `.wasm`-Moduls die interessante Größe. Die Laufzeitleistung des Spiels — 60 Simulationsschritte pro Sekunde über einer O(n²)-Schleife — sieht Lighthouse überhaupt nicht; die messen der Frametime-Graph und die Werkzeuge aus 8.6. |
+| Accessibility  | Strukturell begrenzt. Der Prüfer inspiziert das DOM, und das DOM besteht aus einem `<canvas>` plus den Overlays für Menü und HUD. Das eigentliche Spiel ist für ihn eine leere Fläche.                                                                                                                                                        |
+| Best Practices | Aussagekräftig. HTTPS, Konsolenfehler, veraltete APIs, korrekte Bildformate — alles Eigenschaften der Auslieferung, und alle prüfbar.                                                                                                                                                                                                         |
+| SEO            | Nicht anwendbar. Ein Spiel mit einem einzigen Screen, ohne Routing (Kap. 3.5) und ohne Textinhalt hat nichts zu indexieren. Ein niedriger Wert hier wäre kein Mangel, sondern die korrekte Beschreibung eines Spiels.                                                                                                                         |
+
+Die Accessibility-Zeile ist die aufschlussreichste, weil ihre Grenze in beide Richtungen
+läuft. Was Lighthouse **prüfen** kann, ist im Projekt bewusst gebaut: Die Menü- und
+Optionsgruppen sind echte Schaltflächen mit `aria-pressed`, das Entwicklermenü ist ein
+natives `<details>` und keine Nachbildung, und die Tastaturbedienbarkeit ist als eigener
+Testfall abgesichert (Kap. 8.2 E2E Tests). Was Lighthouse **nicht** prüfen kann, ist
+gleichzeitig die eigentliche Zugänglichkeitsfrage dieser Anwendung: Ein Canvas-Spiel, das
+seinen Zustand ausschließlich als Bild ausgibt, ist für einen Screenreader nicht
+zugänglich, und keine ARIA-Auszeichnung ändert daran etwas. Ein guter Wert in dieser
+Kategorie würde also die Rahmen-DOM-Struktur bewerten und über das Spiel nichts sagen.
+Anschlussfähig ist hier der Trade-off aus Kap. 3.2.2: Die Leertaste wird nur während einer
+laufenden Runde vom Dash beansprucht, damit sie überall sonst die nativen Bedienelemente
+weiter auslöst — eine Entscheidung _für_ die Tastaturzugänglichkeit, die aus demselben
+Grund kein Prüfwerkzeug bemerkt.
 
 ## 8.6 GPU-Last: Messgrundlage vor Optimierung (T-08)
 
@@ -284,7 +358,7 @@ Kapseln besteht. Der erste Schritt ist deshalb keine Optimierung, sondern die Fr
 
 ### 8.6.1 Warum der Frametime-Graph diese Frage nicht beantwortet
 
-Der Graph aus Kap. 8.1 misst **Skriptzeit**. Ein `fill()` kehrt fast sofort zurück; die
+Der Frametime-Graph aus Kap. 3.2.1 (UI-)Komponenten — Aufbau misst **Skriptzeit**. Ein `fill()` kehrt fast sofort zurück; die
 Rasterisierung, die es in die Warteschlange stellt, wird danach und außerhalb des
 Hauptthreads bezahlt. Der Graph kann also einen komfortablen 2-ms-Frame anzeigen, während
 die GPU ausgelastet ist, ohne sich dabei zu widersprechen — er hat nie etwas anderes
@@ -346,7 +420,12 @@ Zeichenoperationen. Fällt die Last stark, ist sie füllratenbegrenzt; bleibt si
 zeichenaufrufbegrenzt. Die Antwort entscheidet, welche der beiden Maßnahmengruppen aus
 T-08 überhaupt lohnt.
 
-> TODO: Basis- und Nachher-Tabelle eintragen, sobald die Messungen nach diesem Protokoll
-> vorliegen. Ohne Zahlen bleibt jede Optimierung darunter eine Vermutung, und ein
-> gemessener Performance-Gewinn ohne Zahl im Bericht ist die eine Behauptung, die dieses
-> Kapitel nicht tragen kann.
+**Gefahren ist die Messreihe nach diesem Protokoll noch nicht.** Was T-08 bisher
+geliefert hat, ist die Voraussetzung dafür — ein Overlay, das die eigene Messgröße nicht
+mehr verfälscht, drei ehrlich benannte Zählwerte und ein schriftliches Verfahren. Die
+zweite Stufe, die Senkung der Last, ist damit bewusst noch nicht begonnen: Ohne Basiswert
+wäre jede Maßnahme darunter eine Vermutung, und ein Performance-Gewinn ohne Zahl ist die
+eine Behauptung, die dieses Kapitel nicht tragen kann. Der Reihenfolge-Entscheid steht
+damit über dem Ergebnis, und das ist der berichtsfähige Teil des Befunds.
+
+> TODO: Basis- und Nachher-Tabelle hier eintragen, sobald die Messungen vorliegen.

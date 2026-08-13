@@ -34,5 +34,11 @@
     "prompt": "Bitte schreibe das kapitel 6 des reports",
     "topic": "prozess-doku",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Bitte schreibe den Reports für Kapitel 8 und eventuell fehlende Abschnitte in Kapitel 7",
+    "topic": "prozess-doku",
+    "use": "impl"
   }
 ]
