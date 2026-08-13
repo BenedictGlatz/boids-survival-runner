@@ -10,5 +10,11 @@
     "prompt": "Bitte mach das gleiche für das Kapitel 2",
     "topic": "prozess-doku",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "bitte fahre mit kapitel 3 fort",
+    "topic": "prozess-doku",
+    "use": "impl"
   }
 ]

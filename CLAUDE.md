@@ -250,7 +250,7 @@ Owns rendering, input, game state, and UI. Contains **no** simulation math.
 - `player/playerController.js` — player integration (accelerate/decelerate/clamp) plus the dash, whose
   impulse survives the per-step speed clamp by temporarily raising the limit.
 - `player/dashCooldown.js`, `renderer/dashPulse.js` — the dash's import-free arithmetic, split out so
-  it is testable under Vitest in the same way `loop/frameGraphScale.js` is. `dashPulse.js` turns one
+  it is testable under Vitest in the same way `ui/frameGraphScale.js` is. `dashPulse.js` turns one
   engine phase into all three warning numbers: the boid's size, its brightness, and the opacity of
   the aim line.
 - `renderer/dashAimLayer.js` — the thin red dashed line in front of a charging boid, decoded from

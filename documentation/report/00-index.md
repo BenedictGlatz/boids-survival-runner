@@ -29,20 +29,20 @@ eingeschränkt lesbar; die Markdown-Fassung ist die Arbeitsgrundlage.
 Status: `Gerüst` (nur Überschriften) → `Entwurf` (Inhalt steht, Sprache rau) →
 `Fertig` (abgabereif).
 
-| #   | Kapitel                                                                  | Budget | Status    | Blocker                                   |
-| --- | ------------------------------------------------------------------------ | -----: | --------- | ----------------------------------------- |
-| 01  | [Anforderungen und Ziele](01-anforderungen-und-ziele.md)                 |  ~2 S. | Entwurf   | —                                         |
-| 02  | [Technik Stack](02-tech-stack.md)                                        |  ~2 S. | Entwurf   | wächst mit T-02, T-05, T-06               |
-| 03  | [Frontend: Struktur / Bausteine](03-frontend-bausteine.md)               |  ~5 S. | Gerüst    | Dateiliste erst nach T-01/T-02 einfrieren |
-| 04  | [Systemnah / WASM: Struktur / Bausteine](04-systemnah-wasm-bausteine.md) |  ~5 S. | Gerüst    | — (Fokus-Thema, zuerst schreiben)         |
-| 05  | [Frontend/Systemnah-Integration — WASM](05-integration-wasm.md)          |  ~2 S. | Gerüst    | —                                         |
-| 06  | [KI-driven Engineering & Prozess](06-ki-engineering-und-prozess.md)      |  ~2 S. | Gerüst    | —                                         |
-| 07  | [Tooling](07-tooling.md)                                                 |  ~3 S. | Gerüst    | T-01…T-06, je Werkzeug ein Absatz         |
-| 08  | [Qualität](08-qualitaet.md)                                              |  ~2 S. | Gerüst    | T-03, T-04, T-05                          |
-| 09  | [Quellcode-Übersicht](09-quellcode-uebersicht.md)                        |  ~1 S. | Gerüst    | Zahlen erst nach Code-Freeze              |
-| 10  | [Projektbericht](10-projektbericht.md)                                   |  ~2 S. | Gerüst    | speist sich aus dem Journal               |
-| 11  | [Anhang](11-anhang.md)                                                   |      — | Gerüst    | akkretiv                                  |
-| 12  | [KI-Verzeichnis](12-ki-verzeichnis.md)                                   |      — | generiert | `npm run docs:ki-verzeichnis`             |
+| #   | Kapitel                                                                  | Budget | Status    | Blocker                                 |
+| --- | ------------------------------------------------------------------------ | -----: | --------- | --------------------------------------- |
+| 01  | [Anforderungen und Ziele](01-anforderungen-und-ziele.md)                 |  ~2 S. | Entwurf   | —                                       |
+| 02  | [Technik Stack](02-tech-stack.md)                                        |  ~2 S. | Entwurf   | wächst mit T-02, T-05, T-06             |
+| 03  | [Frontend: Struktur / Bausteine](03-frontend-bausteine.md)               |  ~5 S. | Entwurf   | Modulübersicht je Datei fehlt im Anhang |
+| 04  | [Systemnah / WASM: Struktur / Bausteine](04-systemnah-wasm-bausteine.md) |  ~5 S. | Gerüst    | — (Fokus-Thema, zuerst schreiben)       |
+| 05  | [Frontend/Systemnah-Integration — WASM](05-integration-wasm.md)          |  ~2 S. | Gerüst    | —                                       |
+| 06  | [KI-driven Engineering & Prozess](06-ki-engineering-und-prozess.md)      |  ~2 S. | Gerüst    | —                                       |
+| 07  | [Tooling](07-tooling.md)                                                 |  ~3 S. | Gerüst    | T-01…T-06, je Werkzeug ein Absatz       |
+| 08  | [Qualität](08-qualitaet.md)                                              |  ~2 S. | Gerüst    | T-03, T-04, T-05                        |
+| 09  | [Quellcode-Übersicht](09-quellcode-uebersicht.md)                        |  ~1 S. | Gerüst    | Zahlen erst nach Code-Freeze            |
+| 10  | [Projektbericht](10-projektbericht.md)                                   |  ~2 S. | Gerüst    | speist sich aus dem Journal             |
+| 11  | [Anhang](11-anhang.md)                                                   |      — | Gerüst    | akkretiv                                |
+| 12  | [KI-Verzeichnis](12-ki-verzeichnis.md)                                   |      — | generiert | `npm run docs:ki-verzeichnis`           |
 
 Seitenbudget insgesamt: **~26 S.** Zulässig sind 5–12 Seiten, bis 22 möglich. Die
 Summe liegt bewusst darüber — beim Trocken-Zusammenbau (siehe unten) wird gekürzt,
