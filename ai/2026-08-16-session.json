@@ -1,0 +1,14 @@
+[
+  {
+    "model": "claude-fable-5",
+    "prompt": "Bitte schreibe jetzt die Dokumentation für das Uni Modul in eine neue .md Datei, anhand der bereits existierenden Notes, Vorgaben und der Referenz. Erstelle diese Datei im Documentation Ordner. Später möchte ich den Text in eine word Datei übertragen und dort nochmal händisch formatieren. Wo du ein Diagramm platzieren würdest kannst du einen kurzen Platzhalter einsetzen, ich werde diese dann selbst durch Diagramme ersetzen. Basiere die Dokumentation nicht nur auf den Notes, sondern auch auf dem Code. Wenn du noch fragen hast stelle diese bitte bevor du mit dem schreiben beginnst … Rückfragen beantwortet: abgabereife Überarbeitung, volle Länge, nur Kap. 01–10, Diagramme als Platzhalter",
+    "topic": "prozess-doku",
+    "use": "uebernommen"
+  },
+  {
+    "model": "claude-fable-5",
+    "prompt": "Bitte ergänze doch noch passende mermaid diagramme anstatt der Platzhalter",
+    "topic": "prozess-doku",
+    "use": "uebernommen"
+  }
+]

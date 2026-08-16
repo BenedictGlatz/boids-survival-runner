@@ -19,7 +19,6 @@ Automatisch zusammengefuegt aus den Dateien in `documentation/report/`. Der Text
 13. Kapitel 13 - `12-ki-verzeichnis.md`
 14. Kapitel 14 - `projekt-journal.md`
 
-
 ---
 
 # Kapitel 1 - Datei: `00-index.md`
