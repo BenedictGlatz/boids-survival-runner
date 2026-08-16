@@ -6,312 +6,149 @@ Prüfungsleistung im Modul _[Modulname eintragen]_ — Abgabe 03.09.2026.
 
 > **[Platzhalter: Titelblatt — Projekttitel, Name, Matrikelnummer, Studiengang, Dozent, Datum]**
 
-> **[Platzhalter: Inhaltsverzeichnis — in Word generieren]**
-
-> **[Platzhalter: Tabellenverzeichnis — in Word generieren]**
-
-> **[Platzhalter: Abbildungsverzeichnis — in Word generieren]**
+> **[Platzhalter: Inhaltsverzeichnis, Tabellenverzeichnis, Abbildungsverzeichnis — in Word generieren]**
 
 ## Abkürzungsverzeichnis
 
 | Abkürzung | Bedeutung                                      |
 | --------- | ---------------------------------------------- |
-| AABB      | Axis-Aligned Bounding Box                      |
 | API       | Application Programming Interface              |
 | ARIA      | Accessible Rich Internet Applications          |
 | CI/CD     | Continuous Integration / Continuous Deployment |
-| CSS       | Cascading Style Sheets                         |
 | DOM       | Document Object Model                          |
 | E2E       | End-to-End (Test)                              |
 | ES        | ECMAScript                                     |
-| FPS       | Frames per Second (Bilder pro Sekunde)         |
+| FPS       | Frames per Second                              |
 | GPU       | Graphics Processing Unit                       |
 | HUD       | Head-up-Display                                |
-| i18n      | Internationalisierung (internationalization)   |
-| JSON      | JavaScript Object Notation                     |
-| LOC       | Lines of Code (Quellcodezeilen)                |
+| i18n      | Internationalisierung                          |
 | MVP       | Minimum Viable Product                         |
 | SEO       | Search Engine Optimization                     |
 | SIMD      | Single Instruction, Multiple Data              |
-| SVG       | Scalable Vector Graphics                       |
-| UI        | User Interface (Benutzeroberfläche)            |
-| UX        | User Experience                                |
+| UI        | User Interface                                 |
 | WASM      | WebAssembly                                    |
 
 ---
 
 # 1 Anforderungen und Ziele
 
-Damit die Entwicklung auf ein prüfbares Ziel zuläuft, definiert dieses Kapitel zuerst
-die Zielgruppe und ihren Bedarf, danach den Funktionsumfang, mit dem das Projekt darauf
-antwortet, die Rahmenbedingungen des Vorhabens und zuletzt das gewählte Fokus-Thema.
-Alles Weitere im Bericht ist die technische Ausführung dieser vier Festlegungen.
-
 ## 1.1 Themensteckbrief: Nutzer, Prozess, Pain und Kontext
 
-**Zielgruppe** sind Gelegenheitsspieler am Desktop-Browser, die eine Runde in einer
-Pause spielen und dafür nichts einrichten wollen: keine Installation, kein Konto, kein
-Server, keine Berechtigung. Ein zweites Publikum liest den Quellcode statt ihn
-auszuführen — das Projekt entsteht im Hochschulkontext und der Code ist zugleich
-Lernmaterial für Rust und WebAssembly (WASM). Diese zweite Gruppe ist kein Beiwerk,
-sondern begrenzt die Mittel: Lesbarkeit steht in den Projektregeln ausdrücklich über
-Cleverness, was bestimmte Optimierungen ausschließt (siehe 1.4 Entwicklungsfokus).
+**Zielgruppe** sind Gelegenheitsspieler am Desktop-Browser — ohne Installation, Konto
+oder Server. Ein zweites Publikum liest den Quellcode: Der Code ist im Hochschulkontext
+Lernmaterial für Rust und WebAssembly, weshalb Lesbarkeit in den Projektregeln über
+Cleverness steht (siehe 1.4 Entwicklungsfokus).
 
-**Kernprozess** ist eine einzelne Runde und deren Wiederholung. Der Spieler startet aus
-dem Menü, ein Countdown friert die Welt für den Einstieg ein, danach weicht er einem
-Schwarm aus, der ihn sucht. Alle 30 Sekunden beginnt eine neue Welle: der Schwarm
-wächst um zwölf Boids und schickt bis zur fünften Welle je eine schnellere, weiter
-sehende Variante, außerdem füllt sich die Arena zunehmend mit zeitlich begrenzten
-Hindernissen. Gegen den Schwarm hat der Spieler drei Mittel — Ausweichen, einen Dash
-mit Abklingzeit und drei aufsammelbare Power-ups. Nach drei verlorenen Leben endet die
-Runde, das Ergebnis wird mit dem lokal gespeicherten persönlichen Bestwert verglichen,
-und aus der Game-Over-Karte führt ein Weg direkt in die nächste Runde. Der Prozess ist
-damit bewusst kurz und vollständig wiederholbar; er enthält keinen Schritt, der beim
-zweiten Mal übersprungen werden möchte.
+**Kernprozess** ist eine einzelne, wiederholbare Runde: Ausweichen vor einem Schwarm, der
+den Spieler sucht. Alle 30 Sekunden wächst der Schwarm und die Arena füllt sich mit
+zeitlich begrenzten Hindernissen; der Spieler hat drei Mittel — Ausweichen, einen Dash
+mit Abklingzeit, drei Power-ups — und drei Leben.
 
-**Nutzer-Pain** ist die Lücke zwischen zwei Arten vorhandener Anwendungen.
-Schwarmsimulationen im Browser sind überwiegend Demonstratoren: sie zeigen das
-Boids-Modell mit Regelgewichten an Schiebereglern, haben aber kein Spielziel, keine
-Niederlage und deshalb keinen Grund, sie ein zweites Mal zu öffnen. Browserspiele
-umgekehrt haben ein Ziel, ihre Gegner folgen aber gescripteten Bahnen oder einer
-einzelnen Verfolgungsregel — der Schwarm ist Kulisse, nicht Mechanik. Dazu kommt eine
-technische Ursache für diese Trennung: eine Simulation, die jeden Boid gegen jeden
-anderen prüft, wird in JavaScript bereits bei einigen hundert Entitäten zum
-Bildratenproblem, weshalb spielbare Umsetzungen die Schwarmlogik gerade dort
-vereinfachen, wo sie interessant wird. Das Projekt adressiert genau diese Lücke: echte
-Schwarmregeln als Spielmechanik, und die Rechenlast dafür in einer Sprache, die sie
-tragen kann.
+**Nutzer-Pain** ist die Lücke zwischen Schwarm-Demonstratoren ohne Spielziel und
+Browserspielen mit gescripteten Gegnern; die technische Ursache: Eine
+Jeder-gegen-jeden-Simulation wird in JavaScript schon bei einigen hundert Entitäten zum
+Bildratenproblem. Das Projekt setzt echte Schwarmregeln als Spielmechanik ein und legt
+die Rechenlast in eine Sprache, die sie tragen kann.
 
-**Nutzungskontext** ist eine Sitzung von wenigen Minuten am Desktop-Browser mit
-Tastatur. Gesteuert wird mit **W A S D** oder den Pfeiltasten, der Dash liegt auf der
-Leertaste, Escape pausiert; die Maus wird nicht benötigt, und auch das Menü bleibt
-vollständig mit der Tastatur bedienbar. Die Spielwelt hat eine feste Größe von
-1920 × 1080 Einheiten und wird an das Fenster nur skaliert, damit dieselbe Runde in
-jedem Fenster dieselbe Simulation ist. Touch-Eingabe und mobile Bildschirme sind kein
-Ziel: die Steuerung braucht zwei Achsen und eine Aktionstaste gleichzeitig, und ein
-Daumen verdeckt genau den Bildbereich, in dem der Schwarm ankommt.
+**Nutzungskontext** ist eine Sitzung von Minuten am Desktop mit Tastatur; die Maus wird
+nicht benötigt. Die Spielwelt hat eine feste Größe von 1920 × 1080 Einheiten und wird nur
+skaliert, damit dieselbe Runde in jedem Fenster dieselbe Simulation ist. Touch ist kein
+Ziel: Die Steuerung braucht zwei Achsen plus Aktionstaste, und ein Daumen verdeckt genau
+den relevanten Bildbereich.
 
 ## 1.2 Die Lösung
 
-Boids Survival Runner ist ein Ausweich-Spiel im Browser, dessen Gegner eine vollständige
-Boids-Schwarmsimulation ist. Die Simulation läuft als Rust-Modul in WebAssembly, die
-Darstellung und die Eingabe liegen in einem JavaScript-Frontend, und zwischen beiden
-steht eine absichtlich schmale Schnittstelle aus flachen Zahlenpuffern. Das Spiel ist
-installationsfrei und serverlos: es lädt als statisches Artefakt, hält seinen Bestwert
-im Browser und stellt keine Netzwerkanfrage.
+Boids Survival Runner ist ein Ausweich-Spiel, dessen Gegner eine vollständige
+Boids-Schwarmsimulation ist: die Simulation als Rust-Modul in WebAssembly, Darstellung
+und Eingabe in einem JavaScript-Frontend, dazwischen eine absichtlich schmale
+Schnittstelle aus flachen Zahlenpuffern. Das Spiel lädt als statisches Artefakt und
+stellt keine Netzwerkanfrage.
 
-Der Funktionsumfang des MVP besteht aus sieben Spezifikationen, die zugleich das
-Vokabular des Kapazitätsplans sind (siehe 10.1 Kapazitätsplan):
+Der MVP-Umfang besteht aus sieben Spezifikationen — Schwarm-Simulation (S-01),
+WASM-Bridge-API (S-02), Rendering/HUD (S-03), Spiel-Loop und Wellen (S-04),
+Steuerung/Power-ups (S-05), Querschnitt (S-06), temporäre Hindernisse (S-07) —, zugleich
+das Vokabular des Kapazitätsplans (siehe 10.1 Kapazitätsplan).
 
-1. **Schwarm-Simulation** (S-01) — fünf Steering-Regeln, mehrere Boid-Varianten in
-   einem Schwarm, Kollisions- und Überlappungsauflösung.
-2. **WASM-Bridge-API** (S-02) — der Puffer-Vertrag zwischen Rust und JavaScript
-   (siehe Kapitel 5 Frontend/Systemnah-Integration — WASM).
-3. **Rendering und HUD** (S-03) — Canvas-Darstellung, Leben, Punkte, Welle, Timer.
-4. **Spiel-Loop und Wellen-Progression** (S-04) — fester Zeitschritt,
-   Schwierigkeitskurve, Pause bei Escape und bei Fokusverlust.
-5. **Steuerung und Power-ups** (S-05) — Spieler-Dash, Boid-Dash samt Vorwarnung, sowie
-   die drei Power-ups Aegis, Overdrive und Mend.
-6. **Querschnitt** (S-06) — Internationalisierung, Punktestand mit lokalem Bestwert,
-   Build-Pipeline.
-7. **Temporäre Hindernisse** (S-07) — Weltgeometrie mit Kapselform, getrennte Reaktion
-   von Spieler und Boids darauf, Dichte-Rampe über die Wellen.
-
-Bewusst **nicht** umgesetzt sind drei Erweiterungen, jede aus einem eigenen Grund:
-
-- **Slow-Time** als viertes Power-up entfällt. Es wäre das einzige, dessen Wirkung
-  darin besteht, den festen Zeitschritt zu verbiegen — also genau die Invariante, auf
-  der die Korrektheit des Spiel-Loops beruht (siehe 1.4 Entwicklungsfokus). Ein
-  Feature, dessen Kern das Aufweichen einer tragenden Invariante ist, ist der schlechteste
-  Kandidat für die letzte freie Kapazität.
-- **Ein WebGL-Renderer** entfällt. Die Indirektion dafür existiert im Frontend, das
-  Canvas-Backend ist hinter einer Schnittstelle austauschbar (siehe 3.1 Wesentliche
-  Komponenten); die zweite Implementierung ist es nicht. Der Grund ist Kapazität und
-  wird in 10.1 Kapazitätsplan offengelegt, nicht technische Unmöglichkeit.
-- **Ein serverseitiger Highscore** entfällt, hier aber nicht aus Kapazitätsgründen: er
-  widerspräche der Rahmenbedingung, ohne Server auszukommen (siehe 1.3 Details zum
-  Softwareprojekt).
-
-Zwei weitere Punkte des Anforderungskatalogs — CI/CD-Pipeline und Deployment — sind
-offene Posten und werden dort begründet, wo sie hingehören (siehe 7.10 Deployment und
-8.3 CI/CD: GitHub Actions Pipeline).
+Bewusst nicht umgesetzt: **Slow-Time** als viertes Power-up, weil es als einziges den
+festen Zeitschritt — eine tragende Invariante — verbiegen müsste; ein **WebGL-Renderer**
+(die Indirektion existiert, die Kapazität nicht); ein **serverseitiger Highscore**
+(widerspräche „serverlos"). CI/CD und Deployment sind offene Posten (siehe 7.10
+Deployment und 8.3 CI/CD: GitHub Actions Pipeline).
 
 ## 1.3 Details zum Softwareprojekt
 
-Das Vorgehen ist **spezifikationsgetrieben**: vor der Implementierung wird das erwartete
-mathematische Verhalten samt Randfällen festgeschrieben, erst danach entsteht Code.
-Die Spezifikationen liegen als eigene Dokumente neben dem Repository-Code
-(_docs/spec-s05-dash.md_, _docs/spec-s07-hindernisse.md_ und weitere) und werden
-nachgezogen, wenn die Umsetzung sie korrigiert — ein Fall, der zweimal eingetreten ist.
-Dieser Ansatz ist hier nicht Formalismus, sondern die einzige praktikable Prüfmethode:
-Ein Schwarm sieht auf dem Bildschirm auch dann plausibel aus, wenn eine Regel falsch
-gewichtet ist, weshalb „sieht richtig aus" als Abnahmekriterium ausfällt und eine vorab
-formulierte Erwartung an ihre Stelle treten muss.
+Das Vorgehen ist **spezifikationsgetrieben**: Vor der Implementierung wird das erwartete
+mathematische Verhalten samt Randfällen festgeschrieben — hier die einzige praktikable
+Prüfmethode, weil ein Schwarm auch mit falsch gewichteter Regel plausibel aussieht und
+„sieht richtig aus" als Abnahmekriterium ausfällt.
 
-Es ist ein **Ein-Personen-Projekt** mit KI-Unterstützung; die Konfiguration dieser
-Unterstützung und der daraus folgende Arbeitsablauf sind selbst Gegenstand des Berichts
-(siehe Kapitel 6 KI-driven Engineering & Prozess). Versioniert wird in einem
-zweistufigen Branch-Modell aus `main` und `dev` (siehe 7.7 Branch-Struktur). Jede
-abgeschlossene Änderung wird atomar nach dem Conventional-Commits-Schema committet und
-trägt drei Pflichtanteile mit sich: den Eintrag in _CHANGELOG.md_, die Protokollierung
-des verwendeten Prompts und eine Zeile im Projekt-Journal. Der Journaleintrag ist der
-Mechanismus, mit dem dieser Bericht **begleitend** und nicht nachgelagert entsteht —
-eine bewusste Umkehrung gegenüber der Musterdokumentation, die genau diese Nachlagerung
-als ihre größte Schwäche benennt (siehe 10.3 Lessons Learned).
+Es ist ein **Ein-Personen-Projekt mit KI-Unterstützung**, deren Regelung selbst
+Gegenstand des Berichts ist (siehe Kapitel 6 KI-driven Engineering & Prozess). Jede
+Änderung wird atomar nach Conventional Commits committet und trägt Changelog-Eintrag,
+Prompt-Protokoll und Journal-Zeile mit sich — das Journal ist der Mechanismus, mit dem
+der Bericht **begleitend** statt nachgelagert entsteht.
 
-Als Rahmenbedingung gilt durchgehend, dass das Spiel für Endnutzer
-**installationsfrei und serverlos** bleibt. Daraus folgt unmittelbar, was es nicht gibt:
-kein Backend, keine Datenbank, kein Konto, keine externe API (siehe 2.2
-Architektur-Entscheidungen). Der Bestwert liegt im Speicher des Browsers, die
-Sprachdateien werden zur Laufzeit als statische JSON-Datei geladen. Zeitlich ist das
-Projekt durch die Abgabe am 03.09.2026 begrenzt, mit einem selbst gesetzten Code-Freeze
-am 24.08.2026, damit die verbleibenden Tage der Dokumentation gehören. Das geplante
-Aufwandsbudget übersteigt die verfügbare Kapazität; das ist bekannt, dokumentiert und
-über die Reihenfolge der Maßnahmen gesteuert statt weggerechnet (siehe 10.1
-Kapazitätsplan).
+Rahmenbedingung ist durchgehend **installationsfrei und serverlos**; zeitlich begrenzt
+die Abgabe am 03.09.2026 mit Code-Freeze am 24.08.2026. Das geplante Budget übersteigt
+die verfügbare Kapazität; das ist dokumentiert und über die Reihenfolge der Maßnahmen
+gesteuert statt weggerechnet (siehe 10.1 Kapazitätsplan).
 
 ## 1.4 Entwicklungsfokus
 
-Als Fokus-Thema ist **Systemnah / WASM** gewählt. Der Grund liegt im Gegenstand selbst:
-Die Schwarmsimulation prüft jeden Boid gegen jeden anderen, ihr Aufwand wächst also
-quadratisch mit der Boid-Zahl, während der Anspruch bei durchgehend 60 Bildern pro
-Sekunde und einigen hundert bis tausend Entitäten liegt. Das ist die einzige Stelle im
-Projekt, an der die Wahl der Ausführungsumgebung über die Machbarkeit entscheidet, und
-damit die einzige, an der eine systemnahe Sprache mehr ist als eine Vorliebe.
+Als Fokus-Thema ist **Systemnah / WASM** gewählt: Die Schwarmsimulation prüft jeden Boid
+gegen jeden anderen, ihr Aufwand wächst quadratisch, der Anspruch liegt bei 60 Bildern
+pro Sekunde — die einzige Stelle, an der die Ausführungsumgebung über die Machbarkeit
+entscheidet.
 
-Optimiert wurde entlang zweier Invarianten, die im weiteren Bericht immer wieder
-auftauchen und beide aus dem Fokus-Thema folgen. Die erste ist der **feste
-Zeitschritt**: die Simulation rechnet einen Schritt pro Aufruf und skaliert nicht mit
-der Bildzeit, das Frontend ruft sie mit konstanter Rate auf und begrenzt nur das
-Zeichnen auf die gewählte Bildrate. Dadurch ist eine Runde von der Leistung des
-Rechners entkoppelt und, in Verbindung mit dem vollständigen Verzicht auf einen
-Zufallszahlengenerator in der Engine, reproduzierbar. Die zweite ist der **flache
-Puffer-Vertrag** über die Sprachgrenze: Positionen, Geschwindigkeiten und Renderzustände
-reisen als typisierte Zahlenfelder, nicht als Objekte pro Entität, weil die Kosten des
+Optimiert wurde entlang zweier Invarianten. Erstens der **feste Zeitschritt**: Die
+Simulation rechnet einen Schritt pro Aufruf, das Frontend ruft sie mit konstanter Rate
+und drosselt nur das Zeichnen; zusammen mit dem Verzicht auf jeden Zufallszahlengenerator
+ist eine Runde damit reproduzierbar. Zweitens der **flache Puffer-Vertrag**: Zustände
+reisen als typisierte Zahlenfelder statt als Objekte pro Entität, weil die Kosten des
 Grenzübertritts sonst mit der Entitätszahl mitwachsen (siehe 5.2.1 Der Puffer-Vertrag).
 
-Die Grenze zwischen den Schichten ist scharf gezogen und in beide Richtungen
-formuliert: Die Engine kennt weder DOM noch Canvas noch eine Browser-API, das Frontend
-enthält keine Simulationsmathematik. Diese Trennung ist keine Stilfrage, sondern die
-Voraussetzung für die Teststrategie — die Engine-Tests laufen ohne Browser, die
-Frontend-Tests ohne gebautes WASM-Paket (siehe 8.1 Unit Tests und Coverage).
-
-Dem Leistungsziel steht ein zweites, gleichrangiges Ziel gegenüber: **Lesbarkeit**. Der
-Quellcode soll von jemandem verstanden werden, der Rust zum ersten Mal liest, was
-`unsafe`, manuelles SIMD und dichte Iteratorketten ausschließt und die naive
-quadratische Nachbarschaftssuche gegenüber einem räumlichen Index bevorzugt, solange die
-Bildrate hält. Die beiden Ziele stehen in einem echten Konflikt, und er ist bewusst zu
-Gunsten der Lesbarkeit entschieden — mit der Einschränkung, dass Optimierungen dort
-erlaubt sind, wo eine Messung sie begründet und nicht ein Gefühl (siehe 8.6 GPU-Last:
-Messgrundlage vor Optimierung).
+Die Schichtgrenze ist in beide Richtungen scharf: Die Engine kennt weder DOM noch Canvas,
+das Frontend enthält keine Simulationsmathematik — die Voraussetzung der Teststrategie
+(siehe 8.1 Unit Tests und Coverage). Dem Leistungsziel steht **Lesbarkeit** als
+gleichrangiges Ziel gegenüber: kein `unsafe`, kein SIMD, die naive quadratische
+Nachbarschaftssuche, solange die Bildrate hält; Optimierungen sind erlaubt, wo eine
+Messung sie begründet (siehe 8.6 GPU-Last: Messgrundlage vor Optimierung).
 
 # 2 Technik Stack
 
-Dieses Kapitel nennt die eingesetzten Technologien und jeweils den Grund für ihre Wahl.
-Es ist absichtlich knapp gehalten: Was aus den Entscheidungen technisch folgt, steht in
-den Kapiteln 3 bis 5, was jedes einzelne Werkzeug tut, in Kapitel 7 Tooling. Die
-vollständige Fassung des Tech Stack Canvas mit allen Versionsangaben liegt im Anhang
-(siehe 11.1 Tabellen, „Tech Stack Canvas — Langfassung").
+Die Langfassung des Tech Stack Canvas mit Versionsangaben liegt im Anhang (siehe 11.1
+Tabellen).
 
 ## 2.1 Rahmenbedingungen
 
-**Zielplattform** ist der aktuelle Desktop-Browser, und zwar ohne Zusatz: Das Spiel muss
-installationsfrei und serverlos laufen (siehe 1.3 Details zum Softwareprojekt). Technisch
-verlangt es damit nur zwei Fähigkeiten, die jeder aktuelle Browser mitbringt —
-WebAssembly und einen 2D-Canvas-Kontext. Alles, was ausgeliefert wird, ist eine Menge
-statischer Dateien; zur Laufzeit gibt es keinen Prozess außerhalb des Browsertabs. Das ist
-keine Sparmaßnahme, sondern die Rahmenbedingung, aus der die restliche Stack-Wahl folgt:
-Was nicht in den Browser passt, kann nicht Teil der Lösung sein.
-
-**Die Sprachwahl** ist damit zur Hälfte vorgegeben und zur Hälfte eine Entscheidung. Für
-Darstellung und Eingabe gibt es im Browser keine Alternative zu **JavaScript**, hier in
-Form von ES-Modulen ohne Transpilations-Schritt. Für die Simulation ist **Rust** gewählt,
-und zwar aus drei strukturellen Gründen: Rust übersetzt vor der Ausführung nach
-WebAssembly, statt zur Laufzeit optimiert zu werden; es hat keine automatische
-Speicherbereinigung, kann also im Pfad, der 60-mal pro Sekunde durchlaufen wird, keine
-Pause durch einen Garbage-Collector erzeugen; und es rechnet auf Werten fester Größe, ohne
-dass Zahlen als Objekte im Speicher liegen. Der Aufwand der Schwarmsimulation wächst
-quadratisch mit der Boid-Zahl (siehe 1.4 Entwicklungsfokus) — genau dort zahlen sich diese
-drei Eigenschaften aus, und nur dort. Verwendet wird die stabile Toolchain in Edition 2021,
-verwaltet über Cargo.
-
-**Die Sprachgrenze** überbrückt `wasm-bindgen`: Es erzeugt aus den annotierten Rust-Typen
-das JavaScript-Gegenstück, sodass die Engine als gewöhnliches ES-Modul importierbar ist.
-`wasm-pack` ist das Build-Werkzeug darüber und wird mit `--target web` aufgerufen, weil das
-Ergebnis dann ohne weiteren Bundler-Schritt lädt. Die Bibliothek `js-sys` steht nur an
-einer einzigen Stelle im Quellcode (_wasm_bridge/response.rs_) und liefert dort die beiden
-Typen `Float32Array` und `Uint32Array`, in denen ein Frame die Sprachgrenze überquert. Dass
-diese Abhängigkeit an genau einer Stelle auftaucht, ist der Zustand, den die schmale
-Schnittstelle aus 2.2 Architektur-Entscheidungen herbeiführen soll.
-
-**Node.js** ist ausdrücklich **kein** Bestandteil des ausgelieferten Produkts, sondern nur
-der Entwicklungsumgebung: Es baut, testet, prüft und formatiert. Der Endnutzer lädt eine
-Seite, keinen Server. Diese Unterscheidung ist wichtig für die Lesart des Canvas in 2.3 —
-die Hälfte der dort genannten Technologien läuft nie auf dem Rechner eines Spielers.
+**Zielplattform** ist der aktuelle Desktop-Browser; technisch verlangt das Spiel nur
+WebAssembly und einen 2D-Canvas-Kontext, ausgeliefert wird eine Menge statischer Dateien.
+**Die Sprachwahl** ist halb vorgegeben: Für Darstellung und Eingabe gibt es keine
+Alternative zu **JavaScript**. Für die Simulation ist **Rust** gewählt, aus drei
+strukturellen Gründen: vorab nach WebAssembly übersetzt statt zur Laufzeit optimiert;
+kein Garbage-Collector im 60-mal pro Sekunde durchlaufenen Pfad; Rechnen auf Werten
+fester Größe. **Die Sprachgrenze** überbrückt `wasm-bindgen`; `wasm-pack` baut mit
+`--target web`, weil das Ergebnis ohne Bundler-Schritt lädt. **Node.js** ist nur
+Entwicklungsumgebung, nicht Teil des Produkts.
 
 ## 2.2 Architektur-Entscheidungen
 
-Drei Entscheidungen tragen den Aufbau. Sie werden hier genannt und begründet; ihre
-technische Umsetzung ist Gegenstand der Kapitel 4 und 5.
+Drei Entscheidungen tragen den Aufbau. **Zwei Schichten mit schmaler Grenze** — der Grund
+ist Prüfbarkeit: Engine-Tests laufen ohne Browser, Frontend-Tests ohne WASM-Paket.
+**Fester Zeitschritt** — jede Dauer zählt in Schritten, und eine an die Bildrate
+gekoppelte Schrittzahl ließe dieselbe Runde auf zwei Rechnern verschieden ablaufen.
+**Flache typisierte Puffer** — ein Objekt pro Boid bedeutet eine Konvertierung pro Boid
+und damit Kosten, die mit genau der Größe wachsen, die das Spiel steigern will.
 
-**Zwei Schichten mit absichtlich schmaler Grenze.** Die Engine besitzt die vollständige
-Simulation und kennt weder DOM noch Canvas noch eine andere Browser-Schnittstelle; das
-Frontend besitzt Darstellung, Eingabe und Spielzustand und enthält keine
-Simulationsmathematik. Der Grund ist nicht Ordnungsliebe, sondern Prüfbarkeit: So laufen
-die Engine-Tests ohne Browser und die Frontend-Tests ohne gebautes WASM-Paket, was beide
-Testläufe schnell und unabhängig voneinander macht (siehe 8.1 Unit Tests und Coverage).
-Eine geteilte Zuständigkeit — etwa Kollisionsprüfung auf beiden Seiten — würde diesen
-Vorteil sofort aufheben.
-
-**Fester Zeitschritt statt Skalierung mit der Bildzeit.** Ein Aufruf der Engine rechnet
-genau einen Simulationsschritt und multipliziert nichts mit der vergangenen Zeit; das
-Frontend ruft sie mit konstanter Rate auf und drosselt nur das Zeichnen. Der Grund ist,
-dass in der Engine jede Dauer in **Schritten** zählt und nicht in Millisekunden — von den
-Dash-Phasen über den Wellenfortschritt bis zur Auswahl, welcher Boid als Nächstes
-losstürmt. Diese Auswahl wird deterministisch aus dem Schrittzähler abgeleitet; einen
-Zufallszahlengenerator gibt es in der Engine bewusst nicht. Eine an die
-Bildwiederholfrequenz gekoppelte Schrittzahl würde dieselbe Runde auf zwei Rechnern
-unterschiedlich ablaufen lassen und jede schrittbasierte Konstante samt ihren Tests
-umrechnungspflichtig machen (siehe 4.2.1 Eine wesentliche Komponente: Darstellung des
-Aufbaus — Bausteinsicht).
-
-**Flache typisierte Puffer statt Objekten pro Entität.** Ein Frame verlässt die Engine als
-eine Handvoll Zahlenfelder mit festem Zeilenabstand, nicht als Liste von Objekten. Der
-Grund ist die Kostenstruktur des Grenzübertritts: Ein Objekt pro Boid bedeutet eine
-Konvertierung pro Boid und damit Kosten, die mit der Entitätszahl wachsen — also genau mit
-der Größe, die das Spiel steigern will. Ein Puffer dagegen wird einmal übergeben, unabhängig
-davon, wie viele Boids darin stehen (siehe 5.2.1 Der Puffer-Vertrag).
-
-Aus den Rahmenbedingungen folgt ebenso deutlich, **was es nicht gibt**, und in allen fünf
-Fällen ist das eine Entscheidung und kein Rückstand:
-
-- **Kein Backend, keine Datenbank, keine externe API, kein Konto.** Das ist die
-  Rahmenbedingung aus 1.3 selbst; jede dieser vier Komponenten würde sie brechen.
-- **Kein UI-Framework.** Der DOM-Anteil besteht aus einem Startmenü, einem HUD und zwei
-  Overlays; alles, was sich pro Bild ändert, liegt auf dem Canvas. Ein Framework würde also
-  gerade dort nichts beitragen, wo die Arbeit anfällt, und im Gegenzug einen
-  Abgleichmechanismus in den Bildpfad legen.
-- **Keine Spiel- oder Physikbibliothek.** Die Simulation ist der Gegenstand des Projekts.
-  Sie einzukaufen, hieße das Fokus-Thema auszulagern.
-- **Kein `rand`-Crate in der Engine.** Alles, was zufällig aussieht — Spawnorte,
-  Hindernisformen, Dash-Auswahl — wird per Ganzzahl-Streuung aus dem Schrittzähler
-  abgeleitet, damit eine Runde reproduzierbar bleibt.
-- **Keine Laufzeit-Abhängigkeit im Frontend.** Alle npm-Pakete des Projekts sind
-  `devDependencies`; im Bundle landet ausschließlich eigener Code (siehe 7.2 Package
-  Management).
-
-**Die Daten** liegen entsprechend im Browser. Der persönliche Bestwert wird über
-`localStorage` gehalten, und zwar bestmöglich: Fehlt der Speicher oder verweigert er den
-Zugriff, spielt die Runde weiter und nur der Bestwert fehlt (siehe 3.6 Persistenz). Die
-Sprachdateien sind statische JSON-Dateien, die zur Laufzeit nachgeladen werden, weshalb sie
-unter `public/` liegen müssen und nicht im Modulgraph.
+Ebenso deutlich ist, **was es nicht gibt** — jeweils Entscheidung, nicht Rückstand: kein
+Backend, keine Datenbank, kein Konto (die Rahmenbedingung selbst); kein UI-Framework (was
+sich pro Bild ändert, liegt auf dem Canvas, wo ein Framework nichts beiträgt); keine
+Spiel- oder Physikbibliothek (die Simulation ist der Gegenstand des Projekts); kein
+`rand`-Crate (Reproduzierbarkeit); keine Laufzeit-Abhängigkeit im Frontend (siehe 7.2
+Package Management). Die Daten liegen im Browser: der Bestwert in `localStorage`, die
+Sprachdateien als statisches JSON unter `public/`.
 
 ## 2.3 Tech Stack Canvas
-
-Die folgende Tabelle fasst den Stack nach Schichten zusammen. Die Langfassung mit
-Versionsangaben je Paket steht im Anhang (siehe 11.1 Tabellen, „Tech Stack Canvas —
-Langfassung"), weil die Versionen dort nachgeführt werden können, ohne den Fließtext
-anzufassen.
 
 | Schicht            | Technologie                                                       | Zweck                                             |
 | ------------------ | ----------------------------------------------------------------- | ------------------------------------------------- |
@@ -321,145 +158,58 @@ anzufassen.
 | Build              | Vite, npm                                                         | Dev-Server, Produktionsbündel, Paketverwaltung    |
 | Qualitätssicherung | Vitest, Playwright, ESLint, Prettier, `cargo test`/`clippy`/`fmt` | Unit-, E2E- und Statikprüfung beider Sprachen     |
 
-**Versionen sind zweistufig festgelegt.** Deklariert sind in _Cargo.toml_ und
-_package.json_ nur Bereiche (`"0.2"`, `"^5.0.0"`); die tatsächlich gebaute Fassung steht in
-_Cargo.lock_ und _package-lock.json_, und **beide Lockfiles sind eingecheckt**. Damit ist
-der Paketstand reproduzierbar. Nicht festgelegt ist die Toolchain selbst: Es gibt keine
-_rust-toolchain.toml_, und `wasm-pack` ist ein lokal installiertes Kommandozeilenwerkzeug.
-Der Build hängt also am Entwicklungsrechner — ein offener Punkt, der genau dann geschlossen
-wird, wenn eine Pipeline die Versionen benennen muss (siehe 8.3 CI/CD: GitHub Actions
-Pipeline).
-
-**Drei Positionen des Anforderungskatalogs fehlen im Canvas und werden hier benannt statt
-übergangen.** **TypeScript** ist nicht eingerichtet: Es war als Typprüfung über `checkJs`
-für vorhandenen JavaScript-Code geplant (T-02) und ist hinter die Testmaßnahmen einsortiert
-worden, weil ein Testlauf Fehler in der Logik findet und `checkJs` in den Signaturen (siehe
-7.6 TypeScript). **Eine _vite.config.js_ existiert nicht**, weil die Vorgaben von Vite für
-dieses Projekt genügen — die Datei war für den Basispfad des Deployments vorgesehen und
-teilt daher dessen Status (siehe 7.10 Deployment). **Eine CI/CD-Pipeline** gibt es nicht;
-`.github/` enthält bislang nur die Anweisungsdatei für die KI-Unterstützung. Alle drei
-Lücken sind im Kapazitätsplan als Rangfolge und nicht als Versäumnis begründet (siehe 10.1
-Kapazitätsplan).
+Deklariert sind Versionsbereiche, die gebaute Fassung steht in den **eingecheckten**
+Lockfiles; nicht festgelegt ist die Toolchain selbst — ein offener Punkt für die Pipeline
+(siehe 8.3 CI/CD: GitHub Actions Pipeline). Drei Katalog-Positionen fehlen im Canvas und
+werden benannt statt übergangen: **TypeScript** (siehe 7.6 TypeScript), eine
+**_vite.config.js_** (Vites Vorgaben genügen) und eine **CI/CD-Pipeline** — alle drei im
+Kapazitätsplan als Rangfolge begründet.
 
 # 3 Frontend: Struktur / Bausteine
 
-Das Frontend besitzt alles, was der Spieler sieht und drückt, und nichts von der Simulation.
-Diese Aufgabenteilung ist in 2.2 Architektur-Entscheidungen festgelegt; dieses Kapitel zeigt,
-wie das Frontend darunter aufgebaut ist. Der Ablauf **eines Bildes** über die Sprachgrenze
-hinweg steht dagegen in 5.2.2 Bausteinsicht und Frame-Ablauf und wird hier nicht wiederholt.
+Das Frontend besitzt alles, was der Spieler sieht und drückt, und nichts von der
+Simulation.
 
 ## 3.1 Wesentliche Komponenten
 
-Das Frontend besteht aus **ES-Modulen ohne Framework**, gruppiert in Pakete nach Aufgabe. Es
-gibt drei Sorten von Modulen, und die Unterscheidung erklärt den Rest des Kapitels: Module,
-die den **Browser anfassen** (DOM, Canvas, Tastatur), Module, die **Zustand halten**, und
-Module, die nur **rechnen**. Nur die dritte Sorte ist unter Vitest prüfbar (siehe 3.3
-Modularisierung: Strukturierung der fachlichen Logik), weshalb sie bewusst so groß wie
-möglich gehalten ist.
+Das Frontend besteht aus **ES-Modulen ohne Framework**, in drei Sorten: Module, die den
+**Browser anfassen**, Module, die **Zustand halten**, und Module, die nur **rechnen** —
+nur die dritte Sorte ist unter Vitest prüfbar und deshalb bewusst so groß wie möglich
+gehalten.
 
-- **Bootstrap** — _index.js_. Baut alle Objekte, verdrahtet sie, hält den
-  `requestAnimationFrame`-Loop und den Lebenszyklus einer Runde. Die einzige Datei, die alle
-  anderen kennt.
-- **Bridge** — _engine-bridge.js_. Die einzige Stelle, die das WASM-Modul berührt (siehe 5.1
-  Wesentliche Komponenten).
-- **`loop/`** — die Zeitrechnung: _frameScheduler.js_ (feste Schrittzahl, Renderdrosselung,
-  Schuldenklemmung), _simulationStep.js_ (der Körper eines Schritts), _renderState.js_,
-  _stateRenderer.js_, _staticFrameGate.js_, _frameMetrics.js_, _refreshRate.js_.
-- **`input/`** — _inputManager.js_ (Tastenzustand und Dash-Latch), _controls.js_ (das
-  Kontrollobjekt eines Schritts), _pauseControl.js_ (Escape und Auto-Pause).
-- **`player/`** — _playerController.js_ (Integration und Dash) und _dashCooldown.js_
-  (Abklingzeit als reine Arithmetik).
-- **`powerups/`** — die drei Power-ups vollständig im Frontend: _powerups.js_, _mend.js_,
-  _markerClearance.js_, _markerLifetime.js_ (siehe 3.8 Implementierung der Fachlogik).
-- **`renderer/`** — das größte Paket. _renderer.js_ als Fassade über _canvasRenderer.js_,
-  darunter je eine Zeichenebene pro Motiv (Arena, Hindernisse, Schweife, Dash-Ziellinie,
-  Spawn-Marker, Power-ups, Statusbalken) und daneben die importfreie Zeichenarithmetik
-  (_dashPulse.js_, _spawnMarkerPulse.js_, _mendPulse.js_, _worldTransform.js_).
-- **`round/`** — _roundData.js_ (der Zustand einer Runde), _roundRecords.js_ (Persistenz),
-  _waveTier.js_ (die Stufe der gerade spawnenden Variante).
-- **`ui/`** — das DOM: _menu.js_ mit seinen vier Zulieferern, _hud.js_, die beiden Karten,
-  _i18n.js_, _frameTimeGraph.js_ samt Zubehör.
-- **Zustand und Konfiguration** — _gameState.js_ (die Zustandsmaschine) und _gameConfig.js_
-  (alle Konstanten, siehe 3.7 Konfiguration).
-
-Die vollständige Modulübersicht je Datei steht im Anhang (siehe 11.1 Tabellen,
-_Modulübersicht Frontend_); Zeilenzahlen und Testzahlen stehen ausschließlich in Kapitel 9
-Quellcode-Übersicht.
+Die Pakete: _index.js_ (Bootstrap und Loop — die einzige Datei, die alle anderen kennt),
+_engine-bridge.js_ (die einzige Stelle, die das WASM-Modul berührt), `loop/`, `input/`,
+`player/`, `powerups/`, `renderer/` (Fassade über dem Canvas-Renderer, daneben
+importfreie Zeichenarithmetik), `round/`, `ui/` sowie _gameState.js_ und _gameConfig.js_.
+Die Modulübersicht je Datei steht im Anhang (siehe 11.1 Tabellen), alle Kennzahlen in
+Kapitel 9 Quellcode-Übersicht.
 
 ## 3.2 Komponenten — Details & Interaktion
 
 ### 3.2.1 (UI-)Komponenten — Aufbau
 
-**Das Dokument ist bewusst fast leer.** _index.html_ enthält genau zwei Elemente: das
-`<canvas id="game-canvas">` und ein leeres `<div id="ui-overlay">`. Alles Weitere entsteht
-zur Laufzeit. Damit gibt es keine zweite Quelle der Wahrheit für die Oberfläche — kein
-Element, das im HTML steht und im Modul noch einmal, und keine Bindung, die beide synchron
-halten müsste.
+**Das Dokument ist fast leer**: _index.html_ enthält nur das Canvas und ein leeres
+Overlay-`div`; alles Weitere entsteht zur Laufzeit — keine zweite Quelle der Wahrheit.
+**Die Grenze zwischen Canvas und DOM** ist nach Kosten gezogen: Was sich pro Bild ändert,
+gehört auf das Canvas; was eine feste Beschriftung trägt, ins DOM, wo der Browser sie
+einmal setzt statt jedes Bild neu zu rastern — und wo Playwright sie lesen kann.
 
-**Die Grenze zwischen Canvas und DOM** ist keine Stilfrage, sondern nach Kosten gezogen: Was
-sich in jedem Bild ändert, gehört auf das Canvas; was eine feste Beschriftung trägt, gehört
-ins DOM. Beide Male hat dieselbe Beobachtung entschieden — die Dash-Leiste und später die
-Buff-Zeilen standen auf dem Canvas und ließen ihre unveränderliche Beschriftung in **jedem
-Bild neu rastern**. Beide sind ins DOM gewandert, wo der Browser sie einmal setzt. Der
-Nebeneffekt ist ein Testeffekt: Was im DOM steht, kann Playwright lesen, während auf dem
-Canvas gezeichneter Text für die E2E-Stufe unsichtbar ist (siehe 8.2 E2E Tests).
+**Das Menü** hat einen Bildschirmtyp; die Optionsgruppen sind Buttons mit `aria-pressed`
+statt `role="radiogroup"`, weil eine Radiogroup eigene Pfeiltastennavigation mitbringt
+und mit der Menüliste um dieselben Tasten stritte. **Das HUD** besteht aus DOM-Elementen
+mit stabilen IDs für die Testbarkeit.
 
-**Das Menü** ist ein Modul mit vier Zulieferern statt einer Datei: _menu.js_ entscheidet, was
-zu sehen ist, _menuDeck.js_ liefert Rahmen, Titel und Zeilenliste, _menuPanels.js_ die
-einzelnen Paneele, _menuNavigation.js_ die Tastaturführung und _optionGroup.js_ die
-Einstellungsgruppen. Es gibt **einen** Bildschirmtyp und nicht vier: ein Untermenü ersetzt nur
-die linke Spalte und lässt Kopf, Fuß und Panelstapel stehen. Die Werte dahinter liegen in
-_ui/menuSettings.js_ — getrennt vom Rendern, weil die einzige Logik unter ihnen (welche
-Bildraten der Bildschirm überhaupt lohnt) ohne Browser prüfbar sein soll.
-
-**Eine Optionsgruppe existiert immer nur an einer Stelle.** _optionGroup.js_ liefert Markup
-und Auswahllogik für jede Einstellung, statt sie je Einstellung zu kopieren. Bemerkenswert ist
-die Wahl der Bausteine: einfache Buttons mit `aria-pressed` statt `role="radiogroup"` oder
-Radio-Inputs. Der Grund ist Tastenbesitz — die Pfeiltasten gehören der Menüliste, solange ein
-Overlay offen ist, und dem Spieler, solange eine Runde läuft. Eine `radiogroup` bringt ihre
-eigene Pfeiltastennavigation mit und würde um dieselben Tasten streiten, mit dem Ergebnis, dass
-sie für Tastatur- und Screenreader-Nutzer kaputt ist. Ein Toggle-Button weckt diese Erwartung
-nicht und funktioniert mit Tab plus Enter oder Leertaste. Dasselbe Thema kehrt in 3.2.2 als
-Bausteinsicht wieder; hier ist es eine ARIA-Entscheidung, dort eine Ereignis-Entscheidung.
-
-**Das HUD** ist eine feste Menge von DOM-Elementen mit stabilen IDs, die benennen, _was_ sie
-zeigen (`hud-timer`, `hud-score`), neben Klassen, die sagen, _wo_ sie sitzen. Das ist eine
-Zeile Produktionscode für die Testbarkeit und die Grenze, die dabei bewusst nicht
-überschritten wurde: kein Test-Hook, der internen Spielzustand nach `window` exportiert.
-
-**Zwei Karten und eine Attrappe** vervollständigen die Oberfläche. _gameOverCard.js_ und
-_pauseCard.js_ sind Zwillinge über einer neutralen `card`-Basis — die Pause ist bewusst als
-Karte gebaut und nicht als Sonderfall des Game-Over. _menuBackdrop.js_ zeichnet den Schwarm
-hinter dem Startmenü und ist **keine** Simulation, sondern eine Attrappe auf eigenem Canvas:
-Sie läuft nur, solange das Menü steht, weil während einer Runde niemand die Dekoration
-ansieht und sie sonst mit der Simulation um Bilder konkurrieren würde.
-
-**Der Frametime-Graph** (_ui/frameTimeGraph.js_ mit _frameGraphOverlay.js_,
-_frameGraphScale.js_ und _drawnFrameRate.js_) ist ein Diagnosewerkzeug und standardmäßig aus.
-Er ist der einzige Teil der Oberfläche, der Messwerte statt Spielzustand zeigt; seine
-Messgrundlage steht in 8.6 GPU-Last: Messgrundlage vor Optimierung.
-
-**Alle nutzersichtbaren Zeichenketten liegen außerhalb des Codes.** _ui/i18n.js_ lädt
-_public/locales/en.json_ zur Laufzeit und löst namensräumige Schlüssel auf (`menu.start`,
-`hud.score`). Fehlt ein Schlüssel, liefert `t()` den Schlüssel selbst zurück — ein fehlender
-Text fällt damit als Text auf, statt die Oberfläche leer zu lassen. Die Datei liegt unter
-`public/`, weil sie geladen und nicht importiert wird: Was Vite nie im Modulgraphen sieht,
-landet nur von dort im Produktionsbündel. Ein Verstoß dagegen ist genau einmal passiert und
-in 10.2 Herausforderungen beschrieben.
-
-**Das Aussehen** liegt in sechs Stylesheets, geteilt nach Zuständigkeit, und ihre Reihenfolge
-in _index.html_ ist tragend: _tokens.css_ definiert die Variablen, die alle anderen lesen,
-_components.css_, _cards.css_, _menu.css_ und _hud.css_ folgen, und _main.css_ kommt zuletzt,
-damit seine Positionierungs-Utilities gegen die Komponenten gewinnen. Die beiden Schriften
-liegen als `woff2` im Repository statt auf einem Font-CDN — das ist dieselbe Rahmenbedingung
-wie in 2.2 Architektur-Entscheidungen: keine externe Anfrage zur Laufzeit.
+**Alle nutzersichtbaren Zeichenketten liegen außerhalb des Codes**: _ui/i18n.js_ lädt
+_public/locales/en.json_ zur Laufzeit; fehlt ein Schlüssel, liefert `t()` den Schlüssel
+zurück, sodass ein fehlender Text als Text auffällt. Die Datei liegt unter `public/`,
+weil Vite nur ausliefert, was es im Modulgraphen sieht oder dort findet. Die Schriften
+liegen im Repository statt auf einem CDN — keine externe Anfrage zur Laufzeit.
 
 ### 3.2.2 Eine wesentliche Komponente: Darstellung des Aufbaus — Bausteinsicht
 
 Als Bausteinsicht ist die **Eingabekette** gewählt, weil in ihr zwei nicht offensichtliche
-Entscheidungen mit dokumentiertem Zielkonflikt stecken: Die Dash-Taste ist flankengetriggert
-und gelatcht, und die Tastatur gehört nur während einer laufenden Runde dem Spiel
-(siehe Abbildung 1).
+Entscheidungen stecken: Die Dash-Taste ist flankengetriggert und gelatcht, und die
+Tastatur gehört nur während einer laufenden Runde dem Spiel (siehe Abbildung 1).
 
 ```mermaid
 flowchart LR
@@ -499,376 +249,139 @@ flowchart LR
 
 _Abbildung 1: Bausteinsicht der Eingabekette_
 
-**Der Latch** ist die Antwort auf den festen Zeitschritt. Ein Animationsbild kann mehrere
-Simulationsschritte fahren; würde `controls` pro Schritt fragen „ist die Leertaste unten",
-ergäbe ein Tastendruck bis zu fünf Dashes. Stattdessen setzt `keydown` eine Fahne, und
-`consumeDashRequest()` liest sie **und löscht sie dabei**. Zusätzlich wird `event.repeat`
-geprüft, damit eine gehaltene Taste nicht als Serie von Anfragen zählt. Der Aufruf pro Schritt
-liegt in _controls.js_, einer Datei mit einer Funktion — sie existiert, damit „genau einmal pro
-Schritt gelesen" eine benannte Stelle hat und nicht eine Gewohnheit ist.
-
-**Das Tor `_gameplayActive`** entscheidet, wem die Tastatur gehört. Außerhalb einer Runde muss
-die Leertaste den fokussierten Menü-Button aktivieren und müssen die Pfeiltasten die Menüliste
-bewegen, deren Fuß das ausdrücklich verspricht. Drei Alternativen wurden verworfen:
-
-| Alternative                                          | Grund der Ablehnung                                                                                                                                                      |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Menü-Navigation vor dem `InputManager` registrieren  | Reihenfolge von Listenern als Architektur. Beide sehen dieselbe Taste, und der zuerst registrierte gewinnt — beim nächsten Umbau der Bootstrap-Reihenfolge still kaputt. |
-| Nur die Pfeiltasten freigeben, WASD weiter schlucken | Die Asymmetrie müsste erklärt werden, ohne etwas zu gewinnen. Die richtige Grenze ist der Spielzustand, nicht die Tastenmenge.                                           |
-| `keyup` ebenfalls an die Runde binden                | Genau der Fehler, der dabei entsteht: eine beim Rundenende gehaltene Taste würde nie freigegeben und in der nächsten Runde als gedrückt gelten.                          |
-
-Deshalb ist `keydown` am Zustand gebunden und `keyup` **nicht** — Aufräumen darf nie
-zustandsabhängig sein. `blur` und `setGameplayActive(false)` tun dasselbe und sollen es tun:
-beides sind Momente, in denen niemand mehr steuert. Diese Trennung ist zugleich das einzige
-an der Eingabe, was nur die E2E-Stufe prüfen kann — alles Übrige ist Arithmetik und liegt in
-Unit-Tests (siehe 8.2 E2E Tests).
+**Der Latch** ist die Antwort auf den festen Zeitschritt: Ein Bild kann mehrere Schritte
+fahren, und eine „ist die Leertaste unten"-Prüfung pro Schritt machte aus einem
+Tastendruck bis zu fünf Dashes; `consumeDashRequest()` liest die Fahne und löscht sie
+dabei. **Das Tor `_gameplayActive`** entscheidet, wem die Tastatur gehört — außerhalb
+einer Runde bedienen Leertaste und Pfeiltasten das Menü. `keydown` ist am Zustand
+gebunden, `keyup` bewusst nicht, denn Aufräumen darf nie zustandsabhängig sein.
 
 ### 3.2.3 Komponenten-Interaktion
 
-**_index.js_ ist der einzige Ort, an dem Module einander kennenlernen.** Kein Modul importiert
-ein Geschwistermodul, um dessen Zustand zu lesen; wer etwas braucht, bekommt es übergeben.
-Zwei Reihenfolgen darin sind tragend und im Code begründet: Die Messung der
-Bildwiederholfrequenz läuft **parallel** zum Laden der Sprachdatei, damit die Wartezeit
-einmal statt zweimal anfällt, und der Frametime-Graph wird **vor** dem Menü gebaut, weil das
-Stapeln im `#ui-overlay` der DOM-Reihenfolge folgt und das Menü über dem Graphen liegen muss.
-
-Der **Lebenszyklus einer Runde** besteht aus fünf Funktionen, und ihre Zuständigkeiten sind
-scharf getrennt: `showStartMenu()` gibt Bildschirm und Tastatur ans Menü zurück,
-`openRound()` baut die Engine neu und übergibt die Tastatur, `pauseGame()` friert die Welt
-ein, `resumeGame()` lässt sie weiterlaufen, `endRound()` schreibt den Rekord und zeigt die
-Karte. Jede von ihnen setzt `input.setGameplayActive(...)`, weil der Tastenbesitz aus 3.2.2
-genau an diesen Übergängen wechselt.
-
-Die Zeichenkette ist über eine **Fassade** entkoppelt: _renderer/renderer.js_ delegiert an
-_renderer/canvasRenderer.js_, sodass ein WebGL-Backend das Canvas-Backend ersetzen könnte,
-ohne einen Aufrufer anzufassen. Diese Indirektion existiert, das zweite Backend nicht — die
-Begründung dafür steht in 1.2 Die Lösung.
+**_index.js_ ist der einzige Ort, an dem Module einander kennenlernen** — wer etwas
+braucht, bekommt es übergeben. Der Rundenlebenszyklus besteht aus fünf Funktionen, und
+jede setzt den Tastenbesitz aus 3.2.2, weil er genau an diesen Übergängen wechselt. Die
+Zeichenkette ist über eine Fassade entkoppelt, sodass ein WebGL-Backend Aufrufer nicht
+anfassen müsste — die Indirektion existiert, das zweite Backend nicht (siehe 1.2 Die
+Lösung).
 
 ## 3.3 Modularisierung: Strukturierung der fachlichen Logik
 
-Drei Regeln erklären die Aufteilung.
-
-**Erstens: keine Simulationsmathematik im Frontend.** Positionen, Geschwindigkeiten,
-Kollisionen und Ausweichverhalten kommen fertig aus der Engine. Es gibt genau **eine**
-bewusste Ausnahme, und die ist benannt statt versteckt: Die Power-up-Marker müssen beim Setzen
-Abstand zu den Hindernissen halten, also braucht das Frontend die Punkt-zu-Segment-Geometrie
-ein zweites Mal. Sie liegt als exportierte, einzeln getestete `distanceToSegment` in
-_powerups/markerClearance.js_ statt inline im Spawnversuch — eine doppelte Geometrie an einer
-sichtbaren Stelle ist billiger als ein zusätzlicher Puffer über die Sprachgrenze (siehe 3.8
-Implementierung der Fachlogik).
-
-**Zweitens: importfreie Arithmetik wird herausgelöst.** Die Vitest-Suite läuft im
-`node`-Environment, also ohne Browser und ohne gebautes WASM-Paket (siehe 8.1 Unit Tests und
-Coverage). Jedes Modul, das etwas ausrechnet, ist deshalb frei von Importen auf Browser-APIs:
-_loop/frameScheduler.js_ und _loop/frameMetrics.js_, _ui/frameGraphScale.js_,
-_player/dashCooldown.js_, _renderer/dashPulse.js_, _renderer/spawnMarkerPulse.js_,
-_renderer/mendPulse.js_, _renderer/worldTransform.js_. Dieselbe Regel erklärt eine sonst
-schwer begründbare Zweiteilung: _renderer/dashTrailHistory.js_ hält den Ringpuffer der
-Schweifpunkte, _renderer/dashTrail.js_ die Verlaufsmathematik darüber, und
-_renderer/trailLayer.js_ zeichnet — nur das letzte Drittel braucht einen Kontext.
-
-**Drittens: 400 Zeilen sind das Maximum.** Die Grenze ist mechanisch und hat trotzdem fast
-jede Aufteilung dieses Projekts ausgelöst: _loop/simulationStep.js_, _loop/renderState.js_,
-_loop/stateRenderer.js_, _powerups/markerLifetime.js_, _renderer/powerupMarkerLayer.js_ und
-_ui/menuSettings.js_ sind alle entstanden, als _index.js_ oder ihr Ursprungsmodul an die Grenze
-lief. Bemerkenswert ist der Nebeneffekt: _loop/renderState.js_ war als Teil von _index.js_
-unter Vitest **nicht** erreichbar und ist es seit dem Herauslösen. Die Regel taugt aber nur
-zusammen mit einer echten Naht — geteilt wurde jeweils entlang einer Grenze, die im
-Kopfkommentar der Datei schon beschrieben war. Eine Aufteilung nach Zeilenzahl ohne Naht
-verteilt denselben Gedanken auf zwei Dateien, statt zwei Gedanken zu trennen.
+Drei Regeln erklären die Aufteilung. **Keine Simulationsmathematik im Frontend** — die
+eine benannte Ausnahme ist die Punkt-zu-Segment-Geometrie in
+_powerups/markerClearance.js_, billiger als ein zusätzlicher Puffer über die Grenze.
+**Importfreie Arithmetik wird herausgelöst**, weil die Vitest-Suite ohne Browser und
+WASM-Paket läuft. **400 Zeilen sind das Maximum**: Die mechanische Grenze hat fast jede
+Aufteilung ausgelöst, geteilt wurde aber jeweils entlang einer echten Naht — eine
+Aufteilung ohne Naht verteilte denselben Gedanken auf zwei Dateien.
 
 ## 3.4 State Management
 
-Es gibt **kein** Framework, keinen Store und kein Observable. Der Zustand liegt in drei
-Schichten, jede mit einer eigenen Lebensdauer.
+Es gibt kein Framework und keinen Store — es gibt eine Ansicht und einen Loop, der den
+Zustand ohnehin jedes Bild liest. **_gameState.js_** hält die Zustandsmaschine (`MENU`,
+`PLAYING`, `PAUSED`, `GAME_OVER`) und **validiert nichts**; die Zusicherung „`PAUSED` nur
+aus `PLAYING`" tragen zwei Wächter in _index.js_, wo das Warum sichtbar steht.
+**_round/roundData.js_** hält den Rundenzustand browserfrei und damit unter Vitest
+prüfbar; modulweiter Zustand in _index.js_ überlebt Runden.
 
-**_gameState.js_** hält die Zustandsmaschine mit vier Werten: `MENU`, `PLAYING`, `PAUSED`,
-`GAME_OVER`. Sie kennt ausschließlich Übergänge und **validiert nichts** — `transition()`
-schreibt den neuen Wert, ohne den alten zu prüfen. Die Zusicherung „`PAUSED` ist nur aus
-`PLAYING` erreichbar und kehrt nur dorthin zurück" wird nicht hier, sondern von den beiden
-Wächtern in `pauseGame()` und `resumeGame()` getragen, die dieses Paar besitzen. Das ist
-Absicht: Ein Übergang, der aus zwei Gründen scheitern kann, ist schwerer zu lesen als eine
-Zustandsmaschine ohne Meinung plus zwei sichtbare Wächter an der Stelle, an der das Warum
-steht. Der Verzicht auf einen Store folgt aus der Bauform — es gibt eine einzige Ansicht und
-einen Loop, der den Zustand ohnehin in jedem Bild liest; ein Abonnement-Mechanismus hätte
-keinen Abnehmer.
-
-**_round/roundData.js_** hält den Zustand einer Runde als einfaches Objekt mit Funktionen
-darauf, nicht als Klasse: Punkte, Leben, Welle, Timer, Simulationsuhr, die Zeitstempel der
-letzten Treffer und Dashes. Das Modul ist **browserfrei** und deshalb vollständig unter Vitest
-prüfbar, was der Grund für diesen Schnitt ist.
-
-**Modulweiter Zustand in _index.js_** ist die dritte Schicht und die kleinste: die
-Menü-Einstellungen, der `FrameScheduler`, die Frame-Metriken und das Power-up-Feld. Sie liegen
-dort und nicht in den Rundendaten, weil sie eine Runde überleben müssen — das Menü und der
-Game-Over-Zweig haben keine Rundendaten, und die Bilduhr muss über Zustandswechsel
-weiterlaufen, sonst sähe das erste spielende Bild eine mehrsekündige Zeitdifferenz.
-
-**Die Zeitregel ist die eigentliche Aussage dieses Abschnitts.** Punkte, der Timer und jede
-Abklingzeit leiten sich aus `simulationTimeMs` ab, nie aus der Wanduhr — sonst würde ein in
-den Hintergrund geschobener Tab Punkte verschenken. Daraus folgt eine Pflicht, die leicht
-übersehen wird: Diese Uhr springt in `beginRound()` auf null zurück, also muss **jeder** an
-ihr gemessene Zeitstempel dort neu gesetzt werden. `lastHitAtSimulationMs` und
-`lastDashAtSimulationMs` werden dazu eine volle Abklingzeit in die Vergangenheit gesetzt,
-damit Dash und Trefferfenster im ersten Schritt bereit sind. Die eine Ausnahme ist
-`countdownEndsAt`: Drei Sekunden Countdown sollen drei echte Sekunden sein, also läuft er auf
-Wanduhr — und ist damit auch der einzige Wert, den eine Pause über sich hinwegtragen muss
-(`pauseCountdown` / `resumeCountdown`). Umgekehrt gilt dieselbe Regel für Präsentation:
-Animationen, die nichts entscheiden — der Startring des Dash-Schweifs, das Blinken eines
-ablaufenden Markers — laufen absichtlich auf Wanduhr, weil sie zur Bildrate gehören und nicht
-zur Simulation.
+**Die Zeitregel ist die eigentliche Aussage**: Punkte, Timer und Abklingzeiten leiten
+sich aus `simulationTimeMs` ab, nie aus der Wanduhr; weil diese Uhr in `beginRound()` auf
+null springt, muss jeder an ihr gemessene Zeitstempel dort neu gesetzt werden. Die eine
+Ausnahme ist der Countdown auf Wanduhr — und damit der einzige Wert, den eine Pause über
+sich hinwegtragen muss.
 
 ## 3.5 Routing und Navigation
 
-**Es gibt kein Routing, und das ist die eine echte Absenz dieses Berichts.** Die Anwendung
-besteht aus einer HTML-Seite, einem Canvas und einem Overlay-Container; es gibt keine URL-
-Fläche, keine History-Behandlung und keine zweite Ansicht, auf die verwiesen werden könnte.
-Die Rolle, die in einer Mehrseiten-Anwendung ein Router hätte, trägt _gameState.js_ zusammen
-mit dem Menü: Der Zustand entscheidet, was gezeichnet wird und wer die Tastatur besitzt.
-
-Begründet ist das doppelt. Erstens durch die Rahmenbedingung „installationsfrei und
-serverlos" — ein Deep-Link müsste auf etwas zeigen, und das einzige Ziel wäre ein
-Spielzustand. Der liegt zur Hälfte im linearen Speicher des WASM-Moduls, dauert wenige
-Minuten und ist nicht fortsetzbar; ein Link darauf hätte keine Bedeutung. Zweitens durch die
-Bedienform: Die Anwendung ist für Tastatur gebaut, und ein zweites Navigationsmodell neben
-dem Menü wäre eine zweite Stelle, an der um dieselben Tasten gestritten wird.
-
-**Navigiert wird stattdessen im Menü**, und der Zurück-Weg ist Escape. Ein einziger
-Fenster-Listener in _input/pauseControl.js_ besitzt **beide** Richtungen — Pausieren und
-Fortsetzen — plus die Auto-Pause bei Fokusverlust. Das ist kein Zufall: _ui/menuNavigation.js_
-prüft für sein eigenes Escape, ob das Overlay sichtbar ist, und ein zweiter Handler würde diese
-Bedingung synchron im selben Ereignis verändern. Eine geteilte Fassung schließt die Karte
-also in demselben Moment, in dem sie sich öffnet, oder pausiert unmittelbar nach dem
-Fortsetzen erneut. Kapitel 4 verweist für seine eigene Absenz auf diesen Abschnitt zurück
-(siehe 4.5 Routing).
+**Es gibt kein Routing, und das ist die eine echte Absenz dieses Berichts.** Die Rolle
+eines Routers trägt _gameState.js_ zusammen mit dem Menü: Ein Deep-Link müsste auf einen
+Spielzustand zeigen, der zur Hälfte im linearen WASM-Speicher liegt und nicht fortsetzbar
+ist, und ein zweites Navigationsmodell stritte um dieselben Tasten wie das Menü. Der
+Zurück-Weg ist Escape: Ein einziger Fenster-Listener in _input/pauseControl.js_ besitzt
+beide Richtungen plus die Auto-Pause bei Fokusverlust — ein zweiter Handler würde die
+Sichtbarkeits-Bedingung des Menü-Escapes synchron im selben Ereignis verändern.
 
 ## 3.6 Persistenz
 
-Persistiert wird **eine** Sache: das Ergebnis einer beendeten Runde, in `localStorage`, über
-_round/roundRecords.js_. Gespeichert sind der persönliche Bestwert und der letzte Lauf, je mit
-vier Werten — Punkte, Welle, Zeit und Schwarmgröße. Die Schwarmgröße gehört dazu, weil die
-Statistikzeile der Game-Over-Karte sie zeigt und eine dort aus dem Nichts erscheinende Null
-eine erfundene Zahl gewesen wäre.
-
-**`localStorage` und nicht IndexedDB**, weil es um eine Handvoll Zahlen geht: Der Zugriff darf
-synchron sein, es gibt kein Schema und keine Migration, und die asynchrone API von IndexedDB
-würde eine Datenbank für zwei Datensätze verwalten.
-
-**Der Speicher wird hereingegeben, nicht importiert.** `readRecords(storage = localStorage)`
-nimmt ihn als Parameter, wodurch ein Map-gestütztes Objekt als Attrappe genügt und das Modul
-unter Vitest prüfbar ist — die interessante Hälfte dieses Moduls ist nämlich nicht der
-Normalfall, sondern der defekte Eintrag und der verweigerte Zugriff. Beides in Playwright zu
-erzeugen kostet mehr als das ganze Modul. Jeder Zugriff liegt zusätzlich in `try`/`catch`:
-Ein Profil im privaten Modus kann ein `localStorage` haben, das beim Schreiben wirft, und eine
-von Hand editierte Zahl darf nicht als `NaN` im Menü landen. **Ein Fehler heißt „kein Rekord"
-und sonst nichts** — die Grenzkontrolle sitzt an der Systemgrenze, nicht an jeder
-Anzeigestelle. Was `readRecords` verlässt, ist entweder ein vollständiger Lauf oder `null`.
-
-Bewusst **nicht** persistiert sind drei Dinge. Der Zustand einer laufenden Runde: Sie ist
-kurz, und ein Wiederaufsetzen wäre spielmechanisch sinnlos. Eine **abgebrochene** Runde: Der
-Weg von der Pausenkarte ins Hauptmenü schreibt nichts, weil ein Lauf, den der Spieler
-verlassen hat, kein beendeter Lauf ist und „Letzter Lauf" nur mit einer Zahl überschreiben
-würde, die niemand erreichen wollte. Und die **Menü-Einstellungen**: Bildrate, Graph und
-Entwickleroptionen leben im Speicher einer Sitzung und sind nach einem Neuladen zurück auf
-Standard. Das ist eine Auslassung aus Aufwandsgründen, keine architektonische — die Stelle
-dafür wäre dieselbe wie für die Rekorde.
-
-`recordRound` gibt die Rekorde nach dem Schreiben zurück, damit die Game-Over-Karte den
-Bestwert **einschließlich** der gerade beendeten Runde zeigen kann: Ein Lauf, der den Rekord
-gerade gesetzt hat, muss ihn sehen.
+Persistiert wird **eine** Sache: das Ergebnis einer beendeten Runde, in `localStorage`
+über _round/roundRecords.js_ — `localStorage` statt IndexedDB, weil es um eine Handvoll
+Zahlen ohne Schema geht. Der Speicher wird hereingegeben statt importiert, wodurch das
+Modul unter Vitest prüfbar ist; jeder Zugriff liegt in `try`/`catch`, und **ein Fehler
+heißt „kein Rekord" und sonst nichts**. Bewusst nicht persistiert: laufende und
+abgebrochene Runden (ein verlassener Lauf ist kein beendeter) sowie die
+Menü-Einstellungen (Auslassung aus Aufwandsgründen).
 
 ## 3.7 Konfiguration
 
-**_gameConfig.js_ ist die einzige Stelle für Frontend-Konstanten**; „keine Magic Numbers in
-Logik-Modulen" ist eine harte Projektregel. Die Datei ist nach Themen gegliedert (Welt,
-Spieler, Dash, Hindernisse, Spawn-Marker, Zeitschritt, Bildrate, Frametime-Graph) und trägt
-ihre Begründungen als Doc-Kommentar an der Konstante — dort steht, warum ein Wert diesen
-Betrag hat und welche andere Konstante mitgedacht werden muss. Ein Beispiel steht in 3.8
-Implementierung der Fachlogik. Der Nutzen zeigt sich beim Nachstimmen: Weil jede Zusicherung
-in _player/\_\_tests\_\_/playerSteering.test.js_ ihre Konstante aus _gameConfig.js_ **liest**
-statt sie zu spiegeln, ist eine Umstimmung des Spielerhandlings eine Änderung von drei Zeilen
-und keine Testrunde.
+**_gameConfig.js_ ist die einzige Stelle für Frontend-Konstanten**; „keine Magic Numbers
+in Logik-Modulen" ist eine harte Projektregel, und die Begründung eines Werts steht als
+Kommentar an der Konstante. Die Entwickleroptionen werden beim Öffnen der Runde einmal
+gelesen, damit ein mitten in der Runde umgelegter Schalter nicht die Regeln eines
+laufenden Laufs ändert.
 
-Die **Entwickleroptionen** liegen im Menü hinter einem eigenen Untermenü: Frametime-Graph an
-oder aus, welche Kurven er zeichnet, und der unverwundbare Spieler. Die letzte ist ein
-Messinstrument — die interessanten Frametimes liegen jenseits von zehn Minuten Spielzeit, und
-dorthin kam man vorher nur durch Überleben. Sie wird beim Öffnen der Runde **einmal** gelesen
-und ist danach Teil der Rundendaten, damit ein mitten in der Runde umgelegter Schalter nicht
-die Regeln eines laufenden Laufs ändert.
-
-**Vier Konstanten stehen bewusst doppelt** — je einmal hier und einmal in
-_engine/src/constants.rs_ bzw. im Puffer-Vertrag: `INITIAL_BOID_COUNT`,
-`MAX_BOID_DIFFICULTY_TIER` sowie die drei Schrittweiten `OBSTACLE_STRIDE`,
-`SPAWN_MARKER_STRIDE` und `DASH_AIM_STRIDE`. Bei den Schrittweiten ist die Doppelung der
-Zweck: Die Grenztests der Engine nageln sie fest, sodass ein einseitiges Ändern auffällt statt
-Zahlen zu verschieben (siehe 5.2.1 Der Puffer-Vertrag). Bei den beiden anderen ist es eine in
-Kauf genommene Handsynchronisationspflicht, die als Kommentar an beiden Stellen steht.
-
-Was **nicht** verdoppelt wurde, zeigt das Kriterium: `WORLD_WIDTH` und `WORLD_HEIGHT` stehen
-nur hier. Die Engine bekommt die Weltgröße über ihren Konstruktor übergeben, ihre Tests
-benutzen ohnehin eigene Größen, und eine zweite Kopie hätte eine Pflicht ohne Gewinn erzeugt.
-Doppelt geführt wird also nur, was entweder von einem Test festgenagelt ist oder in beiden
-Sprachen einen eigenen Verwendungszweck hat.
+**Fünf Konstanten stehen bewusst doppelt** — `INITIAL_BOID_COUNT`,
+`MAX_BOID_DIFFICULTY_TIER` und die drei Strides des Puffer-Vertrags. Bei den Strides ist
+die Doppelung der Zweck: Die Grenztests nageln sie fest, sodass einseitiges Ändern
+auffällt (siehe 5.2.1 Der Puffer-Vertrag). Die Weltgröße steht nur hier — die Engine
+bekommt sie über den Konstruktor.
 
 ## 3.8 Implementierung der Fachlogik
 
-Wenn die Simulation in der Engine liegt, bleibt für das Frontend mehr Fachlogik übrig, als es
-zunächst aussieht: der Spieler selbst, die Power-ups, der Wellenfortschritt und alles, was aus
-der Simulationsuhr abgeleitet wird.
+**Der Spieler wird im Frontend integriert** (_player/playerController.js_). Der Dash
+biegt die Geschwindigkeitsklemme sichtbar: `_startDash` setzt die Geschwindigkeit auf
+1100 px/s **und hebt die Obergrenze mit**, die pro Schritt auf die normalen 360 px/s
+zurückfällt — ohne die mitgehobene Grenze wäre der Impuls im selben Schritt weggeklemmt.
+Gestimmt wird die Reichweite über den **Abbau**, nicht die Antrittsgeschwindigkeit, weil
+letztere entscheidet, ob der Spieler durch ein dünnes Hindernis tunneln kann.
 
-**Der Spieler wird im Frontend integriert**, in _player/playerController.js_: Eine gehaltene
-Richtung addiert Beschleunigung, eine losgelassene bremst gegen Null, und die
-Geschwindigkeit wird gegen eine Obergrenze geklemmt. Der Dash ist die eine Stelle, an der
-diese Klemme gebogen wird, und zwar sichtbar: `_startDash` setzt die Geschwindigkeit auf
-`PLAYER_DASH_SPEED` (1100 px/s) **und hebt die Obergrenze mit**, die anschließend pro Schritt
-um `PLAYER_DASH_SPEED_DECAY` (1533 px/s²) zurückfällt, bis sie wieder auf der normalen
-Höchstgeschwindigkeit `PLAYER_MAX_SPEED` (360 px/s) sitzt. Ohne die mitgehobene Grenze wäre
-der Impuls in demselben Schritt weggeklemmt, in dem er entsteht.
+**Die Power-ups liegen vollständig im Frontend.** Die Abgrenzung: Hindernisse gehören in
+die Engine, weil die Boids ihnen ausweichen; einen Marker sieht kein Boid an. Ebenso
+bleiben Ableitungen aus vorhandenen Zahlen im Frontend.
 
-Die zusätzlich gewonnene Strecke ist damit die Fläche unter der abfallenden Rampe oberhalb der
-normalen Höchstgeschwindigkeit:
-
-```text
-s_Überschuss = (v_dash − v_max)² / (2 · a_decay) = (1100 − 360)² / (2 · 1533) ≈ 179 px
-t_Rampe      = (v_dash − v_max) / a_decay       = (1100 − 360) / 1533       ≈ 0,48 s
-```
-
-wobei _v_dash_ die Antrittsgeschwindigkeit des Dashs in px/s ist, _v_max_ die normale
-Höchstgeschwindigkeit in px/s und _a_decay_ der Abbau der erhöhten Obergrenze in px/s².
-
-Diese Form ist der Grund, warum die Reichweite über den **Abbau** gestimmt wird und nicht über
-die Antrittsgeschwindigkeit: Die Distanz wächst quadratisch mit der Rampe, also würde eine um
-30 % längere Strecke über `PLAYER_DASH_SPEED` nur √1,3 mehr Spitzengeschwindigkeit brauchen —
-und genau die Spitzengeschwindigkeit entscheidet, wie weit der Spieler in **einem**
-Simulationsschritt springt und damit, ob er durch ein dünnes Hindernis tunneln kann. Der Abbau
-verändert die Reichweite, ohne den Moment des Antritts anzufassen. Zwei Stellen setzen die
-erhöhte Grenze vorzeitig zurück, aus demselben Grund: ein Dash in die Weltkante und ein Dash
-in ein Hindernis. Bliebe sie stehen, liefe die gewöhnliche Bewegung für den Rest des
-Dash-Fensters oberhalb der Höchstgeschwindigkeit.
-
-**Die Power-ups liegen vollständig im Frontend** — Marker, Aufnahme, Laufzeit und Wirkung.
-Die Abgrenzung dahinter ist scharf: Hindernisse gehören in die Engine, weil die **Boids** ihnen
-ausweichen und sie damit Teil der Simulation sind. Einen Marker sieht kein Boid an; er ist nur
-für den Spieler da, und der wird hier ohnehin integriert. Eine Verlagerung hätte einen
-zusätzlichen Puffer und eine geänderte `tick`-Signatur gekostet, um einen Abstandsvergleich zu
-verschieben, den das Frontend in derselben Zeile schon rechnet.
-
-**Zwei weitere Ableitungen** bleiben im Frontend, weil sie aus vorhandenen Zahlen entstehen
-statt neue zu brauchen: _round/waveTier.js_ errechnet die Stufe der gerade spawnenden
-Boid-Variante aus der Wellennummer, anstatt sie als weiteren Wert über die Sprachgrenze zu
-tragen, und _player/dashCooldown.js_ macht aus zwei Zeitstempeln den Füllstand der Leiste.
-
-**Der Ablauf eines Schritts ist die Fachlogik.** _loop/simulationStep.js_ fährt in fester
-Reihenfolge: Uhr weiterstellen, Eingabe genau einmal lesen, Geschwindigkeitsfaktor der Buffs
-setzen, Spieler integrieren, fälligen Wellenwechsel anmelden, `tick()` rufen, eine
-Hindernis-Korrektur der Engine annehmen, Power-ups schreiten lassen, Heilung anwenden, Treffer
-verbuchen. Jedes Paar benachbarter Zeilen darin stand irgendwann in der falschen Reihenfolge,
-und drei Fälle zeigen, was daran hängt:
-
-- Die Position **vor** der Integration wird festgehalten, weil die Engine die ganze Bewegung
-  gegen die Hindernisse prüft und nicht nur ihren Endpunkt — das ist es, was einen Dash
-  abfängt, der schnell genug ist, um eine dünne Stange in einem Schritt zu überspringen.
-- Die Power-ups schreiten **nach** der Hindernis-Korrektur, damit nichts von einer Position
-  aus eingesammelt wird, aus der der Spieler gerade herausgeschoben wurde.
-- Die Heilung wirkt **vor** den Treffern, damit ein Heilen und ein Treffer im selben Schritt
-  sich in der Reihenfolge ihres Auftretens auswirken statt sich gegenseitig aufzuheben.
-
-**Drei Konsequenzen des festen Zeitschritts** sind dabei im Frontend zu tragen und in 1.4
-Entwicklungsfokus als Invariante angelegt. Erstens muss der Spieler **im selben Schritt** wie
-der Schwarm integriert werden — seine Position ist Eingabe für `tick()` und für den
-Kollisionstest der Engine, eine Integration pro gezeichnetem Bild würde beide entkoppeln.
-Zweitens müssen Treffer für **jeden** Schritt eines Mehrschritt-Bildes verbucht werden; nur
-den letzten Frame zu lesen verliert stillschweigend Treffer aus früheren Schritten. Beide
-Trefferquellen — Boids und Hindernisse — laufen dazu durch **einen** Eingang, weil sie sich
-das Unverwundbarkeitsfenster teilen müssen. Drittens wird die Simulationsschuld geklemmt
-(`MAX_SIMULATION_STEPS_PER_FRAME` = 5) und bei eingefrorener Welt **verworfen**: im Countdown,
-beim Rundenstart, beim Tod und in der Pause. Die Pause ist der einzige dieser vier Fälle, der
-Minuten dauern kann — ohne das Verwerfen käme sie beim Fortsetzen als geklemmter Nachholstoß
-auf einmal an, also genau als der Sprung, den die Auto-Pause bei Fokusverlust verhindern soll.
+**Der Ablauf eines Schritts ist die Fachlogik**: _loop/simulationStep.js_ fährt in fester
+Reihenfolge (Uhr, Eingabe genau einmal, Buffs, Spieler, Wellenwechsel, `tick()`,
+Hindernis-Korrektur, Power-ups, Heilung, Treffer) — und jedes Nachbarpaar stand
+irgendwann falsch herum. **Drei Konsequenzen des festen Zeitschritts**: Der Spieler wird
+im selben Schritt wie der Schwarm integriert; Treffer werden für jeden Schritt eines
+Mehrschritt-Bildes verbucht; die Simulationsschuld wird geklemmt (maximal fünf Schritte
+pro Bild) und bei eingefrorener Welt verworfen — sonst käme eine minutenlange Pause beim
+Fortsetzen als Nachholstoß an.
 
 # 4 Systemnah / WASM: Struktur / Bausteine
 
-Dieses Kapitel beschreibt die Schicht, die das Fokus-Thema aus 1.4 Entwicklungsfokus trägt:
-die Simulation selbst. Es folgt derselben Gliederung wie Kapitel 3 Frontend: Struktur /
-Bausteine und ergänzt sie um den Punkt Konfiguration, weil hier alle Stellschrauben des
-Spielverhaltens liegen.
+Dieses Kapitel beschreibt die Schicht, die das Fokus-Thema aus 1.4 Entwicklungsfokus
+trägt.
 
 ## 4.1 Wesentliche Komponenten
 
-Die Kernaussage steht vor der Aufzählung: **Die Engine besitzt die gesamte Simulation und
-kennt weder DOM noch Canvas noch eine Browser-API.** Kein Modul unter `engine/src/`
-importiert `web_sys`, und außerhalb von `wasm_bridge/` steht kein einziges
-`#[wasm_bindgen]` — jede Datei der Simulation würde unverändert in einem Terminalprogramm
-laufen. Das ist keine Stilfrage, sondern die Voraussetzung dafür, dass `cargo test` die
-Simulation ohne Browser prüfen kann (siehe 8.1 Unit Tests und Coverage).
+**Die Engine besitzt die gesamte Simulation und kennt keine Browser-API**: Außerhalb von
+`wasm_bridge/` steht kein `#[wasm_bindgen]`, jede Simulationsdatei liefe unverändert in
+einem Terminalprogramm — die Voraussetzung dafür, dass `cargo test` ohne Browser prüft.
 
-Vier Verzeichnisse, entlang der Abhängigkeitsrichtung:
-
-- **`math/`** — zwei Dateien ohne jeden Spielbezug. _vector.rs_ ist `Vec2` mit dreizehn
-  reinen Operationen, _segment.rs_ die Streckengeometrie, aus der die Hindernisse gebaut sind.
-- **`simulation/`** — die Simulation, aufgeteilt in **vier Einzeldateien und vier Ordner**.
-  Die Dateien sind der Kern, auf dem alles sitzt: _boid.rs_ (was ein Boid _ist_),
-  _physics.rs_ (drei zustandslose Primitive), _overlap.rs_ (Entstapeln und Weltrand) und
-  _flock.rs_ (der einzige Orchestrator). Die Ordner sind je ein System auf diesem Kern:
-  `steering/` (wohin ein Boid will), `dash/` (der Stoß), `obstacle/` (die Hindernisse),
-  `wave/` (Ankündigung und Eintritt der nächsten Welle).
-- **`wasm_bridge/`** — die einzige Sprachgrenze. _mod.rs_ hält `GameEngine` und den
-  Lebenszyklus, _response.rs_ den `FrameResponse`, _frame_buffers.rs_ das Packen eines
-  Frames, _boid_factory.rs_ die Frage, was ein Boid einer bestimmten Welle ist. Details in
-  Kapitel 5 Frontend/Systemnah-Integration — WASM.
-- **_constants.rs_** — alle Standardwerte in vier kommentierten Blöcken (Schwarm,
-  Wellen-Tore, Dash, Hindernisse), plus _lib.rs_, das genau einen Namen nach außen gibt:
-  `GameEngine`.
-
-**Jeder Ordner hat ein Fassaden-_mod.rs_**, das seine Untermodule deklariert und genau die
-Namen re-exportiert, die von außerhalb benutzt werden. Ein Aufrufer schreibt
-`obstacle::Obstacle` statt `obstacle::shape::Obstacle`; eine Datei innerhalb eines Ordners
-zu verschieben ist damit keine Änderung für Aufrufer. Umgekehrt ist die Fassade eine
-Zusage, die überprüft wird: Was nur ordnerintern gebraucht wird, kommt nicht hinein, und
-`cargo clippy -- -D warnings` meldet einen Re-Export, den niemand liest.
-
-Die Modulübersicht mit einer Aufgabenzeile je Datei steht im Anhang (siehe 11.1 Tabellen,
-_Modulübersicht Engine_); alle Zahlen zu Dateigröße und Verteilung stehen in 9.2 Größe und
-Verteilung.
+Vier Verzeichnisse entlang der Abhängigkeitsrichtung: **`math/`** (ohne Spielbezug),
+**`simulation/`** mit vier Einzeldateien als Kern (_boid.rs_, _physics.rs_,
+_overlap.rs_, _flock.rs_ als einziger Orchestrator) und vier Ordnern als je einem System
+darauf (`steering/`, `dash/`, `obstacle/`, `wave/`), **`wasm_bridge/`** als einzige
+Sprachgrenze (siehe Kapitel 5) und **_constants.rs_**. **Jeder Ordner hat ein
+Fassaden-_mod.rs_**, das genau die außen benutzten Namen re-exportiert — eine Datei
+innerhalb eines Ordners zu verschieben ist keine Änderung für Aufrufer. Die
+Modulübersicht steht im Anhang (siehe 11.1 Tabellen).
 
 ## 4.2 Komponenten — Details & Interaktion
 
-Die Schwarmbewegung entsteht aus **fünf Steuerungsregeln**, die in _steering/rules.rs_ als
-reine Funktionen liegen. Jede nimmt einen `&Boid` plus eine Nachbar- oder Hindernisliste und
-gibt eine **ungewichtete** Kraft zurück: `separation` (Abstand zu zu nahen Nachbarn),
-`alignment` (Richtung der Nachbarn übernehmen), `cohesion` (zum Schwerpunkt der Nachbarn),
-`seek_target` (zum Spieler) und `avoid_obstacles` (an einem Hindernis vorbei).
-
-**Die nicht offensichtliche Kopplung** liegt in den ersten vier: Alle skalieren ihre
-Wunschgeschwindigkeit mit `properties.max_speed`. Diese Eigenschaft anzuheben verändert also
-nicht nur die Höchstgeschwindigkeit, sondern **auch die Steuerungsstärke** aller vier Regeln.
-Genau deshalb bekommt `integrate(boid, speed_limit)` die Obergrenze als Parameter übergeben,
-statt sie vom Boid zu lesen — ein dashender Boid darf für einige Schritte schneller sein, ohne
-dass seine Steuerung mitskaliert. Die drei naheliegenden Alternativen und warum sie ausfallen:
-
-| Ansatz                                        | Grund der Ablehnung                                                                                                                |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Den Dash als zusätzliche **Kraft** aufbringen | `clamp_force` begrenzt die Summe aller Regeln auf `max_acceleration` (0,09). Der Impuls käme mit wenigen Prozent seiner Stärke an. |
-| `max_speed` temporär **erhöhen**              | Verdreifacht Separation, Alignment, Kohäsion und Seeking mit — der Dasher würde nicht ausbrechen, sondern nur alles stärker tun.   |
-| `integrate` **umgehen**                       | Ein zweiter Bewegungspfad, der irgendwann das Wrapping oder die Hindernisprüfung vergisst.                                         |
-
-`avoid_obstacles` ist die einzige Regel mit einer eigenen Konstruktion: Sie mischt die
-Oberflächennormale mit der **Tangente** und wählt die der beiden Tangenten, die zur
-Flugrichtung passt. Die naheliegende Fassung — geradeaus von der Oberfläche weg — erzeugt bei
-einem frontalen Anflug eine Kraft genau entgegen der eigenen Bewegung, und der Boid bleibt
-vor dem Hindernis stehen. Mit Tangentenanteil (`OBSTACLE_TANGENT_SHARE` = 1,25) fliegt er
-darum herum.
-
-Wie viel jede Regel zählt, entscheidet **allein** _steering/weights.rs_. Die Regeln kennen
-keine Priorität, und _flock.rs_ kennt nicht, welche Regeln es gibt; diese Datei ist die
-einzige, die beides weiß. Sie hält zwei Funktionen: `flocking_steering` summiert alle fünf
-gewichtet, `dash_steering` gibt **nur** Separation zurück.
+Die Schwarmbewegung entsteht aus **fünf Steuerungsregeln** in _steering/rules.rs_, jede
+eine reine Funktion zu einer ungewichteten Kraft: `separation`, `alignment`, `cohesion`,
+`seek_target`, `avoid_obstacles`. **Die nicht offensichtliche Kopplung**: Die ersten vier
+skalieren mit `properties.max_speed` — deshalb bekommt `integrate(boid, speed_limit)` die
+Obergrenze als Parameter, damit ein dashender Boid schneller sein darf, ohne dass seine
+Steuerung mitskaliert. `avoid_obstacles` mischt die Normale mit der **Tangente**, weil
+die reine Normale bei frontalem Anflug den Boid vor dem Hindernis stehen ließe. Wie viel
+jede Regel zählt, entscheidet allein _steering/weights.rs_: `flocking_steering` summiert
+alle fünf, `dash_steering` gibt nur Separation zurück.
 
 ### 4.2.1 Eine wesentliche Komponente: Darstellung des Aufbaus — Bausteinsicht
 
-Als Bausteinsicht ist der **Dash-Cluster** gewählt: `simulation/dash/` mit seinen vier
-Modulen und dem Integrationspunkt in `Flock::update()`. Er trägt das Fokus-Thema, weil in ihm
-die Determinismus-Zusicherung der ganzen Engine steckt (siehe Abbildung 2).
+Als Bausteinsicht ist der **Dash-Cluster** gewählt, weil in ihm die
+Determinismus-Zusicherung der ganzen Engine steckt (siehe Abbildung 2).
 
 ```mermaid
 flowchart LR
@@ -900,484 +413,181 @@ flowchart LR
 
 _Abbildung 2: Bausteinsicht des Dash-Clusters_
 
-**Die Zustandsmaschine** durchläuft `Idle → Charging → Dashing → Cooling → Idle`. Auf dem
-Boid liegen dafür genau zwei `Copy`-Felder: `dash_state` und
-`dash_state_steps_remaining`. Jeder Nicht-Idle-Zustand ist nur ein Countdown, ein Zähler
-genügt also für alle drei. Drei getrennte Zähler wären eine Invariante zum Selberhalten
-(„genau eine Phase ist aktiv") — mit Zustand plus Restzähler ist sie gar nicht verletzbar.
-`Boid` ist `Copy` und wird pro Schritt vollständig geklont, neuer Zustand muss also `Copy`
-bleiben. **Alle Dauern zählen in Simulationsschritten, nie in Millisekunden**, weil die
-Engine keine Delta-Zeit kennt.
+**Die Zustandsmaschine** durchläuft `Idle → Charging → Dashing → Cooling`; auf dem Boid
+liegen genau zwei `Copy`-Felder, Zustand und Restzähler — die Invariante „genau eine
+Phase aktiv" ist so gar nicht verletzbar. Alle Dauern zählen in Simulationsschritten, nie
+in Millisekunden.
 
-**Der Determinismus ist der Kern des Kapitels.** Es gibt in der ganzen Engine keine
-`rand`-Abhängigkeit; _Cargo.toml_ führt genau zwei Abhängigkeiten (`js-sys`,
-`wasm-bindgen`) und eine Dev-Abhängigkeit (`wasm-bindgen-test`), alle drei an der
-Sprachgrenze und keine in der Simulation. Wer
-dashen darf, wird aus dem `step_counter` des Flocks abgeleitet — mit derselben
-Integer-Hash-Arithmetik wie `find_spawn_position` in _boid_factory.rs_:
+**Der Determinismus ist der Kern.** _Cargo.toml_ führt genau zwei Abhängigkeiten
+(`js-sys`, `wasm-bindgen`), beide an der Sprachgrenze; ein `rand`-Crate gibt es nicht.
+Wer dashen darf, wird per Integer-Hash aus dem `step_counter` abgeleitet — nur alle 24
+Schritte, nur bei geeignetem Kandidaten (dash-fähig, `Idle`, 160–340 px vom Spieler). Der
+Gewählte ist **Anführer** einer Gruppe: Boids desselben `difficulty_tier` im Umkreis
+dashen mit, pulsen synchron und starten im selben Schritt. Ein Zufallsgenerator wurde
+verworfen, weil er die Reproduzierbarkeit bricht, auf der jeder Simulationstest ruht.
 
-```text
-Runde     r = step_counter / DASH_SELECTION_INTERVAL_STEPS
-Saat      s = r · 37 + versuch · 17
-Kandidat  i = (s · 97 + 31) mod n
-```
-
-Dabei ist `versuch` einer von acht Durchgängen, `n` die Schwarmgröße. Die Rechnung läuft in
-`u64`, weil die Multiplikationen einen 32-Bit-Zähler nach wenigen Tagen Dauerbetrieb
-überlaufen ließen. `select_dash_group` gibt fast immer eine leere Liste zurück: nur wenn
-`step_counter` ein Vielfaches von `DASH_SELECTION_INTERVAL_STEPS` (24) ist, nur wenn der
-Schwarm unter seiner Grenze gleichzeitiger Dasher liegt, und nur wenn ein Kandidat die
-Eignungsprüfung besteht (dash-fähig, `Idle`, und 160–340 px vom Spieler entfernt). Der
-leere Fall kostet ein `Vec::new()`, das nicht allokiert.
-
-Der so gewürfelte Boid ist nicht der Dasher, sondern der **Anführer** einer Gruppe:
-`collect_group_around` läuft danach einmal in Indexreihenfolge über den Schwarm und nimmt
-jeden Boid desselben `difficulty_tier` innerhalb von `DASH_GROUP_RADIUS` (48 px) auf, bis
-`MAX_DASH_GROUP_SIZE` (6) oder die Zahl freier Slots erreicht ist. Der Einzeldash ist damit
-der Randfall der Gruppe — die leere Nachbarschaft — und kein zweiter Codepfad. Der
-Tier-Vergleich trägt zwei Lasten: sichtbar lesen sich mehrere gleichfarbige Boids als ein
-abgestimmter Stoß, und mechanisch teilen Boids eines Tiers ihre `charge_steps`, pulsen also
-synchron und starten im **selben** Simulationsschritt.
-
-| Alternative                                                    | Grund der Ablehnung                                                                                                                                                                                                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Clusteranalyse über den Schwarm, dann das beste Cluster wählen | Deutlich größere Konstante pro Selektionsrunde, und die Determinismus-Zusicherung müsste für einen ganzen Algorithmus gelten statt für eine Schleife. Bei vier Boids sieht der Spieler den Unterschied nicht.             |
-| Gruppen-Zustand auf dem Boid (`dash_group_id`)                 | Ein drittes Dash-Feld, das niemand liest: nach `begin_dash_charge` verhält sich jedes Mitglied wieder für sich. Zustand, der nichts entscheidet, kann nur inkonsistent werden.                                            |
-| Mehrere unabhängige Würfe pro Runde statt einer Gruppe         | Gleichzeitige, aber räumlich verstreute Dashes — mehr Druck ohne den lesbaren Stoß. Das wäre nur die Frequenzerhöhung unter anderem Namen.                                                                                |
-| Einen Zufallsgenerator einführen                               | Bricht die Reproduzierbarkeit, auf der jeder Simulationstest ruht: derselbe Startzustand plus dieselbe Eingabefolge ergibt heute denselben Ablauf. Der Gewinn wäre eine Streuung, die die Hash-Arithmetik ebenso liefert. |
-
-**Der Tier-Ramp** liegt in _properties.rs_: `dash_properties_for_difficulty_tier` baut aus
-den Standardwerten die Werte einer Stufe. Tuning, das pro Boid abweichen darf, gehört auf den
-Boid bzw. in `BoidProperties` — nie in eine neue globale Konstante, weil mehrere Varianten
-gleichzeitig in einem Schwarm fliegen. Die Sperre für die ersten Wellen ist ein eigenes
-`can_dash: bool` und **nicht** `charge_steps == 0`: null Ladeschritte ist ein legitimer
-Tuning-Wert („Dash ohne Vorwarnung") und darf nicht versehentlich Welle-1-Boids
-freischalten. Die vollständige Wertetabelle je Stufe steht im Anhang (siehe 11.1 Tabellen).
-
-**_aim.rs_ ist die einzige Quelle der Richtung.** `launch_dash` in _state.rs_ schreibt die
-Absprunggeschwindigkeit mit `launch_direction`, und die Vorwarnlinie, die das Frontend
-zeichnet, wird mit derselben Funktion gemessen. Die Linie kann deshalb keine Richtung
-versprechen, die der Absprung nicht nimmt. Nichts davon liegt auf dem Boid: Die Richtung
-entsteht erst im Absprungschritt, während der Aufladung ist die ehrliche Antwort also eine
-frische pro Schritt — und sie folgt einem Spieler, der weiterläuft.
+**_aim.rs_ ist die einzige Quelle der Dash-Richtung**: Absprung und Vorwarnlinie benutzen
+dieselbe Funktion — die Linie kann keine Richtung versprechen, die der Absprung nicht
+nimmt. Die Richtung liegt auf keinem Boid: Sie entsteht erst im Absprungschritt und folgt
+einem Spieler, der weiterläuft.
 
 ### 4.2.2 Komponenten-Interaktion
 
-Die Interaktion **ist** die Schrittreihenfolge, und sie beginnt eine Ebene höher als der
-Flock. `GameEngine::tick()` ordnet die Systeme, jedes an seinem Platz aus einem Grund:
+Die Interaktion **ist** die Schrittreihenfolge. `GameEngine::tick()` löst zuerst die
+Spielerbewegung gegen die Hindernisse auf (geprüft wird die **Strecke**, nicht der
+Endpunkt — deshalb tunnelt auch ein Dash nicht durch eine dünne Stange), gibt fällige
+Wellen-Spawns frei und altert die Hindernisse — beides vor dem Flock-Schritt —, ruft dann
+`Flock::update()` und packt den Frame.
 
-1. **Spielerbewegung gegen die Hindernisse auflösen.** Zuerst, damit der Schwarm gegen die
-   Position steuert und gegen die Position geprüft wird, in der der Spieler wirklich landet.
-   Geprüft wird die **Strecke** von der vorigen zur versuchten Position, nicht nur ihr
-   Endpunkt — deshalb kann auch ein Dash nicht zwischen zwei Schritten durch ein dünnes
-   Hindernis tunneln.
-2. **Getroffenes Hindernis markieren.** Solange der Index noch auf das Hindernis zeigt, aus
-   dem er stammt: die Feldaktualisierung entfernt gleich, was abgelaufen ist, und schiebt den
-   Rest nach.
-3. **Fällige Wellen-Spawns freigeben.** Vor dem Flock-Schritt, damit ein diesen Schritt
-   ankommender Boid schon Teil des Schwarms ist, gegen den seine Nachbarn steuern.
-4. **Hindernisse altern und spawnen lassen.** Ebenfalls vorher, damit kein Boid gegen ein
-   Hindernis steuert, das es nicht mehr gibt.
-5. **`Flock::update()`** — der eigentliche Schritt, unten aufgeschlüsselt.
-6. **Frame packen** und die vier Werte anhängen, die nur eine Bewegung erzeugen kann
-   (korrigierte Position, Trefferflag, Normale).
-
-Innerhalb von `Flock::update()` sind es sieben Schritte:
-
-1. `step_counter` erhöhen (mit `wrapping_add`, damit eine sehr lange Sitzung ihn nicht
-   überläuft).
-2. Höchstens eine neue Dash-Gruppe anbieten, **bevor** sich etwas bewegt, damit die
-   gewählten Boids schon in diesem Schritt pulsen.
-3. Den Boid-Vektor in einen **Snapshot** klonen, damit jeder Boid gegen den Zustand des
-   _vorherigen_ Schritts steuert.
-4. Je Boid: Dash-Zustand fortschreiben, dann `dash_steering` **oder** `flocking_steering`,
-   Kraft auf `max_acceleration` klemmen, mit `step_speed_limit(boid)` integrieren, die
-   gefahrene Strecke gegen die Hindernisse prüfen und abprallen, dann am Weltrand wrappen.
-   Die Hindernisprüfung liegt **vor** dem Wrap, weil ein Boid, der über den Rand tritt,
-   sonst entlang einer Strecke quer durch die Arena geprüft würde.
-5. Overlaps relaxieren.
-6. Boids aus Hindernissen herausschieben — bewusst **nach** der Relaxation, weil diese Boids
-   zum Entstapeln verschiebt und dabei einen in ein Hindernis drücken kann.
-7. Spielertreffer zählen.
-
-Drei Eigenschaften dieser Reihenfolge sind tragend. **Der Snapshot** entkoppelt das Ergebnis
-von der Iterationsreihenfolge (siehe 4.4 State Management). **Ein dashender Boid ist
-innerhalb der Relaxation unverschiebbar**: Er legt bis zu 18,7 px pro Schritt zurück, bei
-einem Mindestabstand von 12 px gerät er also fast jeden Schritt in eine neue Überlappung, und
-die symmetrische Halbe/Halbe-Korrektur würde ihn über vier Durchläufe sichtbar von seiner
-Linie schieben. Der nicht-dashende Partner nimmt daher die ganze Korrektur; zwei Dasher
-teilen wie jedes andere Paar. Dasher ganz aus dem Pass auszunehmen wäre falsch — dann lägen
-sie sichtbar übereinander, genau was der Pass verhindert. **Der Wrap benutzt `rem_euclid`**,
-sodass auch eine Verschiebung größer als eine Weltbreite im Inneren landet.
-
-Der Schritt ist **O(n²)** in der Boid-Anzahl, und die Relaxation ist es viermal. Welt und
-Bildschirm sind dabei nicht dasselbe: Die Welt hat eine feste logische Größe, die das Frontend
-ins Fenster einpasst.
+`Flock::update()` klont den Boid-Vektor in einen **Snapshot**, verarbeitet jeden Boid,
+relaxiert Overlaps, schiebt Boids aus Hindernissen (nach der Relaxation, die einen Boid
+hineindrücken kann) und zählt Spielertreffer. Drei Eigenschaften sind tragend: Der
+Snapshot entkoppelt das Ergebnis von der Iterationsreihenfolge (siehe 4.4 State
+Management); ein dashender Boid ist in der Relaxation **unverschiebbar**, sonst schöbe
+die symmetrische Korrektur ihn sichtbar von seiner Linie; der Wrap benutzt `rem_euclid`,
+sodass auch eine Verschiebung größer als eine Weltbreite im Inneren landet. Der Schritt
+ist **O(n²)** in der Boid-Anzahl.
 
 ## 4.3 Modularisierung: Strukturierung der fachlichen Logik
 
-Vier Regeln teilen die Engine auf, in dieser Rangfolge.
-
-**Mathematik, Simulation und Bindungsschicht sind getrennt.** `math/` weiß nichts von Boids,
-`simulation/` nichts von WebAssembly, `wasm_bridge/` nichts von Steuerungsregeln. Die
-Abhängigkeiten laufen nur in eine Richtung, was der Grund ist, dass _boid_factory.rs_ in
-`wasm_bridge/` liegt und nicht in `simulation/`: Die Schwierigkeitsrampe ist eine
-**Design-Kurve**, keine Simulationsregel, und nichts in `BoidProperties` weiß, dass es
-Wellen gibt.
-
-**Die Regeln sind reine Funktionen.** Sie lesen einen Boid und eine Liste und geben eine
-Kraft zurück. Das macht sie ohne Aufbau testbar und ist die Voraussetzung dafür, dass
-_weights.rs_ die Gewichtung an einer Stelle halten kann.
-
-**_constants.rs_ hält Standardwerte, keine Invarianten.** Weil mehrere Boid-Varianten in
-einem Schwarm koexistieren, ist der Wert in der Konstante nur der Ausgangspunkt einer
-Rampe. Was global bleibt, ist eine Eigenschaft der _Welt_ statt der _Variante_ —
-`BOID_COLLISION_RADIUS` und `BOID_OBSTACLE_BOUNCE` etwa, weil ein Hindernis eine Wand ist,
-die sich für alle gleich verhält.
-
-**Die 400-Zeilen-Grenze ist die erzwingende Regel.** Sie ist der Grund, dass der Dash in
-vier Dateien liegt statt in einer, dass `wasm_bridge/` drei Dateien neben _mod.rs_ hat und
-dass die 22 flachen Dateien in `simulation/` zu vier Dateien plus vier Ordnern wurden. Der
-Umbau ist zugleich das Muster, an dem sich die Regel bewährt hat: Weil die Fassaden die
-`use`-Zeilen unverändert auflösen ließen, mussten _boid.rs_, _overlap.rs_ und weite Teile von
-_flock.rs_ nicht angefasst werden, kein Dateiinhalt wurde verändert, und die Zahl der
-Lib-Tests war vor und nach jedem der vier Commits identisch. Daraus folgt eine Regel für
-`use`-Zeilen, an der der Umbau hängt: innerhalb eines Ordners `use super::geschwister`, über
-eine Ordnergrenze hinweg immer der absolute Pfad `use crate::simulation::…`. Innerhalb eines
-`#[cfg(test)]`-Moduls zeigt `super` auf die **Datei** statt auf den Ordner, weshalb die
-Testmodule durchgängig absolut importieren.
-
-Bewusst nicht mitgemacht: Die Sichtbarkeiten sind weiterhin durchgängig `pub`, obwohl vieles
-nur ordnerintern gebraucht wird. Das ist ein offener Posten und in 10.1 Kapazitätsplan als
-solcher genannt.
+Vier Regeln: **Mathematik, Simulation und Bindungsschicht sind getrennt**, die
+Abhängigkeiten laufen in eine Richtung — deshalb liegt _boid_factory.rs_ in
+`wasm_bridge/`, denn die Schwierigkeitsrampe ist eine Design-Kurve, keine
+Simulationsregel. **Die Regeln sind reine Funktionen**, ohne Aufbau testbar.
+**_constants.rs_ hält Standardwerte, keine Invarianten**, weil mehrere Boid-Varianten
+koexistieren. **Die 400-Zeilen-Grenze ist die erzwingende Regel** — sie machte aus 22
+flachen Dateien vier Dateien plus vier Ordner. Bewusst nicht mitgemacht: Die
+Sichtbarkeiten sind durchgängig `pub` — ein offener Posten (siehe 10.1 Kapazitätsplan).
 
 ## 4.4 State Management
 
-Der Zustand liegt in drei Schichten, und die Aufteilung ist enger, als sie aussieht.
-
-**Der Boid trägt seinen eigenen Zustand.** Position, Geschwindigkeit, Beschleunigung, seine
-`BoidProperties`, sein `difficulty_tier` und die zwei Dash-Felder. `Boid` ist `Copy`, was die
-Voraussetzung für den Snapshot ist.
-
-**`Flock` besitzt genau zwei Dinge:** den Boid-Vektor und den `step_counter`. Nicht mehr —
-Weltgrenzen und Wellennummer liegen eine Ebene höher, weil ein Flock nichts über Wellen
-wissen muss, um einen Schritt zu rechnen.
-
-**`GameEngine` besitzt den Rest:** den `Flock`, das `ObstacleField`, die `WaveSpawnQueue`,
-Weltbreite und -höhe, die Startschwarmgröße, die laufende Wellennummer, die letzte
-Spielerposition und sieben wiederverwendbare Ausgabepuffer.
-
-**Der Snapshot ist eine Zustandsentscheidung, nicht eine Optimierung.** `Flock::update()`
-klont den Boid-Vektor, und alle Regeln lesen aus dem Klon. Ohne ihn würde Boid 5 gegen die
-bereits aktualisierten Boids 0–4 und die noch alten 6–n steuern; das Ergebnis hinge von der
-Iterationsreihenfolge ab, und dieselbe Ausgangslage könnte je nach Einfügereihenfolge anders
-ausgehen. Der Preis ist eine Kopie des Vektors pro Schritt und damit die einzige planmäßige
-Allokation im heißen Pfad.
-
-Zwei Zustände sind **absichtlich nicht** vorhanden. Die Dash-Richtung liegt auf keinem Boid,
-weil sie erst im Absprungschritt entsteht (siehe 4.2.1). Und eine Gruppenzugehörigkeit gibt
-es nicht, weil nach `begin_dash_charge` jedes Mitglied sich wieder für sich verhält.
-
-Der eine gemerkte Fremdzustand ist `last_player_position`: Die Vorwarnlinien werden dagegen
-gemessen, und `snapshot()` bekommt keine Spielerposition. Das ist keine Näherung, sondern
-genau richtig — ein Snapshot zeichnet eine eingefrorene Welt (Countdown, Tod, Pause), in der
-sich seither nichts bewegt hat.
+Drei Schichten: Der Boid trägt seinen eigenen Zustand (`Copy` — die Voraussetzung des
+Snapshots); `Flock` besitzt genau zwei Dinge, Boid-Vektor und `step_counter`; `GameEngine`
+besitzt den Rest samt der sieben wiederverwendbaren Ausgabepuffer. **Der Snapshot ist
+eine Zustandsentscheidung, keine Optimierung**: Ohne ihn hinge das Ergebnis von der
+Iterationsreihenfolge ab; der Preis — eine Kopie pro Schritt — ist die einzige planmäßige
+Allokation im heißen Pfad. Die Dash-Richtung fehlt absichtlich als Zustand: Sie entsteht
+erst im Absprungschritt.
 
 ## 4.5 Routing
 
-„Routing" heißt auf dieser Seite der Grenze **Dispatch**, nicht URL-Navigation; dass die
-Anwendung insgesamt kein Routing im Web-Sinn hat, ist in 3.5 Routing und Navigation
-begründet. Drei Ebenen entscheiden hier, wohin ein Aufruf geht.
-
-**Die Eintrittsfläche.** `#[wasm_bindgen]` steht an genau zwei Typen: `GameEngine` mit fünf
-Methoden (`new`, `tick`, `snapshot`, `set_wave`, `resize`) und `FrameResponse` mit seinen
-Gettern. Jeder dieser Exporte trägt einen Doc-Kommentar, was die Projektregel verlangt und
-hier besonders trägt: Der Vertrag von `tick` — der Aufrufer muss die _zurückgegebene_
-Position benutzen, nicht die angefragte — ist nur dort dokumentierbar. `resize` ist der
-einzige Export, den das Spiel nicht mehr aufruft; der Kommentar sagt ausdrücklich, dass er
-kein toter Code ist, weil die Weltgrenzen der Engine gehören und die Zusicherung, dass eine
-schrumpfende Welt den Spieler nicht einschließen kann, nur dort geprüft wird.
-
-**Die feste Schrittreihenfolge** aus 4.2.2 ist der zweite Dispatch: Sie entscheidet nicht
-_ob_, sondern _wann_ ein System an einem Schritt beteiligt ist, und sie ist an mehreren
-Stellen nicht vertauschbar.
-
-**Die Dash-Zustandsmaschine** ist der dritte, und sie ist die einzige Verzweigung pro Boid
-und Schritt: `advance_dash_state` entscheidet über das `match` auf `dash_state`, ob dieser
-Boid normal flockt oder seine Dash-Linie fliegt, und _flock.rs_ fragt das über `is_dashing`
-nur noch ab.
+„Routing" heißt auf dieser Seite der Grenze **Dispatch** (zur Absenz von Web-Routing
+siehe 3.5 Routing und Navigation). Drei Ebenen entscheiden, wohin ein Aufruf geht: die
+Eintrittsfläche (`#[wasm_bindgen]` steht an genau zwei Typen — `GameEngine` mit fünf
+Methoden und `FrameResponse` —, jeder Export mit Doc-Kommentar), die feste
+Schrittreihenfolge aus 4.2.2 und die Dash-Zustandsmaschine als einzige Verzweigung pro
+Boid und Schritt.
 
 ## 4.6 Persistenz
 
-„Persistenz" heißt hier **Fortbestehen im linearen WASM-Speicher über Ticks hinweg**. Eine
-Speicherung über das Neuladen der Seite hinaus gibt es in der Engine nicht; die liegt im
-Frontend und ist in 3.6 Persistenz beschrieben.
-
-**Was fortbesteht, sind der Zustand und die Kapazitäten.** `GameEngine` wird einmal je Runde
-gebaut und lebt dann über alle Ticks. Die sieben Ausgabepuffer werden pro Frame mit `clear()`
-geleert, was die Kapazität behält — nach den ersten Frames einer Runde stehen sie also auf
-ihrem Höchststand und wachsen nicht mehr. Zwei von ihnen werden zusätzlich vorreserviert,
-weil ihre Länge im Betrieb schwankt (Hindernisse kommen und gehen, Marker gibt es die meiste
-Zeit gar nicht); für die Dash-Ziele wird bewusst **nicht** reserviert, weil das Zählen der
-ladenden Boids ein zweiter Durchlauf über den ganzen Schwarm wäre — für eine Allokation, die
-längst passiert ist.
-
-**Allokationsfrei ist der Frame damit trotzdem nicht,** und das gehört hierher statt in eine
-Fußnote. Pro Frame fällt an: der Snapshot-Klon des Boid-Vektors, sieben `Vec`-Klone beim Bau
-des `FrameResponse` und die Kopie in die typisierten Arrays, wenn das Frontend die Getter
-liest. Was die wiederverwendeten Puffer einsparen, ist das **Wachsen** — nicht das Kopieren.
-Eine kopierfreie Variante würde den WASM-Speicher direkt als Sicht exportieren und ist als
-offener Posten in 10.1 Kapazitätsplan vermerkt; sie hätte den Puffer-Vertrag aus 5.2.1 Der
-Puffer-Vertrag gegen eine Lebenszeit-Zusage eingetauscht, die schwerer richtig zu benutzen
-ist als ein Kopieren, das messbar nicht das Problem war (siehe 8.6 GPU-Last: Messgrundlage
-vor Optimierung).
-
-**Der `step_counter` ist die persistierte Uhr.** Aus ihm zieht _dash/selection.rs_ seinen
-Determinismus, und aus ihm speist sich auch das Altern der Hindernisse. Derselbe
-Startzustand plus dieselbe Eingabefolge ergibt denselben Ablauf, ohne jede Zufallsquelle —
-und weil er in Schritten und nicht in Wandzeit zählt, erbt jede daraus abgeleitete Frist
-die vier Freeze-Fälle des Frontends gratis: Eine pausierte Runde hält ihre Wellenankündigung,
-statt die Welle im Hintergrund hereinzulassen.
+„Persistenz" heißt hier **Fortbestehen im linearen WASM-Speicher über Ticks hinweg**
+(Speicherung über das Neuladen hinaus: siehe 3.6 Persistenz). Die sieben Ausgabepuffer
+werden pro Frame mit `clear()` geleert, was die Kapazität behält. **Allokationsfrei ist
+der Frame trotzdem nicht**: Snapshot-Klon und Kopien in die typisierten Arrays bleiben —
+gespart wird das Wachsen, nicht das Kopieren; eine kopierfreie Sicht auf den
+WASM-Speicher wurde verworfen, weil sie eine schwer benutzbare Lebenszeit-Zusage gegen
+ein Kopieren tauschte, das messbar nicht das Problem war. **Der `step_counter` ist die
+persistierte Uhr** — und weil er in Schritten zählt, erbt jede abgeleitete Frist die
+Freeze-Fälle des Frontends gratis: Eine pausierte Runde hält ihre Wellenankündigung.
 
 ## 4.7 Konfiguration — Wesentliche Einstellungen
 
-Die Engine hat **keine Konfigurationsdatei, keine Umgebungsvariablen und keine
-Feature-Flags.** Jeder Wert ist eine `pub const` in _constants.rs_ und wird einkompiliert.
-Das ist die Kehrseite des Determinismus: Ein zur Laufzeit veränderlicher Simulationsparameter
-wäre eine zweite Quelle der Wahrheit über das Verhalten eines Laufs.
+Die Engine hat **keine Konfigurationsdatei, keine Umgebungsvariablen, keine
+Feature-Flags**; jeder Wert ist eine `pub const` in _constants.rs_ — die Kehrseite des
+Determinismus, denn ein Laufzeit-Parameter wäre eine zweite Quelle der Wahrheit über
+einen Lauf.
 
-_constants.rs_ ist in vier kommentierte Blöcke geteilt (Schwarm, Wellen-Tore, Dash,
-Hindernisse), und die Begründung eines Werts steht **am Wert**, nicht in einer separaten
-Tabelle — das ist dieselbe Konvention wie im Frontend und in 8.4 Kommentare — Visuelle
-Strukturierung des Quellcodes beschrieben. Vier Gruppen sind erwähnenswert:
-
-**Was pro Boid abweichen darf, steht nicht hier.** `BoidProperties` hält neun Felder, davon
-`DashProperties` als eigene Gruppe mit fünf. `properties_for_difficulty_tier` in
-_boid_factory.rs_ baut aus der Stufe eine Variante, `build_boid` ist die **eine** Stelle, an
-der eine Stufe zu einem Boid wird — geteilt vom ersten Schwarm und von den Wellen-Toren,
-damit die beiden nicht auseinanderlaufen können. Ein Test hält genau das fest.
-
-**Zwei Rampen unterschiedlicher Länge.** `difficulty_tier_for_wave` ist `wave − 1`, gedeckelt
-bei `MAX_BOID_DIFFICULTY_TIER` = 4; die Boid-Varianten sind also ab Welle 5 am Anschlag.
-`MAX_OBSTACLE_DENSITY_TIER` = 8 ist absichtlich länger, weil die Hindernisdichte über das
-ganze Spiel steigen soll. Ohne diese Begründung sähen zwei verschiedene Deckel wie ein
-Versehen aus. Das Ausweichgewicht der Boids bleibt dagegen über alle Stufen konstant:
-Ausweichen ist Kompetenz, nicht Schwierigkeit — ein späterer Boid, der schlechter ausweicht,
-sähe kaputt aus und nicht schwerer.
-
-**Eine Konstante, die zur Übersetzungszeit geprüft wird.** Die Sackgassenfreiheit der Arena
-ruht auf einer einzigen Ungleichung: `MINIMUM_CORRIDOR_WIDTH` > 2 · `PLAYER_COLLISION_RADIUS`.
-Sie steht als `const _: () = assert!(…)` in _constants.rs_ und nicht in einem Test, weil ein
-Build, der sie bricht, gar kein Binary erzeugen soll. Der Zusammenhang: Um den Spielerradius
-aufgeblasen ist jedes Hindernis eine konvexe Insel echt im Inneren der Arena, die keine andere
-und keine Wand berührt — und um eine solche Insel kann man immer herumlaufen. Die Alternative,
-nach jedem Spawn eine Erreichbarkeitssuche zu fahren, wäre nicht mehr _beweisbar_, sondern
-nur noch gemessen, und ihre Aussage nur so gut wie die Gitterauflösung.
-
-**Doppelt geführte Werte.** `INITIAL_BOID_COUNT` (24) steht in _constants.rs_ **und** in
-_gameConfig.js_; die drei Stride-Konstanten stehen in _frame_buffers.rs_ und in
-_gameConfig.js_. Bei den Strides ist die Doppelung der Punkt — die Grenztests nageln sie fest
-(siehe 5.2.1 Der Puffer-Vertrag) —, beim Startschwarm ist sie eine in Kauf genommene
-Handsynchronisation. Das Gegenstück steht in 3.7 Konfiguration.
+**Was pro Boid abweichen darf, steht in `BoidProperties`**; `build_boid` in
+_boid_factory.rs_ ist die eine Stelle, an der eine Stufe zu einem Boid wird — geteilt vom
+ersten Schwarm und den Wellen-Toren. **Eine Konstante wird zur Übersetzungszeit
+geprüft**: Die Sackgassenfreiheit der Arena ruht auf `MINIMUM_CORRIDOR_WIDTH` >
+2 · `PLAYER_COLLISION_RADIUS`, als `const _: () = assert!(…)` formuliert — ein Build, der
+sie bricht, erzeugt kein Binary. Um den Spielerradius aufgeblasen ist jedes Hindernis
+eine konvexe Insel, um die man immer herumlaufen kann; eine Erreichbarkeitssuche wäre nur
+gemessen statt beweisbar.
 
 ## 4.8 Implementierung der Fachlogik
 
-Der Rechenkern ist bewusst klein und besteht aus reinen Funktionen.
-
-**`Vec2`** hat dreizehn Operationen: `new`, `zero`, `length`, `length_squared`, `normalize`,
-`dot`, `cross`, `perp`, `scale`, `add`, `sub`, `limit` und `distance_to`. Zwei davon tragen
-mehr, als ihr Name sagt: `limit` ist die **einzige** Stelle, an der eine Obergrenze angewendet
-wird — von `clamp_force` für die Kraft und von `integrate` für die Geschwindigkeit —, und
-`normalize` gibt für einen Nullvektor den Nullvektor zurück, statt durch Null zu teilen.
-Letzteres verlagert die Entscheidung an den Aufrufer, und jeder, der eine Richtung _braucht_,
-trifft sie sichtbar: `launch_direction` fällt auf das Heading und dann auf `(1, 0)` zurück,
-`fallback_overlap_direction` leitet aus den zwei Indizes eine der vier Achsrichtungen ab.
-
-**_segment.rs_** hält vier Funktionen: `closest_point_on_segment`,
-`distance_from_point_to_segment`, `segments_intersect` und `distance_between_segments`. Eine
-Strecke der Länge null ist darin ein Punkt — und genau daraus fällt das kreisförmige
-Hindernis ohne eigenen Codepfad aus derselben Formel, weil ein `Obstacle` eine Kapsel ist
-(Mittellinie plus Radius) und ein Kreis die entartete Kapsel mit Nulllängen-Mittellinie. Die
-Alternative, ein `enum ObstacleKind { Circle, Segment }`, hätte zwei Distanzfunktionen, zwei
-Kollisionstests und zwei Zeichenpfade bedeutet — die Sorte Duplikat, bei der ein Fehler nur
-in einer der beiden Formen auftritt.
-
-**Der Schritt selbst** ist dann kurz: `clamp_force` klemmt die Regelsumme auf
-`max_acceleration`, `integrate` addiert Beschleunigung auf Geschwindigkeit, klemmt auf das
-übergebene Limit und addiert die Geschwindigkeit auf die Position. `aabb_overlap` prüft den
-Spielertreffer gegen den doppelten `BOID_HIT_RADIUS`. `resolve_boid_overlaps` fährt vier
-paarweise Durchläufe über den Schwarm und schiebt jedes Paar unter dem Mindestabstand
-auseinander, `wrap_position` legt beide Achsen per `rem_euclid` in die Welt zurück.
+**`Vec2`** hat dreizehn reine Operationen; `limit` ist die einzige Stelle, an der eine
+Obergrenze angewendet wird, und `normalize` gibt für den Nullvektor den Nullvektor
+zurück — jeder Aufrufer trifft seine Rückfall-Entscheidung sichtbar selbst.
+**_segment.rs_** behandelt eine Strecke der Länge null als Punkt: Ein `Obstacle` ist eine
+Kapsel, ein Kreis die entartete Kapsel — das kreisförmige Hindernis fällt ohne eigenen
+Codepfad aus derselben Formel.
 
 ### 4.8.1 Quantitatives Beispiel: die Reichweite eines Boid-Dashes
 
-Der Dash ist vorab spezifiziert und nicht ertunt worden, und die Rechnung dahinter ist kurz
-genug, um sie ganz zu zeigen. Weil die Geschwindigkeit im Absprungschritt **einmal**
-geschrieben und danach nicht mehr überschrieben wird, ist die Reichweite ein Produkt und kein
-Integral:
-
-```text
-v_dash       = max_speed · speed_multiplier   = (3,7 + 0,45 · Tier) · (2,6 + 0,2 · Tier)
-Reichweite   = v_dash · dash_steps            mit dash_steps = 18 + Tier
-Vorwarnung   = charge_steps / 60 s            mit charge_steps = max(54 − 5 · Tier, 24)
-```
-
-Für die beiden Endpunkte der Kurve:
+Der Dash ist vorab spezifiziert, nicht ertunt; die Reichweite ist ein Produkt aus
+Geschwindigkeit und Dauer, weil die Geschwindigkeit im Absprungschritt einmal geschrieben
+wird:
 
 | Stufe             | v_dash          | Dauer       | Reichweite | Vorwarnung |
 | ----------------- | --------------- | ----------- | ---------: | ---------: |
 | Tier 2 (Welle 3)  | 13,8 px/Schritt | 20 Schritte |     276 px |     0,73 s |
 | Tier 4 (Welle 5+) | 18,7 px/Schritt | 22 Schritte |     411 px |     0,57 s |
 
-Der Spieler läuft mit 360 px/s, also 6 px/Schritt; ein Dash ist damit 2,3- bis 3,1-mal so
-schnell. Die Trefferschwelle liegt bei 21 px Mittenabstand (`BOID_HIT_RADIUS` = 10,5,
-verdoppelt), ein bewegter Spieler braucht also gut 21 px Seitversatz und hat 0,57–0,73 s
-Zeit dafür — bei seiner Geschwindigkeit reichlich. **Ein stehender Spieler wird getroffen,
-ein reagierender nicht**, und genau das ist die Absicht: Die Vorwarnung ist die Fähigkeit,
-die belohnt wird.
-
-Zwei Zahlen begrenzen sich dabei gegenseitig. Die Auswahl greift nur bei 160–340 px
-Entfernung, während die Reichweite 276–411 px beträgt — der Dash muss **ankommen** können,
-sonst wäre die Vorwarnung eine Drohung ohne Deckung. Umgekehrt heißen die Schranken
-`..._SELECTION_DISTANCE` und nicht `..._LAUNCH_DISTANCE`, weil der Boid während seiner
-Ladeschritte weiter flockt: 44 Schritte à 4,6 px sind gut 200 px, die er im Extremfall noch
-zurücklegt, bevor er überhaupt abspringt.
-
-Auch die eine Regel, die im Dash aktiv bleibt, lässt sich beziffern. Separation ist auf
-`max_acceleration` (0,09–0,17) begrenzt und wirkt gegen 13,8–18,7 px/Schritt, lenkt also um
-etwa ein halbes Grad pro Schritt ab. Über einen ganzen Dash ergibt das höchstens einen sanften
-Bogen um einen anderen Boid — die Bahn bleibt gerade genug, um ausweichbar zu sein, und
-Separation wird nicht zur Attrappe. Würde die Geschwindigkeit jeden Schritt neu gesetzt, wäre
-sie rechnerisch wirkungslos.
+Ein Dash ist 2,3- bis 3,1-mal so schnell wie der Spieler; für die 21 px Seitversatz der
+Trefferschwelle bleiben 0,57–0,73 s. **Ein stehender Spieler wird getroffen, ein
+reagierender nicht** — die Vorwarnung ist die Fähigkeit, die belohnt wird. Auswahlfenster
+(160–340 px) und Reichweite (276–411 px) begrenzen sich gegenseitig: Der Dash muss
+ankommen können, sonst wäre die Vorwarnung eine Drohung ohne Deckung.
 
 ### 4.8.2 Wo der naheliegende Regler nichts tut
 
-Ein zweites Beispiel, weil es die Regelsumme aus 4.2 quantitativ belegt. Um den Schwarm
-dichter zu packen, ist der naheliegende Griff `DEFAULT_SEPARATION_WEIGHT` (3,2) zu senken.
-Er wirkt kaum: `flocking_steering` summiert alle Regeln, und `clamp_force` schneidet das
-Ergebnis anschließend auf `max_acceleration` = 0,09 ab. Auf kurzer Distanz sättigt Separation
-diese Grenze allein — die Kraft wäre so oder so abgeschnitten, das Gewicht verschiebt dann
-nur noch, _welche_ Regel bei mittlerer Distanz dominiert, nicht den Ruheabstand. Der
-wirksame Regler ist `CLOSE_NEIGHBOUR_RADIUS_SHARE` (0,36), der Anteil der
-Wahrnehmungsreichweite, **ab dem** Separation überhaupt einsetzt. Er bleibt bewusst relativ
-zur Wahrnehmung, damit spätere Wellen mit größerem Radius auch mehr Abstand halten. Der
-Kommentar an der Konstante sagt beides, damit der nächste Leser nicht am Gewicht dreht.
+Um den Schwarm dichter zu packen, liegt es nahe, das Separationsgewicht zu senken. Es
+wirkt kaum: `clamp_force` schneidet die Regelsumme ab, und auf kurzer Distanz sättigt
+Separation diese Grenze allein. Der wirksame Regler ist der Anteil der
+Wahrnehmungsreichweite, ab dem Separation einsetzt; der Kommentar an der Konstante sagt
+beides.
 
 ### 4.8.3 Komplexität und was bewusst fehlt
 
-Ein Simulationsschritt ist **O(n²)**: Jeder Boid liest den ganzen Snapshot, und die
-Overlap-Relaxation prüft alle Paare, viermal. Ein räumlicher Index (Gitter oder Quadtree)
-würde das auf annähernd O(n) drücken und ist bewusst nicht gebaut — bei der erreichten
-Schwarmgröße ist die Simulation nicht der Engpass, und die Lesbarkeitsvorgabe aus 1.4
-Entwicklungsfokus wiegt hier höher als ein Faktor, den niemand messen kann. Ebenso fehlen
-`unsafe`, manuelle SIMD und jede Bit-Trickserei; die Engine enthält keinen einzigen
-`unsafe`-Block. Die Regel dahinter — optimiert wird nur gegen eine Messung — ist in 8.6
-GPU-Last: Messgrundlage vor Optimierung belegt.
-
-Bemerkenswert ist dabei, dass Dichte und Kosten **nicht** dasselbe sind: Die Paarzahl ist von
-der Packung unabhängig, dichter gepackte Boids erzeugen nur mehr echte Überlappungen
-_innerhalb_ der Schleifen. Der eigentliche Lasthebel ist die Schwarmgröße.
-
-Die Testabdeckung dieses Kerns ist in 8.1 Unit Tests und Coverage beschrieben, die Zahlen
-stehen in 9.3 Coverage. Die deterministische Auswahl aus 4.2.1 ist als
-Quellcode-Ausschnitt im Anhang vorgesehen (siehe 11.3 Quellcode-Ausschnitte).
+Ein Simulationsschritt ist **O(n²)**; ein räumlicher Index würde das auf annähernd O(n)
+drücken und ist bewusst nicht gebaut — die Simulation ist bei der erreichten Schwarmgröße
+nicht der Engpass, und die Lesbarkeitsvorgabe wiegt höher. Ebenso fehlen `unsafe` (kein
+einziger Block), SIMD und Bit-Tricks; optimiert wird nur gegen eine Messung (siehe 8.6
+GPU-Last: Messgrundlage vor Optimierung).
 
 # 5 Frontend/Systemnah-Integration — WASM
 
-Die Kapitel 3 Frontend: Struktur / Bausteine und 4 Systemnah / WASM: Struktur / Bausteine
-beschreiben zwei Schichten, die einander nicht kennen. Dieses Kapitel beschreibt die Naht
-dazwischen: welche Bausteine sie bilden, welchen Vertrag sie einhalten und welche
-Verpflichtungen daraus für beide Seiten folgen. Die Naht ist bewusst die schmalste Stelle des
-Projekts — sie besteht aus **zwei exportierten Typen und einer einzigen Datei im Frontend**,
-die sie berührt.
+Die Naht zwischen den Schichten ist die schmalste Stelle des Projekts: **zwei exportierte
+Typen und eine einzige Datei im Frontend**, die sie berührt.
 
 ## 5.1 Wesentliche Komponenten
 
-Fünf Bausteine, und ihre geringe Zahl ist die Aussage:
-
-- **_engine/src/wasm_bridge/mod.rs_** — `GameEngine`, die einzige Klasse, die JavaScript
-  instanziiert. Sie besitzt den `Flock`, das `ObstacleField`, die `WaveSpawnQueue`, die
-  Weltgrenzen, den Wellenzustand und die sieben wiederverwendbaren Ausgabepuffer. Ihre
-  Eintrittsfläche sind fünf Methoden: `new`, `tick`, `snapshot`, `set_wave`, `resize`.
-- **_engine/src/wasm_bridge/response.rs_** — `FrameResponse`, der zweite und letzte
-  `#[wasm_bindgen]`-Typ. Er ist die Antwort auf einen Schritt und trägt den Puffer-Vertrag;
-  jeder Getter dokumentiert das Format des Puffers, den er zurückgibt.
-- **_engine/src/wasm_bridge/frame_buffers.rs_** — `build_frame_response`, die eine Funktion,
-  die einen Frame packt, samt den drei Stride-Konstanten. Sie ist von _mod.rs_ abgetrennt,
-  weil dort der Lebenszyklus liegt und hier das Format.
-- **_frontend/src/engine-bridge.js_** — die **einzige** Datei des Frontends, die das
-  WASM-Modul anfasst. Sie lädt es, hält die Instanz und übersetzt die `snake_case`-Getter aus
-  Rust in ein `camelCase`-Frame-Objekt.
-- **`frontend/src/wasm/engine/`** — das von `wasm-pack` erzeugte Glue-Modul samt `.wasm`-Datei.
-  Reines Build-Artefakt, gitignoriert, nie von Hand angefasst (siehe 7.8 Dev Build).
-
-Zwei weitere Module gehören nicht zur Grenze, halten aber den Vertrag ein und werden deshalb
-in 5.3 Integration / Schnittstellen mitbetrachtet: _loop/frameScheduler.js_ bestimmt, wie oft
-`tick()` pro Bild gerufen wird, und _loop/simulationStep.js_ ist der Körper eines solchen
-Aufrufs. _wasm_bridge/boid_factory.rs_ liegt zwar im selben Verzeichnis, überquert aber nichts
-— es ist die Schwierigkeitsrampe und in 4.7 Konfiguration — Wesentliche Einstellungen
-beschrieben.
+Fünf Bausteine, und ihre geringe Zahl ist die Aussage: _wasm_bridge/mod.rs_
+(`GameEngine`), _wasm_bridge/response.rs_ (`FrameResponse`),
+_wasm_bridge/frame_buffers.rs_ (das Packen eines Frames plus die drei
+Stride-Konstanten), _frontend/src/engine-bridge.js_ (die **einzige** Frontend-Datei, die
+das WASM-Modul anfasst) und das generierte, gitignorierte Glue-Modul.
 
 ## 5.2 Komponenten — Details & Interaktion
 
 ### 5.2.1 Der Puffer-Vertrag
 
-Über die Grenze gehen **flache, typisierte Arrays und einzelne Zahlen — keine Objekte und
-keine Per-Entity-Structs**. Ein `FrameResponse` liefert sieben Puffer in zwei Gruppen.
+Über die Grenze gehen **flache, typisierte Arrays und einzelne Zahlen — keine Objekte**.
+Ein `FrameResponse` liefert sieben Puffer: **vier index-alignierte** (`positions`,
+`velocities`, `tiers`, `dash_phases`) mit gemeinsamem `entity_count`, und **drei mit
+eigener Anzahl** (`obstacles`, Stride 7; `spawn_markers`, Stride 3; `dash_aims`,
+Stride 5), weil ihre Länge nichts mit der Schwarmgröße zu tun hat — ein index-alignierter
+Vorwarnpuffer bestünde zu über 90 % aus Leerstellen.
 
-**Vier index-alignierte Puffer**, einer je Boid an derselben Stelle: `positions` und
-`velocities` als `Float32Array` mit zwei Werten je Boid, `tiers` als `Uint32Array` und
-`dash_phases` als `Float32Array` mit je einem. Ein einziger Zähler, `entity_count`, gilt für
-alle vier; der Renderer läuft mit einem Index über alle gleichzeitig.
+**Das Vorzeichen als Zustandsträger** ist das tragende Entwurfsmuster: In `dash_phases`
+heißt `0.0` „nichts zu zeichnen", ein positiver Wert ist der Ladefortschritt, ein
+negativer der verbleibende Dash-Anteil; eindeutig, weil kein Nicht-Idle-Zustand je exakt
+`0.0` erreicht. Die verworfene Alternative — Zustands- plus Fortschritts-Array — wären
+zwei zusätzliche Pufferkopien pro Bild. In `spawn_markers` und `dash_aims` fehlt das
+Muster bewusst: Ein Eintrag existiert nur, solange etwas aussteht — das Vorzeichen wird
+nur gebraucht, wenn eine Zahl einen Zustand _und_ ein „hier ist nichts" kodieren muss.
 
-**Drei Puffer mit eigener Anzahl**, weil ihre Länge nichts mit der Schwarmgröße zu tun hat:
-`obstacles` (`OBSTACLE_STRIDE` = 7), `spawn_markers` (`SPAWN_MARKER_STRIDE` = 3) und
-`dash_aims` (`DASH_AIM_STRIDE` = 5). Der Grund ist quantitativ: Es laden höchstens etwa
-fünfzehn von bis zu 156 Boids gleichzeitig auf, ein index-alignierter Vorwarnpuffer bestünde
-also zu über 90 % aus Leerstellen. Die vollständige Aufstellung steht im Anhang (siehe 11.1
-Tabellen, „Die sieben Puffer eines Frames").
-
-**Das Vorzeichen als Zustandsträger** ist das tragende Entwurfsmuster dieser Schnittstelle,
-und `dash_phases` ist sein Ursprung. Eine Zahl je Boid trägt drei Aussagen:
-
-| Wert         | Bedeutung                                       |
-| ------------ | ----------------------------------------------- |
-| `0.0`        | nichts zu zeichnen (`Idle` oder `Cooling`)      |
-| `0 < v < 1`  | lädt auf, `v` ist der Fortschritt der Aufladung |
-| `-1 ≤ v < 0` | dasht, `−v` ist der verbleibende Anteil         |
-
-Dass die Kodierung eindeutig ist, hängt an einer Eigenschaft der Zähler und nicht an einer
-Konvention: Weder eine Aufladung noch ein Dash erreicht jemals exakt `0.0`, denn jeder
-Nicht-Idle-Zustand hat mindestens einen Restschritt. „Idle" ist damit nicht mit „hat gerade
-angefangen zu laden" verwechselbar. Die verworfene Alternative war ein `Uint32Array` für den
-Zustand **plus** ein `Float32Array` für den Fortschritt — zwei zusätzliche Pufferkopien pro
-Bild für eine Information, die in eine Zahl passt. Der sechste Wert eines Hindernisses,
-`render_phase`, wendet dasselbe Muster ein zweites Mal an: negativ heißt „blendet gerade ein
-und ist **noch nicht fest**", positiv ist die Restlebensdauer. Der Ausbau auf einen
-achten Wert je Hindernis wurde genau deshalb verworfen.
-
-Ebenso aussagekräftig ist, **wo das Muster bewusst fehlt**: `spawn_markers` und `dash_aims`
-tragen keinen Vorzeichentrick. Ein Eintrag existiert dort nur, solange der Spawn aussteht
-bzw. der Boid lädt, die eigene Anzahl sagt also bereits, wie viele es gibt, und jeder Wert im
-Puffer ist ein echter. Das Vorzeichen wird nur dann gebraucht, wenn eine Zahl einen Zustand
-_und_ ein „hier ist nichts" kodieren muss. Der Preis dieser Bauform steht daneben:
-`dash_aims` wiederholt den Ladefortschritt, den `dash_phases` schon trägt, weil genau der
-Index fehlt, mit dem man ihn dort fände.
-
-Die Kehrseite des Vertrags ist ehrlich zu benennen: **Er ist von vier auf sieben Puffer
-gewachsen.** Jede Erweiterung wurde einzeln begründet und gegen die Alternative geprüft, im
-Frontend nachzurechnen (Hindernisse in S-07, Spawn-Marker in S-04, Vorwarnlinien in S-05);
-zweimal wurde eine Erweiterung aus demselben Grund auch abgelehnt (siehe 5.3). Was nicht
-gewachsen ist, ist die **Form**: weiterhin nur flache Arrays und Skalare, weiterhin kein
-Objekt über der Grenze. Auch die Kopierkosten bleiben bestehen — jeder Getter kopiert einen
-`Vec` in ein typisiertes Array. Eine kopierfreie Variante über eine direkte Sicht auf den
-WASM-Speicher ist als offener Posten in 10.1 Kapazitätsplan vermerkt; die Begründung, warum
-sie nicht gebaut wurde, steht in 4.6 Persistenz.
+Die Kehrseite ehrlich benannt: Der Vertrag ist von vier auf sieben Puffer **gewachsen**;
+jede Erweiterung wurde einzeln begründet, zweimal eine abgelehnt (siehe 5.3). Nicht
+gewachsen ist die **Form**.
 
 ### 5.2.2 Bausteinsicht und Frame-Ablauf
 
-Die Bausteinsicht zeigt den Weg der Daten in eine Richtung — vom Zustand der Engine bis in
-die Zeichenebenen (siehe Abbildung 3).
+Die Bausteinsicht zeigt den Weg der Daten vom Zustand der Engine bis in die Zeichenebenen
+(siehe Abbildung 3).
 
 ```mermaid
 flowchart LR
@@ -1410,8 +620,8 @@ flowchart LR
 
 _Abbildung 3: Bausteinsicht der Sprachgrenze_
 
-Der zeitliche Ablauf **eines Bildes** trägt die erste tragende Invariante des Projekts besser
-als eine Seite Prosa, weil sie in seiner Asymmetrie sichtbar wird (siehe Abbildung 4).
+Der Ablauf eines Bildes zeigt die erste tragende Invariante in ihrer Asymmetrie (siehe
+Abbildung 4).
 
 ```mermaid
 sequenceDiagram
@@ -1441,746 +651,236 @@ sequenceDiagram
 
 _Abbildung 4: Sequenzdiagramm eines Bildes — feste Schrittzahl, gedrosseltes Zeichnen_
 
-**Die Asymmetrie ist der Punkt.** Die Simulation läuft konstant mit 60 Schritten je Sekunde
-(`SIMULATION_STEPS_PER_SECOND`), gedrosselt wird **allein das Zeichnen** auf die im Menü
-gewählte Zielbildrate. Ein Bild kann also null, einen oder bis zu
-`MAX_SIMULATION_STEPS_PER_FRAME` = 5 Schritte enthalten, zeichnet aber höchstens einmal. Der
-naheliegende Gegenvorschlag — die Simulation an die Bildwiederholrate koppeln, damit Bilder
-oberhalb von 60 fps neue Information tragen — ist verworfen worden und löste das Problem in
-die falsche Richtung: Ein Schritt ist O(n²) über den Schwarm, 120 Schritte/s verdoppeln also
-die CPU-Last, während die GPU ohnehin zeichnet. Dazu zählt in der Engine **jede** Dauer in
-Schritten und nicht in Millisekunden, allen voran die deterministische Dash-Auswahl aus dem
-`step_counter` (siehe 4.2.1). Eine an den Monitor gekoppelte Schrittzahl ließe dieselbe Runde
-auf zwei Rechnern unterschiedlich ablaufen. Die richtige Konsequenz aus derselben Beobachtung
-ist der Deckel beim Zeichnen, nicht das Anheben der Simulation.
+**Die Asymmetrie ist der Punkt**: Die Simulation läuft konstant mit 60 Schritten je
+Sekunde, gedrosselt wird allein das Zeichnen — eine an den Monitor gekoppelte Schrittzahl
+verdoppelte die O(n²)-CPU-Last und ließe dieselbe Runde auf zwei Rechnern
+unterschiedlich ablaufen.
 
 ## 5.3 Integration / Schnittstellen
 
-**Die Namensübersetzung liegt an genau einer Stelle.** `normalizeFrameResponse` in
-_engine-bridge.js_ baut aus den `snake_case`-Gettern ein `camelCase`-Frame-Objekt
-(`entity_count` → `entityCount`, `dash_phases` → `dashPhases`). Der Rest des Frontends sieht
-nie einen Rust-Namen, und ein umbenannter Getter ist eine Änderung an einer Datei. Dieselbe
-Datei ist auch die einzige, die `import('./wasm/engine/…')` schreibt — ein zweiter Importeur
-wäre eine zweite Instanz und damit das Problem des nächsten Absatzes.
+**Die Namensübersetzung liegt an genau einer Stelle**: _engine-bridge.js_ baut aus den
+`snake_case`-Gettern ein `camelCase`-Frame-Objekt; der Rest des Frontends sieht nie einen
+Rust-Namen. Dieselbe Datei hält nicht das geladene Modul, sondern das **Promise** seines
+Ladens: Ein Boolean wäre erst nach dem Laden gesetzt, und zwei nebenläufige Starts
+instanziierten zwei WebAssembly-Module, deren Speicher sich mischen (siehe 10.2
+Herausforderungen).
 
-**Eine Instanz pro Sitzung, abgesichert über ein geteiltes Promise.** _engine-bridge.js_ hält
-nicht das geladene Modul, sondern das **Promise** seines Ladens. Ein Boolean wäre erst gesetzt,
-wenn das Laden _fertig_ ist — genau das ist auch die einzige Absicherung im generierten
-`wasm-bindgen`-Loader (`if (wasm !== undefined) return wasm`). Zwei Aufrufe, die beide starten,
-während noch geladen wird, finden beide nichts vor und instanziieren beide ein WebAssembly-Modul
-mit eigenem Speicher. Von da an mischen sich die beiden: Zeiger der einen Instanz werden mit der
-anderen benutzt, und der Schaden erscheint Minuten später als nackter `RuntimeError` aus `tick()`.
-Das Promise ist die einzige Form, die den _laufenden_ Vorgang darstellt. Zwei E2E-Tests zählen
-deshalb die Instanziierungen in der Seite statt auf eine Fehlermeldung zu warten (siehe 8.2 E2E
-Tests).
-
-**`GameEngine::tick()` rückt genau einen Schritt vor und skaliert nicht mit der Delta-Zeit.**
-Daraus folgen vier Verpflichtungen für den Aufrufer, die zusammen den eigentlichen Vertrag
-ausmachen:
-
-1. **Der Spieler wird im selben Schritt integriert wie der Schwarm.** Seine Position ist
-   Eingabe von `tick()` und des Kollisionstests; eine Integration je gezeichnetem Bild ließe
-   beide auseinanderlaufen.
-2. **Treffer werden für jeden Schritt verbucht.** Wer nur den letzten Frame eines
-   Mehrschritt-Bildes liest, verliert die Treffer der Schritte davor.
-3. **Einmal-Eingaben werden gelatcht und genau einmal verbraucht.** Eine
-   „Taste-ist-gedrückt"-Prüfung pro Schritt macht aus einem Tastendruck bis zu fünf Dashes.
-4. **Simulationsschulden werden geklemmt und bei eingefrorener Welt verworfen.** Countdown,
-   Rundenstart, Tod und Pause rufen `discardPendingTime()`; ohne das öffnete ein Neustart mit
-   einem Nachhol-Stoß, der Boids in den Spieler teleportiert. Die Pause ist der einzige der
-   vier Fälle, der Minuten dauern kann.
-
-Hinzu kommt, dass **`tick` nicht symmetrisch ist**: Die Engine besitzt die Hindernisse und
-löst die Bewegung gegen sie auf, weshalb sie die vorige _und_ die versuchte Spielerposition
-bekommt und die korrigierte zurückgibt. Der Aufrufer muss `frame.playerPosition` benutzen und
-nicht die Position, die er angefragt hat. Weil die **Strecke** und nicht nur ihr Endpunkt
-geprüft wird, kann auch ein Dash nicht zwischen zwei Schritten durch ein dünnes Hindernis
-tunneln.
+**`tick()` rückt genau einen Schritt vor.** Daraus folgen vier Verpflichtungen für den
+Aufrufer: Spieler im selben Schritt integrieren wie den Schwarm; Treffer für jeden
+Schritt verbuchen; Einmal-Eingaben latchen und genau einmal verbrauchen;
+Simulationsschulden klemmen und bei eingefrorener Welt verwerfen. `tick` ist zudem
+**nicht symmetrisch**: Der Aufrufer muss die zurückgegebene, korrigierte Spielerposition
+benutzen, nicht die angefragte.
 
 **Was über die Grenze geht, ist Zustand — was eine Rechnung auf einer Zahl ist, die der
-Empfänger schon hat, nicht.** Diese Regel ist zweimal in beide Richtungen angewandt worden und
-hält die Schnittstelle schmal. Die Vorwarnlinie eines ladenden Boids **geht** über die Grenze,
-obwohl das Frontend Richtung und Reichweite im Prinzip selbst berechnen könnte: Sie ist eine
-Funktion aus Boidposition, Spielerposition nach der Hindernisauflösung und Dash-Tuning je
-Stufe, und sie ist ein Versprechen über künftiges Verhalten der Simulation. Eine im Renderer
-gespiegelte Zielregel stimmt genau so lange, bis jemand die Zielregel ändert — danach zeigte
-die Linie dorthin, wo der Dash früher hinging, und der Spieler wiche in den Treffer aus; kein
-Test fiele darauf, weil beide Seiten in sich schlüssig blieben. Die Schwierigkeitsstufe der
-gerade spawnenden Welle **geht nicht** über die Grenze, obwohl sie in der Engine steht: Sie
-ist `wave − 1`, geklemmt, und die Wellennummer führt das Frontend ohnehin selbst; ein achter
-Wert im `FrameResponse` trüge pro Bild eine Zahl, die der Empfänger schon hat.
-_round/waveTier.js_ leitet sie deshalb im Frontend ab. Aus demselben Grund liegen die drei
-Power-ups vollständig im Frontend — ein Marker ist nur für den Spieler da, kein Boid sieht ihn
-an —, während die Hindernisse in der Engine liegen, weil die Boids ihnen ausweichen müssen.
+Empfänger schon hat, nicht.** Die Vorwarnlinie eines ladenden Boids **geht** über die
+Grenze, obwohl das Frontend sie nachrechnen könnte: Eine gespiegelte Zielregel stimmte
+genau so lange, bis jemand die Zielregel ändert — kein Test fiele darauf. Die
+Schwierigkeitsstufe der spawnenden Welle **geht nicht** über die Grenze: Sie ist
+`wave − 1`, geklemmt, und die Wellennummer führt das Frontend selbst.
 
-**Fünf Werte sind von Hand doppelt geführt**, und bei den drei Strides ist das der Zweck der
-Übung: `OBSTACLE_STRIDE`, `SPAWN_MARKER_STRIDE` und `DASH_AIM_STRIDE` stehen in
-_frame_buffers.rs_ und noch einmal in _gameConfig.js_; `INITIAL_BOID_COUNT` und
-`MAX_BOID_DIFFICULTY_TIER` stehen in _constants.rs_ und noch einmal in _gameConfig.js_. Die
-Grenztests unter `engine/tests/` nageln die Strides fest, und sie tun das
-mit einer **dritten** Kopie: Ein Test, der die echte Konstante läse, folgte jeder Änderung an
-ihr stillschweigend, statt sie zu melden. Die Doppelung ist damit kein Versehen, sondern der
-Mechanismus, der ein Auseinanderlaufen der beiden Sprachen zu einem fehlschlagenden Test macht
-statt zu einem falsch gezeichneten Bild.
-
-**Die Build-Kopplung ist einseitig.** `npm run build:wasm` ist der maßgebliche Engine-Build und
-emittiert mit `wasm-pack --target web` nach `frontend/src/wasm/engine/`; sowohl `npm run dev`
-als auch `npm run build` rufen ihn vorher auf, damit ein Vite-Start nie gegen ein veraltetes
-Paket läuft. Nach `engine/pkg/` wird nicht gebaut — die `--target bundler`-Variante in der
-README ist überholt und in 7.9 Production Build als solche benannt. Die Rust-Toolchain und
-`wasm-pack` selbst sind nirgends im Repository festgeschrieben; das ist ein offener Posten und
-in 2.3 Tech Stack Canvas vermerkt.
-
-**Die Grenze ist die teuerste Stelle des Projekts in Sachen Testbarkeit**, und das ist keine
-Nebenbemerkung, sondern erklärt zwei Zahlen in Kapitel 9. Erstens läuft die Vitest-Suite im
-`node`-Environment ohne Browser und ohne gebautes WASM-Paket; jedes Modul, das
-_engine-bridge.js_ importiert, ist dort strukturell unprüfbar — deshalb hat
-_loop/simulationStep.js_ als einziges Modul in `loop/` keinen Unit-Test und wird von Playwright
-abgedeckt. Zweitens melden die vier Dateien unter `engine/tests/` bei `cargo test` **null
-Tests**, weil `#[wasm_bindgen_test]` für das Host-Ziel zu nichts expandiert; nur
-`wasm-pack test` führt sie aus. Aus demselben Grund weist `cargo llvm-cov` für
-_wasm_bridge/response.rs_ 0 % aus, obwohl jeder Puffer, den die Datei zurückgibt, im Browser
-geprüft wird. Beide Befunde sind in 8.1 Unit Tests und Coverage eingeordnet; die Zahlen selbst
-stehen in 9.3 Coverage.
+**Die Grenztests nageln die Strides mit einer dritten Kopie fest** — ein Test, der die
+echte Konstante läse, folgte jeder Änderung stillschweigend. **Die Grenze ist zugleich
+die teuerste Stelle in Sachen Testbarkeit**: Module, die _engine-bridge.js_ importieren,
+sind unter Vitest strukturell unprüfbar, und die Dateien unter `engine/tests/` melden bei
+`cargo test` **null Tests**, weil `#[wasm_bindgen_test]` für das Host-Ziel zu nichts
+expandiert — nur `wasm-pack test` führt sie aus (siehe 8.1 Unit Tests und Coverage).
 
 # 6 KI-driven Engineering & Prozess
 
-Dieses Projekt ist über weite Strecken mit KI-Assistenz entwickelt worden. Das folgende
-Kapitel beschreibt nicht, _dass_ das geschehen ist, sondern **wie es geregelt wurde**: welche
-Konfigurationsdateien die Assistenz binden, welche dieser Regeln die Struktur des Quellcodes
-nachweislich geformt haben und welcher Arbeitsablauf pro Änderung eingehalten wird. Der
-Prozess liegt dabei nicht als Beschreibung neben dem Projekt, sondern **als Datei darin** —
-_CLAUDE.md_ und _.github/copilot-instructions.md_ sind maschinenlesbare Prozessdokumentation,
-die zu Beginn jeder Sitzung in den Kontext des Assistenzsystems geladen wird.
+Dieses Projekt ist über weite Strecken mit KI-Assistenz entwickelt worden; das Kapitel
+beschreibt, **wie das geregelt wurde**. Der Prozess liegt als maschinenlesbare Datei im
+Projekt und wird zu Beginn jeder Sitzung in den Kontext geladen.
 
 ## 6.1 Modulare Konfiguration
 
-Die Konfiguration ist auf vier Dateien verteilt, die sich nach zwei Achsen trennen:
-werkzeugübergreifend gegen werkzeugspezifisch, und committet gegen maschinenlokal.
+| Datei                             | Gültigkeit                      | Inhalt                                                          |
+| --------------------------------- | ------------------------------- | --------------------------------------------------------------- |
+| _.github/copilot-instructions.md_ | werkzeugübergreifend, committet | Architekturprämissen, Coding Standards, verpflichtende Schritte |
+| _CLAUDE.md_                       | Claude Code, committet          | Befehle, Architektur-Walkthrough, aktuelle Projektphase         |
+| _.claude/settings.json_           | Claude Code, committet          | geteilte Freigabeliste für Werkzeugaufrufe                      |
+| _.claude/settings.local.json_     | Claude Code, gitignoriert       | maschinenlokale Ergänzungen (absolute Pfade)                    |
 
-| Datei                             | Gültigkeit                      | Inhalt                                                            |
-| --------------------------------- | ------------------------------- | ----------------------------------------------------------------- |
-| _.github/copilot-instructions.md_ | werkzeugübergreifend, committet | Architekturprämissen, Coding Standards, verpflichtende Schritte   |
-| _CLAUDE.md_                       | Claude Code, committet          | Befehle, Architektur-Walkthrough, aktuelle Projektphase           |
-| _.claude/settings.json_           | Claude Code, committet          | geteilte Freigabeliste für Werkzeugaufrufe                        |
-| _.claude/settings.local.json_     | Claude Code, gitignoriert       | maschinenlokale Ergänzungen, absolute Pfade dieser Arbeitsstation |
-
-**Zwei Instruktionsdateien, ein Regelwerk.** _.github/copilot-instructions.md_ entstand im
-Mai 2026, bevor nennenswerter Code existierte, und hält die Regeln, die unabhängig vom
-eingesetzten Werkzeug gelten: die Zweischichtigkeit aus Engine und Frontend, den
-Schnittstellenvertrag, die Coding Standards je Sprache, die 400-Zeilen-Grenze, die
-i18n-Pflicht sowie Commit-, Changelog- und Protokollierungsdisziplin. _CLAUDE.md_ kam mit dem
-Wechsel auf Claude Code hinzu und trägt ausschließlich das, was dort zusätzlich gebraucht
-wird: die ausführbaren Befehle je Werkzeug (siehe 7.1 Scripts in package.json), einen
-Walkthrough durch die Modulstruktur, der zu jedem Ordner den Grund seiner Existenz nennt, und
-die jeweils aktuelle Projektphase.
-
-Redundanz wird nicht durch Disziplin vermieden, sondern durch eine ausdrückliche Zuweisung:
-Der Abschnitt _Project conventions_ in _CLAUDE.md_ beginnt mit dem Satz, dass diese
-Konventionen aus der Copilot-Datei stammen und für Claude Code gleichermaßen gelten. Damit
-liegt jede Regel an genau einer Stelle, und die zweite Datei verweist darauf, statt sie zu
-wiederholen. Der naheliegende Gegenentwurf — **eine** Instruktionsdatei für alles — scheitert
-an den Werkzeugen selbst: GitHub Copilot liest _.github/copilot-instructions.md_, Claude Code
-liest _CLAUDE.md_, und keines von beiden folgt einem Verweis auf das andere. Die Aufteilung
-ist also keine Stilfrage, sondern die Bedingung dafür, dass beide Systeme dieselben Regeln
-sehen.
-
-**Freigabeliste statt Rückfrage.** _.claude/settings.json_ listet Werkzeugaufrufe, die ohne
-Einzelbestätigung ausgeführt werden dürfen, und ist committet, damit die Liste am Projekt
-hängt und nicht an einer Arbeitsstation. _.claude/settings.local.json_ ist in _.gitignore_
-ausgenommen und trägt die nicht übertragbaren Ergänzungen — absolute Windows-Pfade,
-Verzeichnisse temporärer Treiberskripte. Der Grund für die Trennung ist Portabilität, nicht
-Vertraulichkeit: In der lokalen Datei steht nichts Geheimes, nur nichts Allgemeingültiges.
-
-Ein **negativer Befund** gehört an dieser Stelle benannt: Die committete Liste ist nicht auf
-schreibgeschützte Befehle beschränkt, wie es der Entwurf dieses Kapitels ursprünglich
-vorsah. Sie ist über Monate gewachsen und enthält heute auch verändernde Aufrufe
-(`git stash`, `npm run format`, In-Place-Ersetzungen mit `sed -i`) sowie zahlreiche
-Einmalaufrufe temporärer Messskripte, die es längst nicht mehr gibt. Sie wirkt damit als
-Reibungsabbau, nicht als Sicherheitsgrenze — die eigentliche Grenze ist die Versionsverwaltung,
-die jede Änderung sichtbar und rücknehmbar macht. Eine aufgeräumte, nach Absicht sortierte
-Liste wäre der bessere Zustand; sie steht als offener Posten in 10.1 Kapazitätsplan.
+**Zwei Instruktionsdateien, ein Regelwerk**: Jede Regel liegt an einer Stelle, die zweite
+Datei verweist darauf — eine einzige Datei scheitert daran, dass jedes Werkzeug nur seine
+eigene liest. Ein negativer Befund gehört benannt: Die committete Freigabeliste enthält
+inzwischen auch verändernde Aufrufe — sie wirkt als Reibungsabbau, nicht als
+Sicherheitsgrenze; eine aufgeräumte Liste ist ein offener Posten.
 
 ## 6.2 Komponenten & Struktur
 
-Der überprüfbare Teil eines Regelwerks ist nicht sein Wortlaut, sondern die Struktur, die es
-hinterlassen hat. Fünf Regeln haben den Quellcode dieses Projekts sichtbar geformt.
+Der überprüfbare Teil eines Regelwerks ist die Struktur, die es hinterlassen hat; fünf
+Regeln haben den Quellcode sichtbar geformt. **Human readability is the top priority** —
+operationalisiert statt appelliert und zweimal einer technisch besseren Lösung vorgezogen
+(exakte Kontaktbestimmung verworfen, strengere Linter-Plugins abgelehnt, siehe 7.3
+Linter). **Keine Quelldatei über 400 Zeilen** — der stärkste Strukturgeber. **Keine Magic
+Numbers, keine hartcodierten Strings** — der Nutzen ist Auffindbarkeit der Stellschrauben.
+**Werte, die pro Boid abweichen können, gehören auf den Boid** — die Regel, die die
+spätere Schwierigkeitsrampe ohne Umbau möglich machte. **Doc-Kommentar für jeden
+`#[wasm_bindgen]`-Export** — der Puffer-Vertrag ist an der Grenze selbstbeschreibend.
 
-**Human readability is the top priority.** Die Regel ist in
-_.github/copilot-instructions.md_ ausdrücklich damit begründet, dass hier Studierende Rust und
-WebAssembly lernen, und sie ist operationalisiert statt appelliert: keine Trait-Akrobatik,
-keine makrolastigen Muster, `for`-Schleifen statt dichter Iterator-Ketten, ausgeschriebene
-Bezeichner (`separation_force` statt `sep_f`), keine Mikrooptimierung ohne vorherige Messung.
-Sie hat zweimal nachweisbar eine technisch bessere Lösung verdrängt. Beim Rückstoß des
-Spielers von einem Hindernis wurde die analytisch exakte Bestimmung der ersten Kontaktstelle
-(Strahl gegen Kapsel) verworfen, weil sie eine quadratische Gleichung samt Fallunterscheidung
-für beide Endkappen bedeutet hätte — für einen um wenige Pixel genaueren Stopp-Punkt. Und bei
-der Linter-Auswahl wurden die strengeren Sammel-Plugins `unicorn` und `sonarjs` abgelehnt,
-weil sie auf idiomatisch-dichtes JavaScript optimieren und damit direkt gegen diese Regel
-arbeiten würden (siehe 7.3 Linter). Beide Entscheidungen sind im Projekt-Journal mit ihren
-Alternativen festgehalten.
-
-**Keine Quelldatei über 400 Zeilen.** Diese Regel ist der stärkste Strukturgeber des
-Projekts; ihre Wirkung ist in 3.3 Modularisierung: Strukturierung der fachlichen Logik und
-4.3 Modularisierung: Strukturierung der fachlichen Logik im Einzelnen belegt. Bemerkenswert
-für dieses Kapitel ist ein Fall, in dem sie über ihren Wortlaut hinaus angewandt wurde: Die
-Stylesheet-Datei aus dem Designsystem-Handoff überschritt die Grenze um mehr als das Doppelte,
-obwohl die Regel nur Rust, JavaScript und Tests nennt und CSS gar nicht erwähnt. Sie wurde
-trotzdem in fünf Stylesheets nach Zuständigkeit geteilt, weil ihr Zweck — eine Datei, ein
-Thema — für ein Stylesheet genauso gilt und eine Ausnahme genau dort, wo die Regel am
-leichtesten einzuhalten ist, sie für alle anderen Dateien entwertet hätte.
-
-**Keine Magic Numbers, keine hartcodierten nutzersichtbaren Strings.** Zahlen leben in
-_engine/src/constants.rs_ beziehungsweise _frontend/src/gameConfig.js_, Texte in
-_frontend/public/locales/en.json_ hinter _ui/i18n.js_. Der Nutzen ist nicht Ordnung, sondern
-Auffindbarkeit der Stellschrauben: Der Anteil der Wahrnehmungsreichweite, ab dem Separation
-greift, stand als nackte `0.5` in einer Methode und war als Regler damit unsichtbar; als
-benannte Konstante `CLOSE_NEIGHBOUR_RADIUS_SHARE` war er der Griff, mit dem die Schwarmdichte
-tatsächlich gestimmt wurde.
-
-**Werte, die pro Boid abweichen können, gehören auf den Boid.** _constants.rs_ hält
-Standardwerte, keine Invarianten; was sich zwischen Boid-Varianten unterscheiden kann, steht
-in `BoidProperties`. Diese eine Regel — im Mai 2026 formuliert, als alle Boids noch gleich
-waren — ist der Grund, dass die Schwierigkeitsrampe später ohne Umbau der Simulation
-eingezogen werden konnte (siehe 4.7 Konfiguration — Wesentliche Einstellungen).
-
-**Doc-Kommentar für jeden `#[wasm_bindgen]`-Export.** Weil jeder Getter des `FrameResponse`
-das Format des Puffers dokumentiert, den er zurückgibt, ist der Puffer-Vertrag an der
-Sprachgrenze selbstbeschreibend statt in einer separaten Schnittstellenbeschreibung abgelegt
-(siehe 5.2.1 Der Puffer-Vertrag). Das JavaScript-Gegenstück dieser Regel ist über ESLint
-erzwungen und in 7.5 JSDoc — über ESLint enforced beschrieben.
-
-Die Beobachtung, die diese fünf Punkte verbindet: **Durchgesetzt hat sich, was geprüft wird.**
-Die 400-Zeilen-Regel, die JSDoc-Pflicht und die Formatierung haben je ein Werkzeug hinter sich
-(`npm run docs:check`, ESLint, Prettier, `cargo clippy`) und wurden ausnahmslos eingehalten.
-Die Lesbarkeitsregel und die Kommentarkonvention sind menschliche Urteilsfragen geblieben und
-haben deshalb in 8.4 Kommentare — Visuelle Strukturierung des Quellcodes einen eigenen
-Abschnitt. Die eine Regel ohne jede Prüfung war die Prompt-Protokollierung — und genau sie ist
-ausgefallen (siehe 6.3 Entwicklungsprozess & Workflow).
+Die verbindende Beobachtung: **Durchgesetzt hat sich, was geprüft wird** — die eine Regel
+ohne Prüfung, die Prompt-Protokollierung, ist ausgefallen (siehe 6.3).
 
 ## 6.3 Entwicklungsprozess & Workflow
 
-**Spec-driven.** Das erwartete mathematische Verhalten und die Randfälle werden vor der
-Implementierung festgelegt. _docs/spec-s05-dash.md_ ist das ausgeführte Beispiel: Zweck
-fachlich und technisch, eine Verhaltenstabelle je Aspekt, die gesetzten Formeln samt der
-Rechnung, die die Dash-Reichweite in Spielerdurchmessern ausdrückt, die Zustandsmaschine des
-Boid-Dashes, die Edge Cases als eigener Abschnitt — und eine Enumeration der Testfälle,
-getrennt nach den drei Testläufern, die sie ausführen. Der Nutzen liegt weniger in der
-Planung als in der Prüfbarkeit: Eine Spezifikation, die ihre Randfälle benennt, erzeugt als
-Prompt nicht nur Code, sondern die zugehörigen Tests. Die Spec endet mit einer
-Aufwandstabelle Soll gegen Ist und benennt dort auch ihren eigenen Fehler — die Vorwarnlinie
-des Boid-Dashes war nicht vorgesehen, weil die erste Fassung annahm, für die Vorwarnung
-genüge „eine Zahl pro Boid". Das stimmt für _dass_ und _wann_ und nicht für _wohin_.
+**Spec-driven**: Verhalten und Randfälle werden vor der Implementierung festgelegt;
+_docs/spec-s05-dash.md_ ist das ausgeführte Beispiel. Der Nutzen liegt in der
+Prüfbarkeit — eine Spezifikation, die ihre Randfälle benennt, erzeugt als Prompt nicht
+nur Code, sondern die zugehörigen Tests.
 
-**Verpflichtende Schritte pro Änderung.** _CLAUDE.md_ schreibt fünf Schritte fest:
-Protokollierung des Prompts unter `ai/`, Eintrag in _CHANGELOG.md_ für nutzersichtbare
-Änderungen, ein atomarer Commit nach Conventional Commits, eine Abwägung, ob die Änderung
-Tests verlangt, und eine Zeile im Projekt-Journal. Die Kopplung der ersten drei ist
-beabsichtigt: Weil die Sessiondatei gemeinsam mit der Änderung committet wird, ist die
-Zuordnung von Prompt zu Commit über die Historie der Datei nachvollziehbar und die Spalte
-_Verwendung_ des KI-Verzeichnisses damit teilweise überprüfbar (siehe 12 KI-Verzeichnis,
-Abschnitt _Erfassungsrichtlinie_). Nicht aufgegangen ist der Teil dieser Idee, der die
-`topic`-Werte des Protokolls mit den Commit-Scopes gleichsetzen wollte: Die Historie zeigt
-überwiegend die groben Scopes `frontend` und `engine`, während das Protokoll die sechs
-feineren Kategorien des KI-Verzeichnisses führt. Die Zuordnung läuft deshalb über den Commit
-der Sessiondatei, nicht über den Namen des Scopes.
+**Verpflichtende Schritte pro Änderung**: Prompt-Protokoll unter `ai/`,
+Changelog-Eintrag, atomarer Commit, Test-Abwägung, Journal-Zeile; weil die Sessiondatei
+mit der Änderung committet wird, ist die Zuordnung von Prompt zu Commit nachvollziehbar
+(siehe 12 KI-Verzeichnis). **Modell-Mix** in drei Rollen: Konfiguration und Planung
+(GPT-5.4, Claude Sonnet 4.6), Implementierung (GitHub Copilot, danach durchgehend Claude
+Code mit Opus 5), Entwurf der Optik (getrennte Sitzung eines Design-Assistenten, Handoff
+unter `docs/design_system/`).
 
-**Modell-Mix.** Der Einsatz verlief in drei Rollen, die sich klar trennen lassen; die Zahlen
-je System stehen in 12 KI-Verzeichnis und werden hier nicht wiederholt.
+**Ein Handoff ist ein Vorschlag, kein Merge.** Kein Modul des Design-Pakets ist
+unverändert übernommen: Das Stylesheet wurde geteilt, das Power-up-Modul verlor seine
+eigene Uhr zugunsten der Simulationszeit, die HUD-Zeilen wanderten vom Canvas ins DOM —
+KI-Ausgabe wird mit derselben Prüfpflicht behandelt wie ein fremder Pull Request.
 
-- **Konfiguration und Planung** (Mai 2026): GPT-5.4 und eine kleinere Variante desselben
-  Modells für das Aufsetzen und Fortschreiben der Instruktionsdatei, Claude Sonnet 4.6 für
-  den Entwurf der Ordnerstruktur. Charakteristisch ist die Verwendung: Diese Prompts sind im
-  Verzeichnis überwiegend als _Übernommen_ klassifiziert, weil ihr Ergebnis eine Textdatei
-  war und keine Implementierung.
-- **Implementierung** (ab Ende Juli 2026): GitHub Copilot in der Entwicklungsumgebung für die
-  erste Fassung von Frontend und Engine, danach durchgehend Claude Code mit Opus 5. Die
-  Variante mit erweitertem Kontextfenster wurde für Änderungen eingesetzt, die beide Sprachen
-  gleichzeitig betreffen; kurze Informationsfragen liefen bewusst auf dem kleineren
-  Sonnet-Modell.
-- **Entwurf der Optik**: Das Designsystem entstand in einer getrennten Sitzung eines auf
-  Gestaltung ausgerichteten Assistenten und liegt als Handoff-Paket unter
-  `docs/design_system/` — Regelwerk, Tokens und einbaufertige Module samt
-  Integrationsanleitung.
+**Begleitende Dokumentation**: Fakten pro Änderung ins Journal (mit Kapitel-Tag), die
+Struktur-Kapitel in wenigen Sitzungen — die Dokumentation ans Ende zu legen hätte
+gekostet, was den Bericht trägt: Verworfene Alternativen sind nach Wochen nicht mehr
+rekonstruierbar.
 
-**Ein Handoff ist ein Vorschlag, kein Merge.** Aus dem Umgang mit diesem Paket stammt die
-wichtigste Prozessaussage dieses Kapitels. Keines seiner Module ist unverändert übernommen
-worden. Das Durchlesen gegen den Bestand fand fünf Stellen, an denen die Anleitung nicht auf
-den vorhandenen Code passte; die Stylesheet-Datei wurde geteilt (siehe 6.2); das mitgelieferte
-Power-up-Modul führte eine eigene Uhr, die durch die hereingereichte Simulationszeit ersetzt
-wurde, weil zwei Uhren nur so lange synchron laufen, wie zwei Rücksetzpunkte beieinander
-bleiben; die vorgeschlagenen HUD-Zeilen auf dem Canvas wurden ins DOM verlegt, weil eine
-Beschriftung, die sich nie ändert, nicht in jedem Frame neu gerastert werden muss. KI-Ausgabe
-wird in diesem Projekt also mit derselben Prüfpflicht behandelt wie ein fremder Pull Request —
-die Begründungen dieser Abweichungen stehen als Entscheidungsblöcke im Projekt-Journal
-und damit im Bericht, nicht nur im Diff.
-
-**Begleitende Dokumentation.** Dass der Bericht neben der Entwicklung entsteht und nicht
-danach, ist eine bewusste Prozessentscheidung mit dokumentierten Alternativen: Alle Kapitel
-pro Commit fortzuschreiben scheitert am Code-Churn, den die 400-Zeilen-Regel selbst erzeugt —
-derselbe Strukturabsatz wäre mehrfach neu zu schreiben. Die Fakten in die jeweiligen
-Kapiteldateien zu streuen scheitert daran, dass eine Tatsache meist zwei bis drei Kapitel
-speist. Gewählt wurde deshalb **ein** Anhängeziel: Fakten pro Änderung ins Journal, jeweils
-mit einem Kapitel-Tag versehen, und die Struktur-Kapitel in wenigen zusammenhängenden
-Sitzungen. Ein gewöhnlicher Commit kostet damit eine Tabellenzeile, nur ein interessanter
-kostet einen Absatz. Das bekannte Risiko — das Journal wird zur Halde — wird durch den
-Kapitel-Tag und die beratende Prüfung abgefangen. Die verworfene dritte Alternative — die
-Dokumentation vollständig ans Projektende zu legen — hätte genau das gekostet, was den Bericht
-trägt: Verworfene Alternativen und tatsächliche Aufwände sind nach Wochen nicht mehr
-rekonstruierbar (siehe 10.3 Lessons Learned).
-
-**Ehrlich benannt: die Protokollierung war lückenhaft.** Für den 29.07.2026 war ein einziger
-Prompt erfasst, obwohl an diesem Tag drei Commits einschließlich einer umfangreichen
-Spezifikation entstanden; das Missverhältnis von protokollierten Prompts zu Commits ist in 12
-KI-Verzeichnis, Abschnitt _Bekannte Lücken_, offengelegt. Die Ursache ist strukturell und
-nicht disziplinarisch: _CHANGELOG.md_ verlangt einen Anhang an _eine_ Datei zur _Commit-Zeit_
-und wurde durchgehend gepflegt — das Prompt-Log verlangte einen Anhang _vor der Antwort_, lag
-damit außerhalb dieses Takts und schlief ein. Die Konsequenz war kein strengeres Regelwerk,
-sondern ein Werkzeug: _scripts/docs-check.mjs_ prüft für den aktuellen Arbeitsstand, ob die
-Sessiondatei des Tages existiert und vollständig klassifiziert ist, ob das Journal eine Zeile
-für heute hat, ob bei geänderten Quelldateien der Changelog angefasst wurde und ob eine Datei
-über die 400-Zeilen-Grenze gelaufen ist. Es ist **beratend und nicht blockierend** — der
-Exit-Code ist immer 0, und es ist bewusst kein Git-Hook, weil ein blockierender Hook unter
-Zeitdruck mit `--no-verify` umgangen wird, eine sichtbare Warnung dagegen nicht. Fehlende
-Prompts wurden nicht rückwirkend rekonstruiert.
-
-Die verallgemeinerbare Beobachtung daraus ist zugleich das Fazit dieses Kapitels: Ein Ritual
-in einem KI-gestützten Arbeitsablauf hält nicht deshalb, weil es aufgeschrieben ist, sondern
-wenn es **zur Commit-Zeit an genau einer Datei** stattfindet und eine Maschine seine
-Vollständigkeit sichtbar macht. Regeln, die diese beiden Bedingungen erfüllen, sind in diesem
-Projekt ausnahmslos eingehalten worden; die eine, die sie nicht erfüllte, ist ausgefallen.
+**Ehrlich benannt: die Protokollierung war lückenhaft.** Die Ursache ist strukturell: Der
+Changelog verlangt einen Anhang zur Commit-Zeit und wurde durchgehend gepflegt; das
+Prompt-Log verlangte einen Anhang _vor der Antwort_, lag außerhalb dieses Takts und
+schlief ein. Die Konsequenz war ein Werkzeug statt strengerer Regeln: _docs-check_ prüft
+Sessiondatei, Journal, Changelog und 400-Zeilen-Grenze — **beratend, nicht blockierend**,
+weil ein blockierender Hook unter Zeitdruck mit `--no-verify` umgangen wird. Das Fazit:
+Ein Ritual hält, wenn es **zur Commit-Zeit an genau einer Datei** stattfindet und eine
+Maschine seine Vollständigkeit sichtbar macht.
 
 # 7 Tooling
 
-Dieses Kapitel beschreibt die Werkzeugkette des Projekts: die npm-Scripts als
-Eintrittspunkte, die Paketverwaltung beider Sprachen, Linter, Formatter und die
-JSDoc-Pflicht, sowie Build und Deployment. Die Tooling-Maßnahmen wurden nach ihrem
-Beitrag zu den Bewertungskriterien priorisiert: Qualitätsmaßnahmen bedienen zwei
-Kriterien gleichzeitig — das Kapitel _Qualität_ und „hohe Testabdeckung" im Deliverable
-_Working Code_ —, während TypeScript und Deployment je nur eines bedienen. Umgesetzt
-sind daher Linter, Formatter, JSDoc-Pflicht, Coverage und E2E-Tests; TypeScript (T-02),
-CI/CD (T-05) und Deployment (T-06) stehen aus und werden in 7.6, 8.3 und 7.10 als
-begründete Negativbefunde behandelt.
+Die Tooling-Maßnahmen sind nach ihrem Beitrag zu den Bewertungskriterien priorisiert:
+Qualitätsmaßnahmen bedienen zwei Kriterien gleichzeitig, TypeScript und Deployment je
+eines. TypeScript (T-02), CI/CD (T-05) und Deployment (T-06) stehen aus und werden in
+7.6, 8.3 und 7.10 als begründete Negativbefunde behandelt.
 
 ## 7.1 Scripts in package.json
 
 Alle Frontend-Werkzeuge laufen über npm-Scripts in _frontend/package.json_:
 
-| Script                | Nutzen                                                          |
-| --------------------- | --------------------------------------------------------------- |
-| `dev`                 | Baut das WASM-Paket und startet Vite auf Port 5173              |
-| `build`               | Produktionsbuild inkl. WASM-Rebuild                             |
-| `build:wasm`          | Baut nur das WASM-Paket (`--target web`)                        |
-| `preview`             | Liefert den Produktionsbuild lokal aus                          |
-| `test`                | Vitest-Suite einmalig                                           |
-| `test:watch`          | Vitest im Watch-Modus                                           |
-| `test:coverage`       | Vitest mit Coverage-Report (Text, HTML, JSON-Summary)           |
-| `test:e2e`            | Playwright gegen den Produktionsbuild; baut und serviert selbst |
-| `test:e2e:report`     | Öffnet den erzeugten HTML-Report der letzten E2E-Läufe          |
-| `lint`                | ESLint über `frontend/` — muss fehler- und warnungsfrei sein    |
-| `lint:fix`            | ESLint mit Autofix                                              |
-| `format`              | Prettier schreibend über das gesamte Repository                 |
-| `format:check`        | Prettier prüfend — der Modus für die CI                         |
-| `docs:ki-verzeichnis` | Erzeugt das KI-Verzeichnis (Kap. 12) aus `ai/*.json`            |
-| `docs:check`          | Prüft die Doku-Disziplin (Prompt-Log, Journal, Changelog)       |
+| Script                      | Nutzen                                                          |
+| --------------------------- | --------------------------------------------------------------- |
+| `dev` / `build` / `preview` | WASM-Build, dann Vite (Dev-Server, Bündel, lokale Auslieferung) |
+| `build:wasm`                | Baut nur das WASM-Paket (`--target web`)                        |
+| `test` / `test:coverage`    | Vitest-Suite, optional mit Coverage-Report                      |
+| `test:e2e`                  | Playwright gegen den Produktionsbuild                           |
+| `lint` / `format`           | ESLint (muss warnungsfrei sein) / Prettier repo-weit            |
+| `docs:ki-verzeichnis`       | Erzeugt das KI-Verzeichnis (Kap. 12) aus `ai/*.json`            |
+| `docs:check`                | Prüft die Doku-Disziplin (Prompt-Log, Journal, Changelog)       |
 
-Drei in der Planung vorgesehene Scripts fehlen in dieser Tabelle, und zwar nicht aus
-Versehen: `typecheck` hängt an T-02 (siehe 7.6 TypeScript), `deploy` an T-06 (siehe 7.10
-Deployment), und `docs:diagrams` — die Diagrammquellen der Kapitel nach `rendered/*.svg`
-extrahieren — ist ein Werkzeug für den Word-Zusammenbau und wird erst dort gebraucht.
-Alle drei sind offene Posten, keine getroffenen Entscheidungen gegen sie.
-
-Drei Details, die die Tabelle nicht zeigt:
-
-**Die Rust-Seite läuft bewusst nicht über npm.** `cargo test`, `cargo clippy` und
-`cargo fmt` werden direkt aufgerufen, nicht in npm-Scripts eingewickelt. Ein
-Wrapper würde nur einen zweiten Namen für denselben Befehl einführen und dabei
-die Fehlerausgabe durch eine weitere Prozess-Ebene schieben; wer an der Engine
-arbeitet, ist ohnehin in `engine/`. Die einzige Stelle, an der npm die
-Rust-Toolchain wirklich anfasst, ist `build:wasm` — dort ist die Kopplung
-erzwungen, weil das Frontend ohne das gebaute WASM-Paket nicht startet.
-
-**`format` und `format:check` tragen `--ignore-path ../.prettierignore`.** Die
-Scripts laufen aus `frontend/`, formatieren aber das ganze Repository (`..`).
-Prettier sucht seine Ignore-Datei relativ zum _Arbeitsverzeichnis_, nicht relativ
-zum Zielpfad — ohne den expliziten Pfad würde es `engine/target/` und `dist/`
-mitformatieren. Der Fallstrick ist nicht offensichtlich und hat beim Einrichten
-genau einmal zugeschlagen.
-
-**`test:coverage` hat kein Rust-Gegenstück in der Tabelle.** Die Engine-Coverage läuft
-mit `cargo llvm-cov --lib` und bleibt damit derselben Linie treu wie `cargo test`. Das
-`--lib` ist dabei nicht kosmetisch: Es beschränkt den Lauf auf die
-`#[cfg(test)]`-Module und lässt `engine/tests/` aus, das nur unter `wasm-pack`
-lauffähig ist. Ohne die Einschränkung würde der Coverage-Lauf abbrechen.
+Drei geplante Scripts fehlen bewusst noch: `typecheck` (T-02), `deploy` (T-06),
+`docs:diagrams` (Word-Zusammenbau). Die Rust-Seite läuft nicht über npm — ein Wrapper
+wäre nur ein zweiter Name für denselben Befehl; die Engine-Coverage läuft mit
+`cargo llvm-cov --lib`, weil ohne `--lib` die Grenztests den Lauf abbrechen würden.
 
 ## 7.2 Package Management
 
-Zwei Sprachen bedeuten zwei Paketmanager: **npm** für das Frontend
-(_frontend/package.json_), **Cargo** für die Engine (_engine/Cargo.toml_). Beide
-verwalten ihre Abhängigkeiten getrennt, beide Lockfiles (_package-lock.json_,
-_Cargo.lock_) liegen im Repository, damit ein Build reproduzierbar ist.
-
-**Die Engine hat genau zwei produktive Abhängigkeiten.** `wasm-bindgen` erzeugt die
-Bindings, mit denen Rust-Typen über die Sprachgrenze sichtbar werden; `js-sys` liefert
-die JavaScript-Standardtypen, die die Bridge dafür braucht — konkret
-`js_sys::Float32Array` und `js_sys::Uint32Array`, die Rückgabetypen der sieben
-Frame-Puffer (siehe Kapitel 5). Beide sind damit keine Bequemlichkeit, sondern die
-Schnittstelle selbst. Als Entwicklungsabhängigkeit kommt `wasm-bindgen-test` hinzu, das
-Gegenstück für die Grenztests unter `engine/tests/` (siehe 8.1 Unit Tests und Coverage).
-Ein `rand`-Crate fehlt bewusst und dauerhaft: Die Engine leitet jede „zufällige"
-Entscheidung aus einem Integer-Hash über ihren Schrittzähler ab, weil Reproduzierbarkeit
-sowohl die Tests als auch die E2E-Stufe trägt (siehe Kapitel 4).
-
-**Das Frontend hat keine einzige produktive Abhängigkeit.** Die Sektion `dependencies`
-ist in _frontend/package.json_ nicht leer, sondern gar nicht vorhanden; alle elf Einträge
-stehen unter `devDependencies` und sind Werkzeuge: Vite, ESLint samt Plugins, Prettier,
-Vitest samt Coverage-Provider, Playwright, `globals`. Zur Laufzeit lädt das Spiel also
-außer dem eigenen WASM-Modul nichts nach. Das ist eine Entscheidung und kein Versehen —
-alles Sichtbare ist handgeschrieben gegen die Canvas-2D-API, und der Nutzen ist zweifach:
-Das ausgelieferte Bundle bleibt klein genug, um in der Rahmenbedingung
-„installationslos und serverlos" (siehe Kapitel 1) auch beim ersten Laden aufzugehen, und
-die Frage „welche Bibliothek zeichnet das" hat im ganzen Projekt keine Antwort, weil sie
-sich nicht stellt. Der Preis steht in Kapitel 3: Was ein Framework mitbringen würde —
-Layout, Zustandsbindung, Komponentenlebenszyklus — ist hier eigener Code.
-
-**Die Verbindungsstelle der beiden Paketwelten ist `wasm-pack`,** und die gehört keinem
-von beiden. Das Werkzeug wird über `cargo install wasm-pack` bereitgestellt und ist damit
-weder in _package.json_ noch in _Cargo.toml_ versioniert. Praktische Konsequenz: Es ist
-die einzige Toolchain-Anforderung, die ein Lockfile nicht abdeckt, und deshalb steht sie
-ausdrücklich in der Befehlsliste (_CLAUDE.md_, README) statt nur implizit im Build zu
-stecken. Berührt wird sie von npm-Seite an genau einer Stelle, dem Script `build:wasm`
-(siehe 7.8 Dev Build).
-
-Die exakten Versionsnummern beider Seiten stehen im Anhang (siehe 11.1 Tabellen, „Tech
-Stack Canvas — Langfassung"), nicht hier: Sie veralten schneller als die Begründungen und
-gehören deshalb an eine Stelle statt an zwei.
+Zwei Paketmanager (npm, Cargo), beide Lockfiles eingecheckt. **Die Engine hat genau zwei
+produktive Abhängigkeiten** — `wasm-bindgen` und `js-sys`, also die Schnittstelle
+selbst — plus `wasm-bindgen-test`. **Das Frontend hat keine einzige produktive
+Abhängigkeit**: Alle Einträge sind `devDependencies`, zur Laufzeit lädt das Spiel außer
+dem eigenen WASM-Modul nichts nach. `wasm-pack` ist die einzige Toolchain-Anforderung,
+die kein Lockfile abdeckt.
 
 ## 7.3 Linter
 
-Für das Frontend ESLint 9 in der **Flat Config** (_frontend/eslint.config.js_),
-für die Engine `cargo clippy`.
-
-Die Flat Config ist bei ESLint 9 der Standard; die alte `.eslintrc`-Form läuft dort
-nur noch über eine Kompatibilitätsschicht. Da die Konfiguration neu angelegt wurde,
-gab es keinen Grund, diese Schicht einzuziehen — zumal _frontend/package.json_
-bereits `"type": "module"` setzt und _eslint.config.js_ damit ohne weitere
-Parser-Konfiguration als ES-Modul geladen wird.
-
-Eingesetzte Regelsätze:
-
-- **`@eslint/js` recommended** als Basis — die unstrittigen Fehlerklassen
-  (unerreichbarer Code, doppelte Schlüssel, falsch verwendete Vergleiche).
-- **`eslint-plugin-jsdoc`** (`flat/recommended`) für die JSDoc-Pflicht, siehe 7.5.
-- **`eslint-config-prettier`** als letzter Eintrag, siehe 7.4.
-
-Die projektspezifischen Hard Rules sind soweit möglich als Regel abgebildet statt als
-Prosa-Konvention:
-
-| Projektregel                | Umsetzung                                              |
-| --------------------------- | ------------------------------------------------------ |
-| Keine ungenutzten Variablen | `no-unused-vars`, mit `^_` als Ausnahme-Präfix         |
-| `const`/`let` statt `var`   | `no-var` und `prefer-const`                            |
-| JSDoc auf öffentlicher API  | `jsdoc/require-jsdoc` und die Inhaltsregeln, siehe 7.5 |
-
-Ebenso wichtig ist, was **bewusst nicht** aktiviert wurde. Strengere Sammel-Plugins
-(`eslint-plugin-unicorn`, `eslint-plugin-sonarjs`) wurden geprüft und verworfen:
-ihre Regelsätze optimieren auf idiomatisch-dichtes JavaScript und würden damit
-direkt gegen die oberste Projektregel arbeiten — „`for`-Schleifen statt
-Iterator-Ketten", „ausgeschriebene Namen statt Abkürzungen". Ein Linter, der die
-Lesbarkeitsentscheidung des Projekts anmeckert, wird abgeschaltet statt befolgt.
-Aus demselben Grund ist `no-underscore-dangle` aus: die `_feld`/`_methode`-Konvention
-ist im Projekt die Kennzeichnung für „privat" und wird von der JSDoc-Regel sogar
-ausgewertet.
-
-Ausgenommen von der Prüfung ist `frontend/src/wasm/**` — generierter
-`wasm-bindgen`-Glue-Code, gitignoriert und bei jedem Build neu erzeugt.
-
-Auf der Rust-Seite übernimmt `cargo clippy` dieselbe Rolle und brauchte keine
-zusätzliche Konfiguration. Ehrlicher Ist-Stand: Clippy meldet aktuell **eine**
-Warnung — `Vec2::dot` in _engine/src/math/vector.rs_ ist implementiert und
-getestet, aber von keinem Aufrufer benutzt (`dead_code`). Die Methode gehört zur
-Vollständigkeit des Vektortyps; die Warnung bleibt sichtbar, statt sie mit
-`#[allow(dead_code)]` zuzudecken.
+ESLint 9 in der Flat Config für das Frontend, `cargo clippy` für die Engine. Regelsätze:
+`@eslint/js` recommended, `eslint-plugin-jsdoc` (siehe 7.5), `eslint-config-prettier` als
+letzter Eintrag (siehe 7.4). Ebenso wichtig ist das bewusst nicht Aktivierte:
+`eslint-plugin-unicorn` und `eslint-plugin-sonarjs` wurden verworfen, weil sie auf
+idiomatisch-dichtes JavaScript optimieren und damit gegen die oberste Projektregel
+arbeiten. Ehrlicher Ist-Stand: Clippy meldet **eine** Warnung — `Vec2::dot` ist
+implementiert und getestet, aber unbenutzt; sie bleibt sichtbar, statt sie mit `#[allow]`
+zuzudecken.
 
 ## 7.4 Formatter
 
-Prettier für JavaScript, JSON, CSS und Markdown; `cargo fmt` für Rust.
-
-Die Aufteilung gegenüber ESLint ist strikt: **Formatierung gehört dem Formatter,
-Semantik dem Linter.** Erzwungen wird das durch `eslint-config-prettier` als
-letzten Eintrag der Flat Config — es schaltet jede ESLint-Stilregel ab, die mit
-Prettier kollidieren könnte. Ohne diesen Schritt melden beide Werkzeuge dieselbe
-Stelle mit widersprüchlichen Forderungen, und `lint:fix` und `format` machen
-abwechselnd die Änderung des anderen zunichte.
-
-Die Konfiguration (_.prettierrc.json_) bleibt bewusst klein, weil Prettiers
-Vorgaben dem vorhandenen Stil schon nahekamen:
-
-| Option          | Wert       | Grund                                                   |
-| --------------- | ---------- | ------------------------------------------------------- |
-| `singleQuote`   | `true`     | Entspricht dem durchgehenden Stil in `frontend/src`     |
-| `trailingComma` | `all`      | Kleinere Diffs beim Anhängen von Argumenten             |
-| `printWidth`    | `100`      | Entspricht der bereits gelebten Zeilenbreite            |
-| `proseWrap`     | `preserve` | **Wichtig:** schützt die deutsche Prosa dieses Berichts |
-
-`proseWrap: preserve` ist der einzige Wert, der nicht Geschmackssache ist. Prettier
-würde Absätze sonst auf `printWidth` umbrechen und damit jede handgesetzte
-Zeilenstruktur in `documentation/report/**` bei jedem Formatierungslauf neu
-verteilen — Diffs, in denen ein geänderter Halbsatz zwanzig Zeilen anfasst.
-
-**Ort der Konfiguration.** _.prettierrc.json_ und _.prettierignore_ liegen im
-Repository-Wurzelverzeichnis, nicht in `frontend/`, weil Prettiers Zuständigkeit
-das ganze Repository ist: die Markdown-Kapitel dieses Berichts, _README.md_ und
-_CHANGELOG.md_ liegen außerhalb von `frontend/`. Prettier löst seine Konfiguration
-von der _zu formatierenden Datei_ aus nach oben auf, eine Datei an der Wurzel deckt
-damit beide Seiten ohne Duplikat ab. Die _Abhängigkeit_ steht dennoch in
-_frontend/package.json_ — das ist der einzige Node-Paketwurzelpunkt im Repository,
-und ein zweites _package.json_ samt zweitem Lockfile nur für eine devDependency
-anzulegen wäre teurer als die kleine Asymmetrie. Zur Konsequenz beim Aufruf
-(`--ignore-path`) siehe 7.1 Scripts in package.json.
-
-Ignoriert werden Build-Artefakte (`engine/target/`, `dist/`, `src/wasm/`), die PDFs
-unter `documentation/` und _package-lock.json_ — letzteres, weil npm die Datei bei
-jeder Installation selbst neu schreibt und eine Formatierung nur Churn erzeugt.
-
-Auf der Rust-Seite ist `cargo fmt` das Gegenstück, ebenfalls ohne eigene
-_rustfmt.toml_: die Standardkonfiguration ist im Rust-Ökosystem die Konvention, und
-eine Abweichung müsste begründet werden statt umgekehrt. Der Code war beim
-Einrichten bereits konform (`cargo fmt --check` läuft ohne Diff durch).
+Prettier für JavaScript, JSON, CSS und Markdown; `cargo fmt` für Rust (ohne eigene
+_rustfmt.toml_). **Formatierung gehört dem Formatter, Semantik dem Linter** — erzwungen
+durch `eslint-config-prettier`, sonst machten `lint:fix` und `format` abwechselnd die
+Änderung des anderen zunichte. Der eine Konfigurationswert, der nicht Geschmackssache
+ist, ist `proseWrap: preserve` — er schützt die deutsche Prosa dieses Berichts vor dem
+Umbruch auf `printWidth`. Konfiguration und Ignore-Datei liegen an der Repository-Wurzel,
+weil Prettiers Zuständigkeit das ganze Repository ist.
 
 ## 7.5 JSDoc — über ESLint enforced
 
-JSDoc ist keine Bitte, sondern eine Lint-Regel. `eslint-plugin-jsdoc` prüft dabei
-zwei Dinge getrennt:
-
-1. **Vorhandensein** (`jsdoc/require-jsdoc`) — gibt es überhaupt einen Block?
-2. **Inhalt** (`require-param`, `require-param-type`, `require-param-description`,
-   `require-returns`, `require-returns-type`, `require-returns-description`) — hat
-   jeder Parameter einen Typ _und_ eine Beschreibung, und ist der Rückgabewert
-   dokumentiert?
-
-Verpflichtend ist beides für dieselbe Menge: **exportierte Funktionen und Klassen
-sowie die öffentlichen Methoden einer exportierten Klasse.** Bewusst ausgenommen:
-
-- **Einfache exportierte Konstanten.** _gameConfig.js_ exportiert rund 30 Zahlen;
-  eine `@returns`-Pflicht ergibt dort keinen Sinn. Wo ein Wert
-  erklärungsbedürftig ist, steht ohnehin ein Kommentar — das ist eine
-  Lesbarkeits-, keine API-Frage.
-- **Unterstrich-Präfixe.** `_startDash`, `_drawCurves`, `_toPixels` sind interne
-  Hilfsmethoden. Sie zu dokumentieren wie öffentliche API würde die Grenze
-  verwischen, die der Unterstrich gerade zieht.
-- **Testdateien.** In `*.test.js` ist der Testname die Dokumentation.
-- **Modulprivate Funktionen.** `brighten()` in _canvasRenderer.js_ hat einen
-  einzeiligen Prosa-Kommentar und braucht keine Tag-Liste.
-
-Technisch bemerkenswert ist, _wie_ diese Menge definiert ist. Die naheliegende
-Option `publicOnly: true` unterscheidet nur exportiert/nicht exportiert und kennt
-die Unterstrich-Konvention des Projekts nicht. Stattdessen steht in der Config eine
-Liste von esquery-Selektoren — `JSDOC_REQUIRED_CONTEXTS` —, die „exportierte
-Klasse, Methode, kein Konstruktor, Name beginnt nicht mit `_`" ausdrückt. Diese
-_eine_ Liste wird von der Vorhandensein- **und** von allen Inhaltsregeln benutzt.
-Das ist der Punkt: Ohne die gemeinsame Liste greifen die Inhaltsregeln auf jede
-Funktion zu, die zufällig schon einen Kommentar trägt — auch auf private —, und
-`--fix` schreibt dort leere `@param`-Zeilen hinein. Genau das passierte beim ersten
-Lauf und musste zurückgenommen werden.
-
-Der Nutzen zeigte sich sofort, nicht erst in der Theorie. Zwei Module waren gar
-nicht dokumentiert: _player/playerController.js_ — die Spielerintegration inklusive
-Dash — und _engine-bridge.js_, die einzige Stelle des Frontends, die das
-WASM-Modul anfasst. Dass ausgerechnet die WASM-Grenze undokumentiert war, ist der
-beste Beleg dafür, dass eine Konvention ohne Werkzeug nicht hält. Insgesamt
-brauchten acht Dateien Nachrüstung; der Endstand ist **fehler- und warnungsfrei**.
-
-Die Regel zahlt doppelt: Dieselben Blöcke sind die Typinformation, aus der die
-TypeScript-Prüfung in 7.6 (`checkJs`) ihre Aussagen ziehen würde. Deshalb ist
-`require-param-type` mit aktiviert — ein `@param` ohne Typ wäre für `checkJs`
-wertlos. Die inhaltliche Verbindung zur allgemeinen Kommentar-Konvention des
-Projekts beschreibt 8.4 Kommentare — Visuelle Strukturierung des Quellcodes.
+JSDoc ist eine Lint-Regel: `eslint-plugin-jsdoc` prüft **Vorhandensein** und **Inhalt**
+für dieselbe Menge — exportierte Funktionen und Klassen sowie deren öffentliche Methoden;
+ausgenommen sind Konstanten, Unterstrich-Präfixe, Tests und modulprivate Funktionen.
+Vorhandensein- und Inhaltsregeln teilen eine gemeinsame Selektorenliste — ohne sie
+schreibt `--fix` leere `@param`-Zeilen in private Helfer, was beim ersten Lauf genau so
+passierte. Der Nutzen zeigte sich sofort: Zwei Module waren gar nicht dokumentiert,
+darunter ausgerechnet _engine-bridge.js_ — der beste Beleg, dass eine Konvention ohne
+Werkzeug nicht hält.
 
 ## 7.6 TypeScript
 
-**TypeScript ist im Projekt nicht eingerichtet.** Es gibt keine _tsconfig.json_, kein
-`typecheck`-Script und keine `.ts`-Datei; das Frontend ist durchgehend JavaScript mit
-ES-Modulen. Die Maßnahme T-02 ist geplant und mit 3 h veranschlagt, aber nicht gelandet.
-Da Vollständigkeit hier vor Ausführlichkeit geht, wird die Absenz benannt statt
-übergangen — samt der Form, in der sie geschlossen werden soll, und dem Preis, den sie
-in der Zwischenzeit hat.
-
-**Geplant ist ausdrücklich keine Migration auf `.ts`,** sondern eine _tsconfig.json_ mit
-`allowJs` und `checkJs`: Der Compiler prüft die vorhandenen `.js`-Dateien und zieht seine
-Typinformation aus den JSDoc-Blöcken, die 7.5 ohnehin erzwingt. Kein Dateiumbenennen,
-kein zusätzlicher Build-Schritt, kein Transpilat — `tsc` liefe mit `noEmit` allein als
-Prüfer. Der Grund für diesen Schnitt ist die oberste Projektregel: Eine Codebasis, die
-Studierende beim ersten Kontakt mit Rust und WebAssembly lesen sollen, gewinnt nichts
-davon, in einer zweiten neuen Sprache zu stehen. Die Typannotation liegt bereits im
-Kommentar, wo sie erklärt statt nur zu deklarieren.
-
-Der wertvollste Fund wäre an der Sprachgrenze zu erwarten. `wasm-pack` erzeugt zum
-Glue-Modul eine `.d.ts`-Datei mit den Signaturen aller `#[wasm_bindgen]`-Exporte;
-_engine-bridge.js_ — die einzige Stelle des Frontends, die das WASM-Modul anfasst
-(siehe Kapitel 5) — würde damit gegen die tatsächliche Engine-Schnittstelle geprüft,
-nicht gegen die Annahme darüber. Eine in Rust umbenannte oder in ihrer Stelligkeit
-geänderte Methode fiele dann beim Prüflauf auf und nicht erst als
-`undefined is not a function` im Browser — bei einer Bridge, die `snake_case`-Getter in
-`camelCase`-Felder umschreibt, ist ein Name auf jeder Seite einmal von Hand geschrieben.
-
-Der Preis der Absenz ist damit auch benannt: Tippfehler in Feldnamen und falsche
-Stelligkeiten fallen derzeit erst zur Laufzeit auf. Aufgefangen wird das teilweise von
-zwei anderen Stufen — ESLint fängt undefinierte Bezeichner innerhalb eines Moduls, die
-E2E-Suite fängt eine gebrochene Bridge, weil ohne sie kein Bild entsteht (siehe 8.2 E2E
-Tests) — aber „teilweise" ist der ehrliche Umfang, nicht „ersetzt". Die Priorisierung
-dahinter ist die aus der Kapitelvorrede: Die Qualitätsmaßnahmen bedienen zwei
-Bewertungskriterien gleichzeitig, die Typprüfung nur eines.
+**TypeScript ist nicht eingerichtet**; T-02 (3 h) ist geplant, aber nicht gelandet.
+Geplant ist keine Migration, sondern `checkJs` mit `noEmit`: Der Compiler prüft die
+vorhandenen `.js`-Dateien gegen die ohnehin erzwungenen JSDoc-Typen — eine Codebasis für
+Rust-Einsteiger gewinnt nichts von einer zweiten neuen Sprache. Der wertvollste Fund läge
+an der Sprachgrenze: _engine-bridge.js_ würde gegen die generierte `.d.ts` geprüft, eine
+umbenannte Engine-Methode fiele beim Prüflauf auf statt zur Laufzeit — das ist zugleich
+der Preis der Absenz.
 
 ## 7.7 Branch-Struktur
 
-Zwei Branches, mit einer Rollenteilung, die die Namen bereits ankündigen: `main` soll
-nur lauffähige, stabile Stände tragen, `dev` ist der Integrationszweig, auf dem
-entwickelt wird. Der Remote-`HEAD` zeigt auf `dev`, weil dort die Arbeit liegt.
-
-**Feature-Branches gibt es nicht,** und das ist eine Entscheidung und kein Versäumnis:
-Die Historie enthält keinen einzigen Merge-Commit, jede Änderung ist ein eigener,
-atomarer Commit direkt auf `dev`. Bei einem Entwickler im Zusammenspiel mit einem
-KI-Assistenten hätte ein Branch je Feature keinen Konflikt zu lösen und keine Review zu
-beherbergen; er würde eine Ritualform einführen, deren Nutzen — Parallelarbeit
-isolieren — hier nicht anfällt. Was die Isolation stattdessen leistet, leistet die
-Commit-Disziplin: ein Commit, eine Änderung, eine Zeile im Changelog, eine Zeile im
-Journal.
-
-**Der ehrliche Ist-Stand ist gleichzeitig ein negativer Befund:** `main` steht bei einem
-einzigen Commit und ist gegenüber `dev` um über einhundert Commits zurück. Der Branch
-erfüllt seine zugewiesene Rolle damit derzeit nicht — er trägt keinen stabilen Stand,
-sondern einen alten. Ursache ist, dass ein Merge nach `main` bislang keinen Anlass hatte:
-Ein Deployment, das aus `main` bauen würde, existiert nicht (siehe 7.10 Deployment), und
-`git push` erfolgt in diesem Projekt nur auf ausdrückliche Aufforderung. Vorgesehen ist
-der Merge zum Code-Freeze, wo `main` genau die Bedeutung bekommt, die die Abgabe
-braucht: der Stand, gegen den bewertet wird.
-
-Die Commit-Konvention ist Conventional Commits —
-`<type>(<scope>): <description>` mit den Typen `feat`, `fix`, `refactor`, `test`,
-`chore`, `docs` und `perf`. Sie ist keine Kosmetik, sondern die Voraussetzung dafür, dass
-_CHANGELOG.md_ und die Kapitel 9 und 10 aus der Historie heraus belegbar sind statt aus
-der Erinnerung.
+Zwei Branches: `main` für stabile Stände, `dev` als Integrationszweig.
+**Feature-Branches gibt es nicht**, als Entscheidung: Bei einem Entwickler mit
+KI-Assistent hätte ein Branch je Feature keinen Konflikt zu lösen und keine Review zu
+beherbergen. Der ehrliche Ist-Stand ist ein negativer Befund: `main` ist über einhundert
+Commits zurück und erfüllt seine Rolle derzeit nicht; der Merge ist zum Code-Freeze
+vorgesehen. Die Commit-Konvention ist Conventional Commits — die Voraussetzung dafür,
+dass die Kapitel 9 und 10 aus der Historie belegbar sind.
 
 ## 7.8 Dev Build
 
-`npm run dev` ist eine Kette aus zwei Schritten, und die Reihenfolge ist erzwungen:
-
-```text
-npm run dev  →  npm run build:wasm  →  wasm-pack build ../engine --target web
-                                         --out-dir ../frontend/src/wasm/engine
-             →  vite   (Dev-Server auf Port 5173)
-```
-
-Der WASM-Build läuft **vor** Vite, weil das Frontend ohne das erzeugte Paket nicht
-startet: _engine-bridge.js_ lädt es per dynamischem `import` aus
-`src/wasm/engine/`. Ein vergessener `build:wasm` würde also nicht in einer schlechteren
-Version resultieren, sondern in einem Modulfehler beim ersten Bild — die Kopplung als
-Script auszudrücken ist deshalb billiger, als sie zu dokumentieren.
-
-**`--target web`, nicht `--target bundler`.** Mit `web` erzeugt `wasm-pack` ein
-ES-Modul mit einer `init()`-Funktion, die die `.wasm`-Datei selbst über eine URL nachlädt
-(`WebAssembly.instantiateStreaming`). Das ist genau die Form, die Vite ohne
-zusätzliches Plugin verarbeitet: Die `.wasm` wird zu einem gewöhnlichen Asset mit
-Hash im Namen. `--target bundler` erzeugt stattdessen einen nackten Import der
-`.wasm`-Datei als Modul und setzt damit einen Bundler voraus, der WebAssembly-Module als
-Modultyp versteht — Vite 5 tut das nicht von sich aus. Die Variante mit
-`--target bundler` und Ausgabe nach `engine/pkg/`, die in älteren Fassungen der README
-stand, ist damit veraltet; verbindlich ist das Script.
-
-**Das Ausgabeverzeichnis `frontend/src/wasm/` ist gitignoriert.** Es enthält
-ausschließlich generierten Code — Glue-Modul, `.d.ts`, `.wasm`-Binärdatei —, der bei
-jedem Build neu entsteht. Ihn einzuchecken hätte drei Kosten und keinen Nutzen: eine
-Binärdatei in jedem Diff, ein zweiter Wahrheitsort neben `engine/src/`, und die
-Möglichkeit eines Stands, in dem eingecheckte Bindings und Rust-Quelle
-auseinanderlaufen. Zwei Konsequenzen daraus stehen an anderer Stelle: ESLint nimmt das
-Verzeichnis aus (siehe 7.3 Linter), und die Coverage-Messung ebenso (siehe 8.1 Unit
-Tests und Coverage).
+`npm run dev` ist eine erzwungene Kette: erst `build:wasm` (`wasm-pack build
+--target web` nach `frontend/src/wasm/engine/`), dann Vite — ein vergessener Build wäre
+ein Modulfehler beim ersten Bild. **`--target web`, nicht `--target bundler`**: `web`
+erzeugt ein ES-Modul, das die `.wasm`-Datei selbst nachlädt — die Form, die Vite ohne
+Plugin verarbeitet. Das Ausgabeverzeichnis ist gitignoriert: Es enthält nur generierten
+Code, und ein eingecheckter Stand könnte gegen die Rust-Quelle auseinanderlaufen.
 
 ## 7.9 Production Build
 
-`npm run build` ist dieselbe Kette mit `vite build` am Ende; `npm run preview` liefert
-das Ergebnis lokal aus. Erzeugt wird `frontend/dist/` mit gehashten Bündeln unter
-`assets/` — je eine JavaScript- und CSS-Datei für das Spiel, das Glue-Modul und die
-`.wasm`-Binärdatei — sowie den unverändert kopierten Verzeichnissen `locales/` und
-`fonts/` aus `public/`.
-
-**Es gibt keine _vite.config.js_.** Die Standardannahmen treffen zu: _index.html_ liegt
-im Projektwurzelverzeichnis von Vite, die Module hängen von dort im Graph, Ausgabe geht
-nach `dist/`. Eine Konfigurationsdatei ohne Inhalt anzulegen, nur damit eine existiert,
-wäre eine Attrappe.
-
-Für ein Deployment unter einem Unterpfad wird sie allerdings gebraucht, und der Grund
-ist im gebauten Artefakt nachweisbar: Die erzeugte _index.html_ verweist auf
-`/assets/index-….js` — **absolut**, ab Domainwurzel. Unter der GitHub-Pages-Adresse
-`…github.io/<repo>/` zeigt dieser Pfad neben das Bundle und liefert eine 404. Der Locale-
-Abruf in _ui/i18n.js_ benutzt dagegen `./locales/en.json` und würde weiter funktionieren
-— beide Hälften derselben Seite verhalten sich also unterschiedlich, was einen solchen
-Fehler unangenehm zu diagnostizieren macht. `base: '/<repo>/'` in einer
-_vite.config.js_ ist deshalb der erste Schritt von T-06 und nicht ein Detail daran.
-
-`npm run preview` ist zusätzlich kein bloßes Kontrollinstrument, sondern eine
-Teststufe: Die Playwright-Suite baut und serviert sich diesen Stand selbst und läuft
-gegen ihn statt gegen den Dev-Server. Die Begründung und der Fehler, der sie erzwungen
-hat, stehen in 8.2 E2E Tests.
+`npm run build` ist dieselbe Kette mit `vite build`. **Es gibt keine _vite.config.js_** —
+die Standardannahmen treffen zu, eine leere Datei wäre eine Attrappe. Für ein Deployment
+unter einem Unterpfad wird sie gebraucht: Die erzeugte _index.html_ verweist **absolut**
+auf `/assets/…`, was unter `…github.io/<repo>/` eine 404 liefert; `base: '/<repo>/'` ist
+deshalb der erste Schritt von T-06. `npm run preview` ist zudem eine Teststufe: Die
+Playwright-Suite läuft gegen diesen Stand (siehe 8.2 E2E Tests).
 
 ## 7.10 Deployment
 
-**Ein Deployment existiert nicht.** Das Spiel ist installationslos — es läuft aus dem
-`dist/`-Verzeichnis über jeden statischen Webserver, und `vite preview` genügt zur
-Vorführung —, aber es ist nirgends öffentlich veröffentlicht. T-06 ist mit 3 h geplant
-und offen. Wie in 7.6 TypeScript ist die Absenz hier benannt statt ausgelassen, und aus
-demselben Grund: Die Reihenfolge der Tooling-Maßnahmen wurde nach Beitrag zu den
-Bewertungskriterien gewählt, und ein Deployment bedient eines davon.
-
-**Vorgesehen ist GitHub Pages,** deployt aus der Pipeline aus 8.3 CI/CD: GitHub Actions
-Pipeline. Die Begründung ist der Rahmenbedingung aus Kapitel 1 direkt entnommen:
-Gefordert ist eine Anwendung ohne Installation und ohne Server. Das gebaute Artefakt ist
-ein statisches Bündel plus eine `.wasm`-Datei, es braucht keine Laufzeit, keine Datenbank
-und keine Sitzungsverwaltung — Persistenz gibt es keine über den Browser hinaus (siehe
-3.6 Persistenz). Pages liefert statische Dateien aus dem Repository, das den Code ohnehin
-hält, kostet nichts und braucht keine zusätzliche Zugangsverwaltung.
-
-**Alternativen wurden nicht evaluiert,** und das ist eine Entscheidung mit Grund und
-nicht eine Lücke in der Recherche: Bei einem statischen Bündel unterscheiden sich
-Netlify, Vercel, Cloudflare Pages und GitHub Pages in nichts, was für dieses Projekt
-messbar wäre. Der einzige Unterschied, der zählen würde, ist die Nähe zum Repository, und
-die spricht für Pages.
-
-Zwei Fallstricke sind bekannt, bevor die Maßnahme beginnt:
-
-- **Der `base`-Pfad.** Pages liefert unter `…github.io/<repo>/` aus, die gebauten
-  Asset-Verweise sind absolut. Ohne `base` in einer _vite.config.js_ lädt die Seite leer.
-  Beleg und Wirkung stehen in 7.9 Production Build.
-- **Der MIME-Type der `.wasm`-Datei.** `WebAssembly.instantiateStreaming` verlangt
-  `application/wasm`. GitHub Pages setzt ihn korrekt; ein beliebiger anderer Server
-  möglicherweise nicht. Bemerkenswert ist, wie dieser Fehler auftreten würde: Das
-  generierte Glue-Modul fängt ihn ab, weicht auf das langsamere
-  `WebAssembly.instantiate` über einen `arrayBuffer` aus und schreibt eine
-  **Warnung** in die Konsole. Das Spiel läuft also — nur langsamer beim Start. Und weil
-  _boot.spec.js_ ausschließlich Konsolen-_Fehler_ sammelt, würde auch die E2E-Suite grün
-  bleiben. Eine Fehlkonfiguration dieser Art fällt damit nur auf, wenn man in die
-  Konsole sieht, und das ist der Grund, sie hier festzuhalten.
+**Ein Deployment existiert nicht.** Das Spiel läuft aus `dist/` über jeden statischen
+Webserver, ist aber nirgends veröffentlicht; T-06 (3 h) ist offen. **Vorgesehen ist
+GitHub Pages**: Das Artefakt ist ein statisches Bündel ohne Laufzeit oder Datenbank, und
+Pages liegt am Repository; Alternativen wurden nicht evaluiert, weil sich die Anbieter
+bei einem statischen Bündel in nichts unterscheiden, was hier messbar wäre. Zwei
+Fallstricke sind vorab bekannt: der `base`-Pfad (siehe 7.9) und der MIME-Type der
+`.wasm`-Datei — bei falschem Typ fällt das Glue-Modul still auf das langsamere
+`WebAssembly.instantiate` zurück und schreibt nur eine Konsolen-**Warnung**, die auch die
+E2E-Suite nicht sähe.
 
 # 8 Qualität
 
-Die Teststrategie folgt einer einzigen Leitfrage: Welche Stufe kann eine Eigenschaft
-überhaupt prüfen? Unit-Tests auf beiden Seiten der Sprachgrenze für Mathematik und
-Logik; eine eigene Stufe im Browser für den Puffer-Vertrag, weil dessen Typen
-außerhalb einer JavaScript-Laufzeit nicht existieren; E2E gegen den gebauten Stand für
-alles, was erst im ausgelieferten Artefakt entsteht; statische Analyse für Stil und
-Schnittstellendokumentation — für Typen ist sie offen, siehe 7.6 TypeScript; und CI
-als die Instanz, die all das erzwingen soll statt es zu empfehlen, und die als einziger
-namentlich geforderter Punkt dieses Kapitels noch fehlt (siehe 8.3). Die
-Aufteilung ist damit nicht nach Aufwand gewählt, sondern nach Erreichbarkeit — und wo
-eine Stufe strukturell nichts sehen kann, steht das hier ausdrücklich, statt von einer
-grünen Ausgabe verdeckt zu werden.
+Die Teststrategie folgt einer Leitfrage: Welche Stufe kann eine Eigenschaft überhaupt
+prüfen? Unit-Tests beidseits der Sprachgrenze, eine eigene Browser-Stufe für den
+Puffer-Vertrag, E2E gegen den gebauten Stand, statische Analyse — und CI als die
+erzwingende Instanz, die noch fehlt (siehe 8.3).
 
 ## 8.1 Unit Tests und Coverage
-
-Die Teststufen sind nicht nach Geschmack aufgeteilt, sondern nach der Frage, welche
-Stufe eine Eigenschaft überhaupt prüfen _kann_. Daraus ergeben sich drei Ebenen mit
-je eigenem Werkzeug und eigener Ausführungsumgebung:
 
 | Ebene              | Werkzeug                             | Läuft in           | Deckt ab                                   |
 | ------------------ | ------------------------------------ | ------------------ | ------------------------------------------ |
@@ -2189,212 +889,54 @@ je eigenem Werkzeug und eigener Ausführungsumgebung:
 | Frontend-Unit      | Vitest                               | Node               | Importfreie Logikmodule                    |
 | _(E2E, siehe 8.2)_ | Playwright                           | Browser            | Alles, was nur im gebauten Spiel existiert |
 
-**Rust.** Unit-Tests liegen als `#[cfg(test)]`-Modul direkt neben dem Code, den sie
-abdecken, und sind für alle Mathematik- und Simulationsfunktionen verpflichtend.
-Die Simulation ist damit praktisch vollständig abgedeckt;
-die Werte stehen in Kapitel 9 Quellcode-Übersicht.
+**Rust**: Unit-Tests liegen als `#[cfg(test)]`-Modul neben ihrem Code und sind für alle
+Mathematik- und Simulationsfunktionen verpflichtend. **Die Sprachgrenze braucht eine
+eigene Stufe**: Die Getter von `FrameResponse` liefern `js_sys`-Typen, die nur in einer
+JavaScript-Laufzeit existieren — `cargo test` kann den Puffer-Vertrag in keinem Umfang
+prüfen; der zuvor leere Stub _engine/tests/wasm_tests.rs_ wurde gefüllt. **Zwei
+Beobachtungen**: Auf dem Host expandiert `#[wasm_bindgen_test]` zu nichts — `cargo test`
+meldet null Tests und bleibt grün, weshalb der leere Stub monatelang kein Signal
+erzeugte; und `cargo llvm-cov` instrumentiert dasselbe Host-Target, die Grenztests heben
+die Rust-Coverage also nicht.
 
-**Die Sprachgrenze braucht eine eigene Stufe.** _engine/tests/wasm_tests.rs_ war bis
-zu dieser Maßnahme ein leerer Stub. Von den beiden Möglichkeiten, die dieses Kapitel
-sich selbst gestellt hatte — füllen oder die Absenz begründen — wurde gefüllt, weil
-das Argument dafür ungewöhnlich stark ist: Die Getter von `FrameResponse` liefern
-`js_sys::Float32Array` und `js_sys::Uint32Array`. Diese Typen existieren nur in einer
-JavaScript-Laufzeit. `cargo test` kann den Puffer-Vertrag also nicht prüfen, in
-keinem Umfang und mit keinem Aufwand. Eine begründete Absenz hätte damit genau die
-Stelle ungeprüft gelassen, für die es keine Ersatzstufe gibt — und das ist gleichzeitig
-die zweite tragende Invariante des Systems (siehe Kapitel 5) und das gewählte Fokus-Thema.
-Geprüft werden dort die Index-Ausrichtung aller vier Puffer, dass `snapshot()` die Welt
-nicht bewegt, die Idempotenz von `set_wave()`, der Sicherheitsabstand neu gespawnter
-Boids, der Wrap nach `resize()` und der Vorzeichen-Vertrag der Dash-Phase. Der
-Hindernis-Puffer und der daran hängende Kollisionsvertrag des Spielers liegen in
-_engine/tests/wasm_obstacle_tests.rs_; geteilt wurde entlang der Naht, die ohnehin
-bestand — dieser Puffer ist der einzige, der _nicht_ index-ausgerichtet zu den
-Boid-Puffern ist — als die gemeinsame Datei die 400-Zeilen-Grenze überschritt.
-
-**Zwei Beobachtungen aus dieser Stufe, die man kennen muss, um die Zahlen in Kapitel 9
-nicht als Widerspruch zu lesen.** Erstens: Auf dem Host-Target expandiert
-`#[wasm_bindgen_test]` zu nichts. `cargo test` meldet für die Datei **null Tests** und
-bleibt grün. Genau deshalb ist der leere Stub monatelang niemandem aufgefallen — es gab
-kein Signal, das hätte fehlschlagen können. Ein grünes `cargo test` sagt über die
-Sprachgrenze nichts aus. Zweitens, dieselbe Ursache: `cargo llvm-cov` instrumentiert
-ebenfalls das Host-Target. Die neuen Tests heben die Rust-Coverage daher **nicht**;
-_wasm_bridge/response.rs_ steht weiter bei 0 %, obwohl es jetzt vollständig geprüft
-ist. Beide Zahlen sind korrekt, die Coverage-Zahl untertreibt an dieser Stelle
-lediglich, und Coverage misst hier sichtbar nicht Qualität, sondern nur, was ein
-bestimmtes Werkzeug auf einem bestimmten Target sehen kann.
-
-**Frontend.** Vitest im `node`-Environment (_frontend/vitest.config.js_). Die Suite
-braucht weder Browser noch gebautes WASM-Paket — und genau daraus folgt ihre Grenze:
-Nur importfreie Logikmodule sind so testbar. Ein Test, der _engine-bridge.js_, den
-Canvas-Renderer oder ein DOM-Modul hereinzieht, läuft nicht. Testdateien liegen als
-`<modul>.test.js` in einem Ordner `__tests__/` innerhalb des Ordners, dessen Module sie
-prüfen. Damit bleibt der Test wie in Rust bei seinem Code, aber ein Blick in `loop/`
-oder `renderer/` zeigt die Module und nicht doppelt so viele Testdateien daneben.
-
-**Coverage wird je Sprache getrennt erhoben und getrennt berichtet**
-(`@vitest/coverage-v8`, `cargo llvm-cov --lib`). Eine gemeinsame Kennzahl wäre die
-schlechtere Aussage: Sie würde die beiden Hälften verrechnen und damit genau die
-Information zerstören, um die es geht — welche Sprachseite geprüft ist und welche
-nicht.
-
-Die Frontend-Konfiguration enthält zwei Entscheidungen gegen eine schönere Zahl.
-`all: true` lässt Module ohne Test mitzählen, statt sie unsichtbar zu machen; und
-_index.js_ sowie _ui/frameTimeGraph.js_ — die beiden größten Dateien und die, die den
-Wert am stärksten drücken — sind **nicht** ausgeschlossen. Ausgeschlossen sind nur
-generiertes WASM-Glue, die Testdateien selbst und _gameConfig.js_, weil dort nichts
-Ausführbares steht. Der Frontend-Gesamtwert liegt damit im unteren Fünftel.
-
-Die Priorisierung dahinter ist ausdrücklich gewollt und lässt sich an der _Form_ der
-Verteilung ablesen, nicht am Mittelwert: Sie ist **zweigipfelig**. Jedes Modul liegt
-entweder bei 100 % oder bei 0 %, kein einziges dazwischen. Die Trennlinie ist keine
-Bequemlichkeit, sondern exakt die Architekturgrenze aus Kapitel 3 — Module ohne DOM-,
-Canvas- oder WASM-Bezug sind vollständig abgedeckt, Module mit einem solchen Bezug
-gar nicht, weil die Node-Suite sie nicht laden kann. Der Gesamtwert ist niedrig, weil
-die zweite Gruppe die größeren Dateien enthält, nicht weil dort nachlässig getestet
-worden wäre. Abgedeckt ist sie durch die E2E-Stufe (siehe 8.2), und der Beweis dafür,
-dass diese Aufteilung trägt, ist der Befund in 8.2: Der Fehler, den die Suite als
-erstes fand, lag genau in dieser zweiten Gruppe.
-
-Schwellwerte (`thresholds`) sind bewusst noch **nicht** gesetzt. Eine Untergrenze
-oberhalb des Ist-Stands hätte die Pipeline aus 8.3 dauerhaft rot gemacht, ohne
-eine Information zu liefern; sie wird auf dem erreichten Niveau abzüglich einer
-Reserve nachgezogen, sobald die Pipeline steht. Die Zahlen stehen in Kapitel 9
-Quellcode-Übersicht.
+**Frontend**: Vitest im `node`-Environment — daraus folgt, dass nur importfreie
+Logikmodule testbar sind. **Coverage wird je Sprache getrennt erhoben**; eine gemeinsame
+Kennzahl verrechnete genau die Information, um die es geht. Zwei Entscheidungen gegen
+eine schönere Zahl: `all: true` lässt Module ohne Test mitzählen, und die beiden größten
+Dateien sind nicht ausgeschlossen. Schwellwerte sind bewusst noch nicht gesetzt — eine
+Untergrenze oberhalb des Ist-Stands machte die künftige Pipeline dauerhaft rot, ohne
+Information zu liefern.
 
 ## 8.2 E2E Tests
 
-Playwright, weil alles, was in diesem Spiel bewertbar ist, entweder auf einem Canvas
-liegt oder erst nach dem Laden eines WebAssembly-Moduls existiert. Beides ist von
-außen nur in einem echten Browser sichtbar.
+Playwright, weil alles Bewertbare entweder auf einem Canvas liegt oder erst nach dem
+Laden eines WASM-Moduls existiert. **Die wichtigste Entscheidung ist das Ziel**: Die
+Suite läuft gegen den **Production-Build**, nicht gegen den Dev-Server, der das ganze
+Projektverzeichnis ausliefert und damit verdeckt, was der Build zu kopieren vergisst.
+Beim Einrichten fehlte genau so `locales/` in `dist/`, und jedes Label stand im gebauten
+Spiel als Rohschlüssel auf dem Bildschirm; keine andere Teststufe hätte das strukturell
+finden können. Zehn Spec-Dateien decken Boot, Rundenlebenszyklus, Tastatureigentum, Menü,
+Game Over, Hindernisse, Letterboxing, Power-ups und Pause ab (54 Fälle, siehe 9.4 Weitere
+Masszahlen).
 
-**Die wichtigste Konfigurationsentscheidung ist das Ziel, nicht das Werkzeug.** Die
-Suite läuft gegen den **Production-Build** (`npm run build` + `vite preview`), nicht
-gegen den Dev-Server. Der Dev-Server liefert das gesamte Projektverzeichnis aus und
-verdeckt damit alles, was der Build zu kopieren vergisst. Das ist nicht theoretisch:
-Beim Einrichten fiel auf, dass `frontend/dist/` kein `locales/`-Verzeichnis enthielt.
-_ui/i18n.js_ holt die Locale per `fetch` zur Laufzeit, die Datei erscheint deshalb nie
-im Modulgraph, und Vite kopiert nur, was es importiert sieht oder unter `public/`
-findet. Im gebauten Spiel schlug der `fetch` also fehl und **jedes** Label stand als
-Rohschlüssel auf dem Bildschirm — `menu.play` statt „Play". Über Monate hinweg war das
-unsichtbar, weil niemand den Build startet, um zu spielen.
-
-Bemerkenswert ist daran nicht der Fehler, sondern wer ihn finden konnte: Die
-Engine-Unit-Tests, die Grenz-Tests und die Frontend-Unit-Tests waren zu diesem
-Zeitpunkt alle grün und hätten ihn strukturell nie finden können, weil keiner von
-ihnen ein Build-Artefakt anfasst. Die Entscheidung für den Preview-Build hat sich
-damit bezahlt, bevor der erste E2E-Test geschrieben war — und sie ist damit auch die
-Antwort auf die Frage, was diese Stufe zusätzlich leistet, statt sie behaupten zu
-müssen. Als Regressionswächter prüft _boot.spec.js_ seitdem beides: dass kein Request
-fehlschlägt und dass die Menütexte echte Wörter statt Schlüsseln sind.
-
-| Flow                | Zweck                                                                                                                                              |  Dauer |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -----: |
-| _boot.spec.js_      | WASM-Modul lädt, Canvas füllt das Fenster, keine Konsolenfehler, keine fehlgeschlagenen Requests, Texte übersetzt                                  |  < 1 s |
-| _round.spec.js_     | Menü → Runde; Welt bleibt im Countdown stehen, danach laufen Uhr und Score; Wave 1 vollständig                                                     |  ~ 5 s |
-| _input.spec.js_     | Tastatureigentum: Leertaste gehört in der Runde dem Dash, außerhalb dem Menü                                                                       |  ~ 5 s |
-| _settings.spec.js_  | Menü und Option-Gruppen inkl. `aria-pressed`; Frametime-Graph an/aus                                                                               |  ~ 4 s |
-| _gameover.spec.js_  | Tod nach drei Leben, Game-Over-Overlay, Neustart in eine frische Runde                                                                             |  ~ 8 s |
-| _obstacles.spec.js_ | Hindernisse werden in der Runde gezeichnet, außerhalb nicht; Runde übersteht Erscheinen und Ablauf ohne Fehler                                     |  ~ 8 s |
-| _letterbox.spec.js_ | Weltkante ist sichtbar; ein Resize verändert die Welt nicht; ein Fenster kleiner als die Welt übersteht eine Runde                                 |  ~ 5 s |
-| _powerups.spec.js_  | Beide Buff-Zeilen im HUD vorhanden und verborgen; Runde übersteht zwei Spawn-Intervalle; Neustart lässt nichts stehen                              | ~ 48 s |
-| _pause.spec.js_     | Escape friert Score und Uhr ein und setzt fort; Leertaste auf der Karte; Auto-Pause bei Fokusverlust; Countdown-Restzeit; kein Rekord beim Abbruch | ~ 70 s |
-
-Fünf bewusste Begrenzungen, jeweils mit ihrem Grund:
-
-- **Nur Chromium.** Die Engine ist WebAssembly hinter einem Canvas; ein zweiter
-  Browser würde überwiegend dessen eigene WASM- und Canvas-Implementierung
-  nachprüfen, nicht den Code dieses Projekts. Der Nutzen wäre gering, die doppelte
-  Laufzeit real.
-- **Ein Worker, keine Parallelität.** Mehrere Browser, die gleichzeitig eine
-  O(n²)-Schleife über hunderte Entitäten mit 60 Schritten pro Sekunde rechnen, nehmen
-  sich gegenseitig die CPU weg. Zeitbezogene Zusicherungen würden dann aus Gründen
-  fehlschlagen, die nichts mit dem geprüften Code zu tun haben.
-- **Kein Pixelvergleich.** Naheliegend wäre, Spieler, Boids und Cooldown-Balken über
-  Screenshots zu prüfen. Es wäre aber wertlos: Der Schwarm bewegt sich in jedem Frame,
-  jedes Bild unterscheidet sich also von jedem anderen, und eine
-  Ungleichheits-Zusicherung wäre unabhängig von der Eingabe immer erfüllt. Ein
-  Golden Image umgekehrt wäre bei einer laufenden Simulation dauerhaft instabil. Die
-  Zeichen-Arithmetik ist stattdessen als Unit-Test isoliert (_renderer/dashPulse.js_,
-  _player/dashCooldown.js_, _ui/frameGraphScale.js_, _renderer/obstacleFade.js_) — das
-  ist der Grund, aus dem diese Module überhaupt aus ihren Renderern herausgezogen
-  wurden.
-- **Kein Einsammeln eines Power-ups.** Marker werden zufällig platziert, ein Test, der
-  zu einer unbekannten Koordinate läuft, wäre ein Wettlauf. _powerups.spec.js_ prüft
-  deshalb nur die Verdrahtung, und ein Pixelvergleich hilft hier zusätzlich nicht
-  weiter, weil Amber sowohl die Aegis-Farbe als auch `PLAYER_HIT_COLOR` ist — gezählte
-  Amber-Pixel könnten einen Marker nicht von einem gerade getroffenen Spieler
-  unterscheiden. Die Regeln selbst liegen zu 98 % unter Unit-Test, weil `PowerupField`
-  seinen Zufallsgenerator im Konstruktor entgegennimmt; die Alternative wäre gewesen,
-  die Platzierung wie in der Engine aus einem Integer-Hash abzuleiten und damit das
-  Spiel für einen Test vorhersagbar zu machen.
-- **Keine gehaltene Taste über eine Pause hinweg.** Pausieren löscht die gedrückten
-  Tasten, damit keine über den Zustandswechsel hinweg als gehalten gilt; eine physisch
-  noch gedrückte Taste registriert sich im echten Browser beim nächsten
-  Auto-Repeat-Ereignis von selbst wieder. Genau dieses Ereignis schickt Playwright nicht:
-  `keyboard.down` liefert ein einzelnes `keydown` und emuliert keine Wiederholung. Der
-  Spec kann deshalb belegen, dass die **Runde** sauber weiterläuft, nicht aber, dass die
-  **Bewegung** von selbst zurückkommt. Dieselbe Grenze betrifft zwei weitere Auslöser, die
-  der Spec daher per `dispatchEvent` nachbildet statt sie zu erzeugen: das
-  Auto-Repeat-`keydown` mit `repeat: true`, mit dem der Toggle-Guard geprüft wird, und der
-  Fensterfokusverlust, der in einem Headless-Lauf nicht echt herbeigeführt werden kann.
-  Geprüft ist damit jeweils der Listener samt Zustands-Guard, nicht die Buchführung des
-  Browsers darüber.
-
-Die eine Ausnahme von der dritten Begrenzung ist _obstacles.spec.js_, und sie ist keine
-Aufweichung der Regel, sondern deren Kehrseite. Der Spec vergleicht kein Bild, sondern
-stellt eine einzige Inhaltsfrage: existiert irgendwo auf dem Canvas eine größere Fläche
-in der Hindernisfarbe. Das ist gegen die laufende Simulation stabil, weil die Boids klein
-und rot und der Spieler cyan ist, und es ist die einzige Möglichkeit, die Kette
-Engine-Puffer → Bridge → Renderer als Ganzes zu prüfen. Die Alternative wäre eine
-Debug-Schnittstelle nur für den Test gewesen — Produktionscode, dessen einziger Zweck es
-ist, getestet zu werden.
-
-Ein weiterer Nachtrag zur Zeichen-Arithmetik: _renderer/obstacleLayer.js_ ist die erste
-Zeichenroutine mit einem eigenen Unit-Test, obwohl sie das Canvas berührt. Sie
-dekodiert einen flachen Puffer, und eine falsche Schrittweite darin würde jedes
-Hindernis an der falschen Stelle zeichnen, ohne irgendetwas zum Fehlschlagen zu bringen.
-Ein aufzeichnender Kontext-Stub genügt dafür und braucht keinen Browser.
-
-Was E2E dagegen als Einziges prüfen kann und hier auch prüft, ist das **Eigentum an
-der Tastatur** — die eine Eingabe-Eigenschaft, die eine Entwurfsentscheidung und keine
-Arithmetik ist: Die Leertaste wird nur während einer laufenden Runde für den Dash
-beansprucht, damit sie überall sonst die Menüschaltflächen und das native
-`<details>` weiter bedient (siehe 3.2.2). Beide Hälften dieser Aussage sind je ein
-Testfall.
-
-Ein fachlicher Nebeneffekt der Determinismus-Entscheidung aus Kapitel 4: Weil die Engine
-keine Zufallsquelle besitzt, ist „stehenbleiben, bis der Schwarm drei Leben genommen
-hat" ein reproduzierbarer Testfall und nicht bloß meistens einer.
-
-**Report.** `npm run test:e2e` erzeugt einen HTML-Report unter
-`frontend/playwright-report/`, ansehbar mit `npm run test:e2e:report`; bei einem
-Fehlschlag liegen Trace, Video und Screenshot daneben. Der Report ist ein generiertes
-Artefakt und daher gitignoriert — im Repository liegt die Suite, im Anhang (siehe
-Kapitel 11) die Zusammenfassung.
+Fünf bewusste Begrenzungen, je mit Grund: **Nur Chromium** — ein zweiter Browser prüfte
+überwiegend dessen eigene WASM- und Canvas-Implementierung. **Ein Worker** — parallele
+O(n²)-Simulationen nehmen sich die CPU weg und machen Zeit-Zusicherungen instabil.
+**Kein Pixelvergleich** — der Schwarm bewegt sich jedes Bild, eine
+Ungleichheits-Zusicherung wäre immer erfüllt und ein Golden Image dauerhaft instabil; die
+Zeichen-Arithmetik ist stattdessen als Unit-Test isoliert. **Kein Einsammeln eines
+Power-ups** — Marker liegen zufällig, der Test wäre ein Wettlauf. **Keine gehaltene Taste
+über eine Pause hinweg** — Playwright emuliert kein Auto-Repeat; geprüft wird der
+Listener samt Guard per `dispatchEvent`. Nebeneffekt des Determinismus: „Stehenbleiben,
+bis der Schwarm drei Leben genommen hat" ist ein reproduzierbarer Testfall.
 
 ## 8.3 CI/CD: GitHub Actions Pipeline
 
-**Eine Pipeline existiert nicht.** Unter `.github/` liegt allein
-_copilot-instructions.md_, kein `workflows/`-Verzeichnis. Die Maßnahme T-05 ist mit 5 h
-geplant und offen; damit fehlt der einzige Punkt des Anforderungskatalogs, der in diesem
-Kapitel namentlich gefordert ist und den das Projekt nicht erfüllt. Der Befund wird
-deshalb hier benannt, mit seiner Wirkung und mit dem Entwurf, der ihn schließt.
-
-**Die Wirkung der Absenz ist präzise beschreibbar**, und sie ist kleiner, als sie
-klingt, aber nicht null. Alle Prüfungen, die eine Pipeline ausführen würde, existieren
-schon und sind jeweils ein einzelner Befehl — die Liste in 7.1 Scripts in
-package.json ist vollständig. Was fehlt, ist nicht die Prüfung, sondern die **Instanz,
-die sie erzwingt**: Derzeit hält die Disziplin, weil jede Änderung von Hand gegen `lint`,
-`format:check`, `cargo clippy` und die Testbefehle gefahren wird. Eine übersprungene
-Prüfung fällt damit erst beim nächsten bewussten Lauf auf, und ein Stand, der nur auf
-diesem Entwicklungsrechner baut, fiele überhaupt nicht auf. Genau letzteres ist der
-Punkt, den eine Pipeline über die reine Wiederholung hinaus leistet: Sie baut in einer
-leeren Umgebung. Die Toolchain-Kopplung aus 7.8 Dev Build — ohne
-`wasm-pack`-Schritt schlägt der Frontend-Build fehl — ist auf diesem Rechner
-unsichtbar, weil das Paket dort längst liegt.
-
-**Entworfen ist die Pipeline als vier Jobs** in `.github/workflows/ci.yml`, ausgelöst bei
-Push und Pull Request:
+**Eine Pipeline existiert nicht**; T-05 (5 h) ist offen — der einzige namentlich
+geforderte Punkt dieses Kapitels, den das Projekt nicht erfüllt. **Die Wirkung der
+Absenz**: Alle Prüfungen existieren als je ein Befehl und werden von Hand gefahren; was
+fehlt, ist die erzwingende Instanz — und der Bau in einer leeren Umgebung. Entworfen ist
+die Pipeline als vier Jobs in `.github/workflows/ci.yml`:
 
 | Job        | Inhalt                                                         | Abhängigkeit |
 | ---------- | -------------------------------------------------------------- | ------------ |
@@ -2403,271 +945,75 @@ Push und Pull Request:
 | `build`    | `build:wasm` + `vite build`, danach `test:e2e`                 | `rust`       |
 | `deploy`   | Veröffentlichung nach GitHub Pages, nur auf `main`             | `build`      |
 
-Die Reihenfolge folgt den Laufzeiten und nicht der Kapitelreihenfolge: `rust` und
-`frontend` laufen parallel, weil sie nichts voneinander brauchen und beide in unter einer
-Minute fertig sind — ein Formatierungsfehler soll nicht hinter einem kalten Rust-Build
-warten. `build` hängt an `rust`, weil ein WASM-Paket aus nicht kompilierendem Code
-sinnlos ist, und trägt die E2E-Suite, weil die den gebauten Stand ohnehin selbst
-herstellt (siehe 8.2 E2E Tests). `deploy` ist an `main` gebunden und damit die eine
-Stelle, an der die Branch-Rollen aus 7.7 Branch-Struktur eine technische
-Konsequenz bekommen statt nur eine Verabredung zu sein.
-
-**Ein Job ist bewusst als nicht blockierend vorgesehen:** `docs:check`, die Prüfung der
-Dokumentationsdisziplin (Prompt-Log, Journal, Changelog). Die Begründung ist eine
-Erfahrung aus dem Projekt selbst: Das Prompt-Logging war über Wochen lückenhaft, und die
-Ursache war strukturell — es verlangt einen Eintrag _vor_ der Antwort, während der
-Changelog-Eintrag an der funktionierenden Gewohnheit „Commit-Zeit" hängt. Ein
-blockierender Hook gegen dieses Muster wird nachts um zwei mit `--no-verify` umgangen und
-verliert damit jede Aussagekraft; eine sichtbare Warnung, die im Pull Request stehen
-bleibt, nicht. Ein rotes Kreuz muss bedeuten, dass der Code kaputt ist, sonst wird die
-Farbe bedeutungslos.
-
-Das Aufsetzen selbst ist damit absehbar günstig — die Jobs rufen vorhandene, lokal grüne
-Befehle auf, und Schwellwerte für die Coverage sind aus dem in 8.1 genannten Grund noch
-nicht gesetzt, könnten also auch keinen Job rot machen. Teuer ist an T-05 nicht die
-Pipeline, sondern das Deployment daran (siehe 7.10 Deployment).
+`rust` und `frontend` laufen parallel; `deploy` ist an `main` gebunden — die eine Stelle,
+an der die Branch-Rollen aus 7.7 eine technische Konsequenz bekommen. `docs:check` ist
+bewusst nicht blockierend vorgesehen: Ein rotes Kreuz muss bedeuten, dass der Code kaputt
+ist, sonst wird die Farbe bedeutungslos.
 
 ## 8.4 Kommentare — Visuelle Strukturierung des Quellcodes
 
-Die Kommentar-Konvention ist in diesem Projekt keine Stilempfehlung, sondern eine
-ausdrückliche Projektregel:
-
-> Jeder nicht-triviale Block erhält einen Kommentar in Alltagssprache, der _was_
-> und _warum_ erklärt, nicht _wie_.
-
-Die Begründung ist die oberste Projektregel: Die Codebasis wird von Studierenden
-gelesen, die Rust und WebAssembly neu lernen. Ein Kommentar, der das _Wie_
-wiederholt, ist für diese Leser wertlos — der Code sagt es bereits. Wertvoll ist
-das _Warum_, und zwar besonders dort, wo eine naheliegende Lösung absichtlich
-**nicht** gewählt wurde. Beispiele aus dem Bestand: warum der Dash eine
-Geschwindigkeitsobergrenze als Parameter übergibt statt `max_speed` zu erhöhen
-(sonst skaliert auch die Lenkstärke mit), warum die Glow-Farben vorberechnet in
-einer Tabelle liegen (keine String-Allokation pro Boid pro Frame), warum das
-Entwickler-Menü ein natives `<details>` ist (Tastatur- und Screenreader-Bedienung
-ohne eigenen Zustand).
-
-Drei weitere Punkte sind als harte Regel formuliert:
-
-- **Doc-Kommentar für jeden `#[wasm_bindgen]`-Export.** Die Bridge ist die
-  schmalste und am leichtesten missverstandene Stelle des Systems (siehe Kapitel 5);
-  dort ist Dokumentation am billigsten und am wirksamsten.
-- **Begründungskommentar für jeden `unsafe`-Block.** Erwähnenswert ist hier vor
-  allem der Ist-Stand: Es gibt derzeit **keinen einzigen** `unsafe`-Block in der
-  Engine. Die gesamte Simulation kommt mit sicherem Rust aus — für ein Projekt,
-  dessen Kern eine O(n²)-Schleife über mehrere hundert Entitäten pro Frame ist, ist
-  das eine erwähnenswerte und keine selbstverständliche Eigenschaft.
-- **Begründungspflicht für jede Mikrooptimierung.** Manuelle SIMD, Bit-Tricks oder
-  Zeigerarithmetik sind nur erlaubt, wenn ein Profiler den Engpass belegt hat — und
-  dann mit ausführlicher Erklärung der Technik.
-
-**JSDoc ist die maschinengeprüfte Hälfte dieser Konvention.** Was für Rust die
-Doc-Kommentar-Pflicht ist, leistet im Frontend `eslint-plugin-jsdoc`: Auf der
-öffentlichen API erzwingt der Linter Vorhandensein, Typen und Beschreibungen —
-Details in 7.5 JSDoc — über ESLint enforced. Die Arbeitsteilung ist damit sauber: Die
-_Warum_-Kommentare im Blockinneren bleiben eine menschliche Urteilsfrage und lassen
-sich nicht prüfen; die _Schnittstellen_-Dokumentation ist strukturell und wird geprüft.
-Der Befund aus der JSDoc-Nachrüstung stützt genau diese Trennung: Die Prosa-Kommentare
-waren durchgehend gepflegt, die Schnittstellen-Dokumentation aber lückenhaft —
-inklusive der WASM-Bridge selbst. Die Regel ohne Werkzeug hielt also gerade dort nicht,
-wo sie am wichtigsten war.
+Projektregel: Jeder nicht-triviale Block erhält einen Kommentar in Alltagssprache, der
+_was_ und _warum_ erklärt, nicht _wie_ — wertvoll besonders dort, wo eine naheliegende
+Lösung absichtlich nicht gewählt wurde. Drei harte Regeln ergänzen das: Doc-Kommentar für
+jeden `#[wasm_bindgen]`-Export; Begründungskommentar für jeden `unsafe`-Block (Ist-Stand:
+es gibt **keinen einzigen**); Begründungspflicht für jede Mikrooptimierung. **JSDoc ist
+die maschinengeprüfte Hälfte dieser Konvention** (siehe 7.5); der Befund der Nachrüstung:
+Die Prosa-Kommentare waren gepflegt, die Schnittstellen-Dokumentation lückenhaft —
+inklusive der WASM-Bridge.
 
 ## 8.5 Lighthouse
 
-Der Anforderungskatalog fordert diesen Punkt mit dem Zusatz „falls anwendbar", und die
-ehrliche Antwort besteht aus zwei Teilen: **Ein Lighthouse-Lauf ist nicht durchgeführt**,
-und er wäre auch bei durchgeführtem Lauf nur zur Hälfte aussagekräftig.
-
-**Warum nicht durchgeführt.** Lighthouse bewertet eine ausgelieferte Seite. Ein
-Deployment existiert nicht (siehe 7.10 Deployment), und ein Lauf gegen `vite preview` auf
-`localhost` liefert für die Hälfte der Kategorien andere Zahlen als ein Lauf gegen Pages —
-ohne Netzwerklatenz, ohne Kompression durch den Server, ohne Cache-Header. Eine Messung
-zu drucken, die unter der Zieladresse anders ausfällt, wäre schlechter als keine: Sie
-sähe wie ein Befund aus. Der Lauf ist deshalb an T-06 gebunden und gehört mit dessen
-Abschluss in dieses Kapitel.
-
-**Warum die Anwendbarkeit von vorn herein begrenzt ist**, und zwar nicht wegen des
-fehlenden Deployments, sondern strukturell — Lighthouse prüft vier Kategorien, und dieses
-Projekt bietet nur zwei davon eine Angriffsfläche:
-
-| Kategorie      | Aussagekraft hier                                                                                                                                                                                                                                                                                                                             |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Performance    | Teilweise aussagekräftig. Gemessen wird die **Ladezeit** bis zum ersten Bild, und dafür ist die Größe des `.wasm`-Moduls die interessante Größe. Die Laufzeitleistung des Spiels — 60 Simulationsschritte pro Sekunde über einer O(n²)-Schleife — sieht Lighthouse überhaupt nicht; die messen der Frametime-Graph und die Werkzeuge aus 8.6. |
-| Accessibility  | Strukturell begrenzt. Der Prüfer inspiziert das DOM, und das DOM besteht aus einem `<canvas>` plus den Overlays für Menü und HUD. Das eigentliche Spiel ist für ihn eine leere Fläche.                                                                                                                                                        |
-| Best Practices | Aussagekräftig. HTTPS, Konsolenfehler, veraltete APIs, korrekte Bildformate — alles Eigenschaften der Auslieferung, und alle prüfbar.                                                                                                                                                                                                         |
-| SEO            | Nicht anwendbar. Ein Spiel mit einem einzigen Screen, ohne Routing (siehe 3.5) und ohne Textinhalt hat nichts zu indexieren. Ein niedriger Wert hier wäre kein Mangel, sondern die korrekte Beschreibung eines Spiels.                                                                                                                        |
-
-Die Accessibility-Zeile ist die aufschlussreichste, weil ihre Grenze in beide Richtungen
-läuft. Was Lighthouse **prüfen** kann, ist im Projekt bewusst gebaut: Die Menü- und
-Optionsgruppen sind echte Schaltflächen mit `aria-pressed`, das Entwicklermenü ist ein
-natives `<details>` und keine Nachbildung, und die Tastaturbedienbarkeit ist als eigener
-Testfall abgesichert (siehe 8.2 E2E Tests). Was Lighthouse **nicht** prüfen kann, ist
-gleichzeitig die eigentliche Zugänglichkeitsfrage dieser Anwendung: Ein Canvas-Spiel, das
-seinen Zustand ausschließlich als Bild ausgibt, ist für einen Screenreader nicht
-zugänglich, und keine ARIA-Auszeichnung ändert daran etwas. Ein guter Wert in dieser
-Kategorie würde also die Rahmen-DOM-Struktur bewerten und über das Spiel nichts sagen.
-Anschlussfähig ist hier der Trade-off aus 3.2.2: Die Leertaste wird nur während einer
-laufenden Runde vom Dash beansprucht, damit sie überall sonst die nativen Bedienelemente
-weiter auslöst — eine Entscheidung _für_ die Tastaturzugänglichkeit, die aus demselben
-Grund kein Prüfwerkzeug bemerkt.
+Der Katalog fordert diesen Punkt „falls anwendbar"; die ehrliche Antwort hat zwei Teile.
+**Ein Lauf ist nicht durchgeführt**: Lighthouse bewertet eine ausgelieferte Seite, ein
+Deployment existiert nicht, und eine Messung gegen `localhost` wäre schlechter als keine.
+**Die Anwendbarkeit ist zudem strukturell begrenzt**: Performance misst nur die Ladezeit;
+Accessibility inspiziert das DOM, und das eigentliche Spiel ist für den Prüfer eine leere
+Canvas-Fläche; SEO ist ohne Textinhalt nicht anwendbar. Was Lighthouse prüfen kann, ist
+bewusst gebaut (`aria-pressed`, natives `<details>`); was es nicht prüfen kann, ist die
+eigentliche Zugänglichkeitsfrage — ein Canvas-Spiel ist für einen Screenreader nicht
+zugänglich.
 
 ## 8.6 GPU-Last: Messgrundlage vor Optimierung
 
-Anlass war eine Beobachtung, kein Messwert: Die GPU-Auslastung während einer Runde ist
-hoch, obwohl das Bild aus einem Gitter, einigen hundert kleinen Pfeilen und ein paar
-Kapseln besteht. Der erste Schritt ist deshalb keine Optimierung, sondern die Frage, ob
-überhaupt gemessen werden kann — und die Antwort war zunächst nein.
+Anlass war eine Beobachtung: hohe GPU-Auslastung bei einem einfachen Bild. Der erste
+Schritt ist keine Optimierung, sondern die Frage, ob überhaupt gemessen werden kann.
+**Der Frametime-Graph beantwortet sie nicht**: Er misst Skriptzeit, die Rasterisierung
+wird außerhalb des Hauptthreads bezahlt. Schlimmer: Sein `backdrop-filter` war der
+einzige aktive GPU-Effekt während einer Runde — das Overlay verfälschte die eigene
+Messgröße; die Fläche ist jetzt deckend.
 
-### 8.6.1 Warum der Frametime-Graph diese Frage nicht beantwortet
-
-Der Frametime-Graph aus 3.2.1 (UI-)Komponenten — Aufbau misst **Skriptzeit**. Ein
-`fill()` kehrt fast sofort zurück; die Rasterisierung, die es in die Warteschlange
-stellt, wird danach und außerhalb des Hauptthreads bezahlt. Der Graph kann also einen
-komfortablen 2-ms-Frame anzeigen, während die GPU ausgelastet ist, ohne sich dabei zu
-widersprechen — er hat nie etwas anderes behauptet, und sein Hinweistext im Menü sagt
-das seit jeher.
-
-Schlimmer: Das Overlay verfälschte die Messung, die es tragen soll. `.frame-time-graph`
-trug `backdrop-filter: blur(6px)` und lag über der einzigen Fläche der Seite, die in
-jedem Frame neu gezeichnet wird — der Compositor musste diesen Bereich also so oft neu
-weichzeichnen, wie das Spiel zeichnete. Es war zugleich der **einzige** GPU-Effekt, der
-während einer laufenden Runde aktiv war. Ein Diagnosewerkzeug, das die eigene Messgröße
-verändert, ist der schwerere Mangel gegenüber einem, das schlichter aussieht; die Fläche
-ist jetzt deckend.
-
-### 8.6.2 Was hinzugekommen ist: die Lastzeile
-
-Der Graph hat eine dritte Textzeile bekommen, mit den drei Größen, die das Frontend
-ehrlich selbst zählen kann. Jede einzelne für sich lädt zur falschen Schlussfolgerung
-ein, weshalb sie zusammen stehen:
-
-| Größe                      | Beantwortet                                     |
-| -------------------------- | ----------------------------------------------- |
-| Gezeichnete Bilder/Sekunde | Hält die FPS-Einstellung, was sie verspricht?   |
-| Zeichenoperationen/Bild    | Die Zahl, die Bündelung senkt (Boids, Schweife) |
-| Backing-Store-Pixel        | Die Zahl, die `devicePixelRatio` quadriert      |
-
-**Keine der drei ist GPU-Zeit**, und der Hinweistext im Menü sagt genau das. Sie erklären
-GPU-Kosten, sie messen sie nicht. Die Zeichenoperationen zählt _renderer/drawCallCounter.js_,
-indem es die zeichnenden Methoden des Kontexts einmalig durch weiterleitende Zähler
-ersetzt — einmalig und beim ersten Lesen, sodass nur zahlt, wer das Overlay einschaltet.
-Pfadaufbau (`beginPath`, `lineTo`, `arc`) wird bewusst _nicht_ gezählt: Er kostet CPU,
-gibt aber nichts zum Zeichnen ab, und ihn mitzuzählen ließe einen gebündelten Pfad genauso
-teuer aussehen wie einen ungebündelten — das Gegenteil dessen, wofür die Zahl da ist.
-
-Die gezeichnete Bildrate wird gezählt, nicht aus einer Frame-Dauer abgeleitet
-(_ui/drawnFrameRate.js_). Unter einem Gate, das Bilder ungleichmäßig durchlässt, sagen
-diese beiden Wege Verschiedenes, und die Zählung ist die, die ein Spieler wiedererkennt.
-
-### 8.6.3 Was von außen gemessen wird
-
-| Werkzeug                                     | Liefert                                      |
-| -------------------------------------------- | -------------------------------------------- |
-| `chrome://gpu`                               | ob Canvas überhaupt hardwarebeschleunigt ist |
-| DevTools → Performance, GPU-Track            | GPU-Zeit pro Bild — die eigentliche Kennzahl |
-| DevTools → Rendering → Frame Rendering Stats | GPU-Speicher, live                           |
-| Windows-Task-Manager, GPU-Spalte             | die Zahl, die den Anlass gegeben hat         |
-
-`chrome://gpu` steht bewusst an erster Stelle: Fällt Canvas2D auf Software-Rendering
-zurück — in virtuellen Maschinen und mit manchen Treiberversionen nicht selten —, dann
-bedeutet jede weitere Zahl etwas anderes, und die Ursache liegt nicht im Code.
-
-**Protokoll**, damit zwei Messungen vergleichbar sind: feste Fenstergröße, festes
-Vollbild-Verhalten, feste FPS-Einstellung, Frametime-Overlay aus, je 20 s in Wave 1,
-Wave 5 und Wave 10, drei Durchläufe je Konfiguration. Berichtet wird **GPU-Zeit in ms pro
-Bild**, nie Prozent — Prozent hängt vom Taktzustand der GPU ab.
-
-Die schnellste Vorab-Diagnose braucht überhaupt kein Werkzeug: das Fenster auf die halbe
-Kantenlänge ziehen. Das ist ein Viertel der Pixel bei unveränderter Zahl an
-Zeichenoperationen. Fällt die Last stark, ist sie füllratenbegrenzt; bleibt sie, ist sie
-zeichenaufrufbegrenzt. Die Antwort entscheidet, welche der beiden Maßnahmengruppen
-überhaupt lohnt.
-
-**Gefahren ist die Messreihe nach diesem Protokoll noch nicht.** Was diese Maßnahme
-bisher geliefert hat, ist die Voraussetzung dafür — ein Overlay, das die eigene Messgröße
-nicht mehr verfälscht, drei ehrlich benannte Zählwerte und ein schriftliches Verfahren.
-Die zweite Stufe, die Senkung der Last, ist damit bewusst noch nicht begonnen: Ohne
-Basiswert wäre jede Maßnahme darunter eine Vermutung, und ein Performance-Gewinn ohne
-Zahl ist die eine Behauptung, die dieses Kapitel nicht tragen kann. Der
-Reihenfolge-Entscheid steht damit über dem Ergebnis, und das ist der berichtsfähige Teil
-des Befunds.
+**Hinzugekommen ist eine Lastzeile** mit den drei Größen, die das Frontend ehrlich selbst
+zählen kann: gezeichnete Bilder/Sekunde, Zeichenoperationen/Bild, Backing-Store-Pixel.
+**Keine davon ist GPU-Zeit** — sie erklären GPU-Kosten, sie messen sie nicht. Gemessen
+wird von außen (`chrome://gpu`, GPU-Track der DevTools) nach festem Protokoll; berichtet
+wird GPU-Zeit in ms pro Bild, nie Prozent. **Gefahren ist die Messreihe noch nicht** —
+geliefert ist die Voraussetzung, denn ohne Basiswert wäre jede Senkungsmaßnahme eine
+Vermutung.
 
 > **[Platzhalter Tabelle: Basis- und Nachher-Messung der GPU-Last — eintragen, sobald
-> die Messreihe nach dem Protokoll aus 8.6.3 gefahren ist.]**
+> die Messreihe nach dem Protokoll aus 8.6 gefahren ist.]**
 
 # 9 Quellcode-Übersicht
 
-**Dies ist die einzige Stelle im Bericht, an der Kennzahlen stehen.** LOC, Dateizahlen,
-Testzahlen, Coverage-Prozente und Commit-Zahlen gehören ausschließlich hierher; alle
-anderen Kapitel verweisen zurück. Alle folgenden Werte haben den **Stand 13.08.2026**
-und werden nach dem Code-Freeze (24.08.2026) mit den Befehlen aus 9.1 einmal neu
-erhoben.
-
-Das Projekt läuft auf **einer** Plattform — einem Browser mit WebAssembly- und
-Canvas-2D-Unterstützung, ohne Installation und ohne Server (siehe 1.3 Details zum
-Softwareprojekt). Geschrieben ist es in **zwei Programmiersprachen**, Rust für
-die Simulation und JavaScript für Darstellung, Eingabe und UI, ergänzt um CSS, HTML
-und eine JSON-Sprachdatei. Persistiert wird genau eine Sache: Bestleistung und
-letzter Lauf, in `localStorage`, gekapselt in _round/roundRecords.js_ (siehe 3.6
-Persistenz). Geprüft wird
-auf vier Ebenen — Rust-Unit-Tests, Rust-Tests an der Sprachgrenze unter `wasm-pack`,
-JavaScript-Unit-Tests unter Vitest sowie End-to-End-Flows unter Playwright.
+**Dies ist die einzige Stelle im Bericht, an der Kennzahlen stehen**; alle anderen
+Kapitel verweisen zurück. Stand aller Werte: **13.08.2026**; nach dem Code-Freeze werden
+sie mit den Befehlen aus 9.1 neu erhoben.
 
 ## 9.1 Methodik der Masszahlen
 
-Die Zahlen werden nicht geschätzt, sondern erhoben. Die Befehle sind Teil der
-Antwort — sie machen die Angaben reproduzierbar und prüfbar.
-
-```bash
-# Engine: Dateien und Zeilen
-find engine/src -name '*.rs' | wc -l
-find engine/src -name '*.rs' -exec wc -l {} + | sort -n
-
-# Engine: Testfunktionen
-grep -rho '#\[test\]' engine/src --include='*.rs' | wc -l
-
-# Frontend: handgeschriebene Dateien und Zeilen (Build-Artefakte ausgenommen)
-find frontend/src -name '*.js' -not -path '*/wasm/*' -not -path '*__tests__*' | wc -l
-find frontend/src -name '*.js' -not -path '*/wasm/*' -not -path '*__tests__*' -exec wc -l {} + | sort -n
-
-# Frontend: Testfälle
-grep -rhoE '\b(it|test)\(' frontend/src --include='*.test.js' | wc -l
-
-# Engine: Tests an der Sprachgrenze (laufen nur unter wasm-pack, nicht unter cargo test)
-grep -rho '#\[wasm_bindgen_test\]' engine/tests | wc -l
-
-# E2E-Fälle
-grep -rhoE '\btest\(' frontend/e2e --include='*.spec.js' | wc -l
-
-# Coverage, je Sprache getrennt erhoben
-cd frontend && npm run test:coverage    # Tabelle je Datei + coverage/coverage-summary.json
-cd engine   && cargo llvm-cov --lib --summary-only
-
-# Weitere Assets
-find frontend/styles -name '*.css' -exec wc -l {} +
-wc -l frontend/index.html frontend/public/locales/en.json
-
-# Ausgeliefertes Bundle
-npm run build && find dist -type f -exec ls -l {} +
-
-# Repository-Historie
-git log --oneline | wc -l
-git log --format='%s' | sed 's/^@ //' | grep -oE '^[a-z]+' | sort | uniq -c | sort -rn
-```
-
-Zwei Abgrenzungen sind dabei bewusst getroffen und müssen genannt werden, weil sie
-sonst wie eine Auslassung wirken. Erstens ist `frontend/src/wasm/engine/` ein
-**gitignoriertes Build-Artefakt** — von `wasm-pack` erzeugte JavaScript-Glue und
-`.wasm`-Binärdatei. Es zählt nicht als Quellcode und ist in allen `find`-Aufrufen
-ausgeschlossen. Zweitens liegen die Rust-Unit-Tests nach Rust-Konvention als
-`#[cfg(test)]`-Module **in** den Produktivdateien; die Trennung in Tabelle 8 ist
-daher nicht dateiweise, sondern anhand der Position des ersten
-`#[cfg(test)]`-Attributs erhoben.
+Die Zahlen werden erhoben, nicht geschätzt: Zeilen und Dateien per `find`/`wc`,
+Testfälle per `grep` über die Test-Attribute, Coverage per `npm run test:coverage` und
+`cargo llvm-cov --lib`, Bundle-Größen aus `dist/` nach `npm run build`; die vollständigen
+Befehle stehen in _documentation/report/09-quellcode-uebersicht.md_ und machen jede
+Angabe reproduzierbar. Zwei Abgrenzungen: `frontend/src/wasm/engine/` ist ein
+gitignoriertes Build-Artefakt und zählt nicht als Quellcode; die Rust-Unit-Tests liegen
+in den Produktivdateien und sind anhand des ersten `#[cfg(test)]`-Attributs getrennt
+erhoben.
 
 ## 9.2 Größe und Verteilung
 
-Das Projekt umfasst **159 handgeschriebene Quelldateien mit 25.317 Zeilen**. Davon
-entfallen 12.503 Zeilen (49,4 %) auf Produktivcode, 11.543 Zeilen (45,6 %) auf Tests
-und 1.271 Zeilen (5,0 %) auf Stylesheets, Markup und die Sprachdatei.
+Das Projekt umfasst **159 handgeschriebene Quelldateien mit 25.317 Zeilen**: 49,4 %
+Produktivcode, 45,6 % Tests, 5,0 % Assets.
 
 | Schicht                                   | Dateien | Zeilen |  Anteil |
 | ----------------------------------------- | ------: | -----: | ------: |
@@ -2682,36 +1028,14 @@ und 1.271 Zeilen (5,0 %) auf Stylesheets, Markup und die Sprachdatei.
 
 _Tabelle 8: Codeverteilung nach Architektur-Schicht_
 
-Drei Aussagen stecken in diesen Zahlen. Erstens ist der **Testanteil mit 45,6 %
-annähernd so groß wie der Produktivcode selbst** — die in 8.1 Unit Tests und
-Coverage beschriebene Testpflicht für Mathematik- und Simulationsfunktionen ist
-keine Absichtserklärung geblieben. Zweitens ist die Engine mit 3.569 Zeilen nur
-**28,5 % des Produktivcodes**, obwohl sie die gesamte Simulation trägt. Das
-widerspricht dem Schwerpunkt „Systemnah/WASM" nicht, sondern belegt die
-Zweischichtigkeit aus 2.2 Architektur-Entscheidungen: die Engine kennt weder DOM
-noch Canvas, hat also keine Zeile Darstellungscode; umgekehrt enthält das Frontend
-keine Simulationsmathematik. Drittens verteilt sich der Frontend-Anteil sehr
-ungleich — allein `renderer/` (22 Dateien, 3.307 Zeilen) und `ui/` (16 Dateien,
-2.273 Zeilen) machen 62,5 % des Frontends aus. Darstellung braucht für dieselbe
-Funktion mehr Zeilen als ihre Berechnung.
-
-Innerhalb der Engine entfallen 5.310 Zeilen (27 Dateien) auf `simulation/`, 858
-Zeilen (4 Dateien) auf `wasm_bridge/`, 397 Zeilen (3 Dateien) auf `math/` und 366
-Zeilen auf _constants.rs_ und _lib.rs_. Die Verzeichnisaufstellung je Datei steht im
-Anhang (siehe 11.1 Tabellen, _Modulübersicht Engine_ und _Modulübersicht Frontend_).
-
-Keine einzige Quelldatei überschreitet die in 6.2 Komponenten & Struktur
-beschriebene 400-Zeilen-Grenze. Die größten sind _frontend/src/ui/frameTimeGraph.js_
-mit 394 und _engine/src/simulation/flock.rs_ mit 380 Zeilen — beide dicht genug an
-der Grenze, dass die in 3.3 Modularisierung: Strukturierung der fachlichen Logik
-beschriebene Aufteilungswirkung der Regel plausibel bleibt.
+Drei Aussagen stecken darin: Der **Testanteil ist annähernd so groß wie der
+Produktivcode** — die Testpflicht aus 8.1 ist keine Absichtserklärung geblieben. Die
+Engine ist nur 28,5 % des Produktivcodes, obwohl sie die gesamte Simulation trägt — der
+Beleg der Zweischichtigkeit, denn sie hat keine Zeile Darstellungscode. Und keine
+Quelldatei überschreitet die 400-Zeilen-Grenze; die größten liegen bei 394 und 380
+Zeilen.
 
 ## 9.3 Coverage
-
-Coverage wird **getrennt nach Sprache** erhoben und berichtet. Eine gemeinsame Zahl
-wäre nicht nur unpräzise, sondern irreführend, weil die beiden Suiten
-unterschiedliche Dinge erreichen können — die Begründung steht in 8.1 Unit Tests und
-Coverage.
 
 | Suite                                        |   Lines | Functions | Branches / Regions |
 | -------------------------------------------- | ------: | --------: | -----------------: |
@@ -2720,123 +1044,42 @@ Coverage.
 
 _Tabelle 9: Coverage je Sprache_
 
-Beide Zahlen brauchen eine Einordnung, sonst liest sich die eine zu gut und die
-andere wie ein Versäumnis.
-
-**Engine.** 21 der 28 Dateien stehen bei 100 % Lines. Die 90,25 % entstehen fast
-vollständig durch drei Dateien bei 0 %: _wasm_bridge/mod.rs_,
-_wasm_bridge/frame_buffers.rs_ und _wasm_bridge/response.rs_. Diese Null ist ein
-**Messartefakt, kein Testloch**. `cargo llvm-cov` instrumentiert das Host-Target,
-die zuständigen Tests laufen jedoch auf `wasm32` im Browser und werden nur von
-`wasm-pack test` ausgeführt — 41 `#[wasm_bindgen_test]`-Fälle in `engine/tests`,
-die genau diese drei Dateien vollständig ausüben (siehe 5.2.1 Der Puffer-Vertrag).
-Rechnet man sie heraus, liegt die Simulation bei **98,73 % Lines**. Umgekehrt gilt:
-ein grünes `cargo test` sagt über die Sprachgrenze nichts aus, weil
-`#[wasm_bindgen_test]` auf dem Host zu nichts expandiert und die Dateien dort 0
-Tests melden.
-
-**Frontend.** Der Gesamtwert ist niedrig, weil `all: true` gesetzt ist und **jedes**
-Modul mitzählt, auch die, die eine Node-Testumgebung strukturell nicht erreicht.
-Aussagekräftig ist nicht der Mittelwert, sondern die Form der Verteilung: von 60
-Dateien stehen **28 bei 100 %**, **23 bei 0 %** und nur 9 dazwischen. Die 0 %-Gruppe
-ist ohne Ausnahme DOM- oder WASM-gebunden — _index.js_, _engine-bridge.js_,
-_canvasRenderer.js_, _hud.js_, _menu\*.js_, _inputManager.js_. Diese Hälfte deckt die
-Playwright-Suite ab (54 E2E-Fälle in 10 Spec-Dateien, siehe 8.2 E2E Tests). Die
-Zweigipfeligkeit ist damit kein Zufall, sondern das direkte Abbild der
-Modularisierungsregel aus 3.3 Modularisierung: Strukturierung der fachlichen
-Logik — rechenbare Arithmetik wird bewusst in
-importfreie Module wie _dashPulse.js_ oder _frameGraphScale.js_ herausgezogen, und
-genau diese Module stehen bei 100 %.
-
-Die vollständigen Tabellen je Datei — nach Wert sortiert, damit die Zweiteilung
-sichtbar wird — stehen im Anhang (siehe 11.1 Tabellen, _Coverage je Modul_).
+**Engine**: 21 von 28 Dateien stehen bei 100 %; die Differenz entsteht fast vollständig
+durch die drei `wasm_bridge`-Dateien bei 0 % — ein **Messartefakt, kein Testloch**, denn
+die 41 zuständigen Grenztests laufen auf `wasm32` im Browser, während `cargo llvm-cov`
+das Host-Target instrumentiert; ohne die drei Dateien liegt die Simulation bei
+**98,73 % Lines**. **Frontend**: Der Wert ist niedrig, weil `all: true` jedes Modul
+mitzählt; aussagekräftig ist die **zweigipfelige** Form — 28 Dateien bei 100 %, 23 bei
+0 %, nur 9 dazwischen. Die 0 %-Gruppe ist ohne Ausnahme DOM- oder WASM-gebunden und wird
+von der Playwright-Suite abgedeckt — das direkte Abbild der Modularisierungsregel aus
+3.3. Die Tabellen je Datei stehen im Anhang (siehe 11.1 Tabellen).
 
 ## 9.4 Weitere Masszahlen
 
-**Testumfang.** 206 Rust-Unit-Tests, 41 Rust-Grenztests unter `wasm-pack`, 475
-Vitest-Fälle in 38 Dateien und 54 Playwright-Fälle in 10 Spec-Dateien — zusammen
-**776 automatisierte Testfälle**. Auf die 3.569 Zeilen Engine-Produktivcode kommen
-damit 247 Rust-Tests, rechnerisch einer je 14 Zeilen.
+**Testumfang**: 206 Rust-Unit-Tests, 41 Grenztests unter `wasm-pack`, 475 Vitest-Fälle
+und 54 Playwright-Fälle — zusammen **776 automatisierte Testfälle**. **Breite der
+Sprachgrenze**: 2 exportierte Typen und 23 exportierte Funktionen. **Bundle**: 198,1 kB
+in `dist/`, davon **47,5 kB** WebAssembly für die komplette Simulation. **i18n**: eine
+Locale (`en`) mit 70 Schlüsseln.
 
-**Breite der Sprachgrenze.** Die WASM-Schnittstelle besteht aus **2 exportierten
-Typen und 23 exportierten Funktionen**: `GameEngine` mit Konstruktor, `tick`,
-`snapshot`, `set_wave` und `resize`, sowie `FrameResponse` mit 18 Gettern. Mehr
-`#[wasm_bindgen]`-Symbole gibt es im gesamten Projekt nicht. Das belegt die Aussage
-aus 5.1 Wesentliche Komponenten quantitativ: fünf Methoden tragen den gesamten
-Spielablauf, die übrigen 18 Symbole sind reine Lesezugriffe auf die sieben Puffer
-eines Frames (siehe 11.1 Tabellen, _Die sieben Puffer eines Frames_).
-
-**Ausgeliefertes Bundle.** `npm run build` erzeugt 198,1 kB in `dist/`, davon 47,5 kB
-WebAssembly-Binärdatei, 64,7 kB Anwendungs-JavaScript (20,9 kB gzip), 5,4 kB
-`wasm-bindgen`-Glue, 14,5 kB CSS (3,6 kB gzip), 53,7 kB Schriftarten samt Lizenztexten
-sowie 2,8 kB Sprachdatei. Für eine Anwendung mit Schwerpunkt „Systemnah/WASM" ist die
-Größe des `.wasm`-Moduls die aussagekräftigste Einzelzahl: **47,5 kB** für die
-komplette Simulation, erreicht ohne Zutun durch `wasm-opt` im Release-Profil (siehe
-7.9 Production Build). Das gesamte Spiel lädt damit in einem einzigen
-Netzwerk-Roundtrip-Fenster und erfüllt das Ziel „installationslos und serverfrei"
-aus 1.2 Die Lösung nicht nur formal.
-
-**Internationalisierung.** Eine Locale (`en`) mit 70 Schlüsseln in
-_frontend/public/locales/en.json_. Die Zahl ist zugleich die Untergrenze für die
-Regel „keine hartcodierten nutzersichtbaren Strings" aus 6.2 Komponenten &
-Struktur — jeder im UI sichtbare Text hat dort einen Eintrag.
-
-**Repository-Historie.** 104 Commits zwischen dem 03.05.2026 und dem 13.08.2026.
-Ihre Verteilung nach Conventional-Commit-Typ belegt die in 6.3 Entwicklungsprozess &
-Workflow beschriebene Commit-Disziplin mit Daten:
-
-| Typ        | Anzahl | Anteil |
-| ---------- | -----: | -----: |
-| `feat`     |     41 | 39,4 % |
-| `docs`     |     25 | 24,0 % |
-| `refactor` |     12 | 11,5 % |
-| `chore`    |      9 |  8,7 % |
-| `fix`      |      8 |  7,7 % |
-| `test`     |      5 |  4,8 % |
-| übrige     |      4 |  3,8 % |
-
-_Tabelle 10: Commits nach Conventional-Commit-Typ_
-
-Bemerkenswert sind zwei Verhältnisse. Der `docs`-Anteil von 24,0 % ist die
-messbare Folge der Entscheidung, den Bericht **begleitend** zu schreiben statt
-nachgelagert (siehe 6.3 Entwicklungsprozess & Workflow) — ein Viertel aller
-Commits verändert ausschließlich Dokumentation. Und `fix` liegt mit 8 Commits
-**unter** `refactor` mit 12; die Umbauten waren häufiger als die Fehlerbehebungen,
-was zu einem Projekt passt, dessen Architektur sich während der Entwicklung noch
-verdichtet hat (die vier Ordner-Zusammenlegungen unter `simulation/` sind vier
-dieser zwölf).
-
-Ein negativer Befund gehört dazu: **fünf der 104 Commit-Titel tragen ein
-versehentliches Präfix `@ `** und sind damit streng genommen nicht
-Conventional-Commits-konform. Der Anteil formal korrekter Titel liegt bei 95,2 %.
-Inhaltlich sind auch diese fünf regelkonform aufgebaut (`docs:` bzw.
-`refactor(engine):`); korrigiert wurden sie nicht, weil ein History-Rewrite auf
-einem bereits geteilten Branch teurer wäre als der Schönheitsfehler.
-
-**KI-Nutzung.** 72 protokollierte Prompts in 12 Sitzungsdateien unter `ai/`,
-thematisch verteilt auf `prozess-doku` (26), `frontend-ui` (22), `engine` (14),
-`tooling-tests` (5), `loop-input` (3) und `wasm-bridge` (2). Die vollständige
-Auflistung ist Kapitel 12 KI-Verzeichnis und wird aus denselben Dateien generiert.
+**Repository-Historie**: 104 Commits zwischen 03.05. und 13.08.2026 — `feat` 41, `docs`
+25, `refactor` 12, `chore` 9, `fix` 8, `test` 5, übrige 4. Der `docs`-Anteil von 24 % ist
+die messbare Folge der begleitenden Dokumentation (siehe 6.3), und `fix` liegt unter
+`refactor`. Ein negativer Befund: Fünf Commit-Titel tragen ein versehentliches Präfix
+`@ ` (95,2 % formal korrekt); ein History-Rewrite auf einem geteilten Branch wäre teurer
+als der Schönheitsfehler. **KI-Nutzung**: 72 protokollierte Prompts in 12
+Sitzungsdateien; die Auflistung ist Kapitel 12 KI-Verzeichnis.
 
 # 10 Projektbericht
 
-Dieses Kapitel berichtet über den **Projektverlauf** statt über das Produkt: mit
-welcher Kapazität geplant wurde, welche Kapazität tatsächlich in welche Maßnahmen
-geflossen ist, welche Herausforderungen dabei auftraten und was davon über dieses
-Projekt hinaus verwendbar ist. Grundlage ist das mitlaufende Projekt-Journal, nicht
-die Rückschau — jede Zahl und jeder Fall unten war zum Zeitpunkt seines Auftretens
-festgehalten worden.
+Grundlage dieses Kapitels ist das mitlaufende Projekt-Journal, nicht die Rückschau.
 
 ## 10.1 Kapazitätsplan
 
 ### 10.1.1 Planung
 
-Geplant wurde in einem gemeinsamen Vokabular aus **Maßnahmen-IDs**, das Planung,
-Journal und dieses Kapitel teilen: `S-01`…`S-07` für die fachlichen Spezifikationen,
-`T-01`…`T-08` für Tooling- und Qualitätsmaßnahmen, `D-01` für die Dokumentation. Die
-Schätzungen wurden **iterativ fortgeschrieben**, nicht einmalig festgelegt: Jede
-nachträglich aufgenommene Maßnahme trägt ihre Begründung und den Betrag, um den sie
-das Gesamtbudget erhöht hat.
+Geplant wurde in Maßnahmen-IDs (`S-01`…`S-07`, `T-01`…`T-08`, `D-01`), die Planung,
+Journal und dieses Kapitel teilen.
 
 | Block                              |  Plan (h) |
 | ---------------------------------- | --------: |
@@ -2845,43 +1088,22 @@ das Gesamtbudget erhöht hat.
 | Dokumentation `D-01`               |      ≈ 22 |
 | **Gesamt**                         | **≈ 181** |
 
-Der ursprüngliche Umfang lag bei 85 h und wuchs in drei Schüben: `S-07` (temporäre
-Hindernisse, 16 h) und `S-05b` (Power-ups, 6 h) kamen fachlich hinzu, `T-03`, `T-07`
-und `T-08` als Qualitätsmaßnahmen (18,5 h), und der gesamte Tooling-Block war in der
-ersten Schätzung überhaupt nicht enthalten. Er ist keine eigene Idee, sondern eine
-Forderung des Anforderungskatalogs, die beim ersten Schätzen übersehen worden war.
-
-Damit lag das Budget von Anfang an **über der verfügbaren Kapazität** von realistisch
-fünf Wochen. Diese Überbuchung wurde nicht durch eine nachträgliche Gegenkürzung
-wegdefiniert, sondern durch zwei Mittel bearbeitet. Erstens die bewusste Streichung
-von _Slow-Time_ aus `S-05` — das einzige der drei angedachten Power-ups, das den
-festen Zeitschritt hätte aufweichen müssen, also ausgerechnet eine der beiden
-tragenden Invarianten (siehe 5.3 Integration / Schnittstellen). Zweitens eine
-**begründete Reihenfolge**: Maßnahmen, die zwei Bewertungskriterien gleichzeitig
-bedienen — Tests und Coverage zahlen sowohl auf das Kapitel _Qualität_ als auch auf
-das Kriterium „hohe Testabdeckung" im Working Code ein —, liegen vor solchen, die nur
-eines bedienen. TypeScript (`T-02`), CI/CD (`T-05`) und Deployment (`T-06`) stehen
-deshalb bewusst am Ende der Liste. Reicht die Kapazität nicht, fällt die Entscheidung
-dort und wird dort begründet, nicht am vorderen Ende.
+Der ursprüngliche Umfang lag bei 85 h; der gesamte Tooling-Block fehlte in der ersten
+Schätzung — eine Forderung des Anforderungskatalogs, die übersehen wurde. Das Budget lag
+damit von Anfang an **über der verfügbaren Kapazität**; bearbeitet durch die Streichung
+von _Slow-Time_ und eine **begründete Reihenfolge**: Maßnahmen, die zwei
+Bewertungskriterien bedienen, liegen vor solchen mit einem — TypeScript, CI/CD und
+Deployment stehen deshalb am Ende, und reicht die Kapazität nicht, fällt die Entscheidung
+dort.
 
 ### 10.1.2 Erfassung des Ist-Aufwands
 
-Ist-Aufwände wurden **pro Arbeitssitzung** im Journal erfasst und ausdrücklich
-**nicht** aus `git log` rekonstruiert. Die Begründung ist messbar: Die Commits fallen
-in Schübe auf wenige Kalendertage (siehe 9.4 Weitere Masszahlen), Commit-Zeitstempel
-komprimieren also Arbeitsschübe und sagen nichts über Lese-, Denk- und Debugging-Zeit.
-Bei KI-unterstützter Entwicklung ist der Abstand zwischen zwei Commits ein aktiv
-irreführender Aufwandsindikator, und verworfene Ansätze hinterlassen überhaupt keinen
-Commit — genau die Stunden, nach denen ein Kapazitätsplan fragt. `git log` diente als
-Gegenprobe, nicht als Quelle.
-
-Diese Erfassung hat eine **Lücke, die benannt gehört**: Das Journal beginnt am
-29.07.2026, das Repository am 03.05.2026. Die 24 Commits davor — der spielbare
-Prototyp aus Schwarmsimulation, Bridge, Renderer und Loop sowie der
-Frametime-Graph — sind **nicht** in den Ist-Zahlen enthalten. Die unten ausgewiesenen
-95,0 h sind daher der Aufwand der dokumentierten Projektphase, nicht der
-Gesamtaufwand. Rückwirkend geschätzte Stunden wären eine Erfindung gewesen und hätten
-die Aussagekraft der übrigen Zeilen mit beschädigt.
+Ist-Aufwände wurden pro Arbeitssitzung im Journal erfasst und **nicht** aus `git log`
+rekonstruiert: Commit-Zeitstempel sagen nichts über Lese-, Denk- und Debugging-Zeit, und
+verworfene Ansätze hinterlassen keinen Commit — genau die Stunden, nach denen ein
+Kapazitätsplan fragt. Die Erfassung hat eine benannte **Lücke**: Das Journal beginnt am
+29.07.2026, das Repository am 03.05.2026; die 24 Commits davor sind nicht enthalten, denn
+rückwirkend geschätzte Stunden wären eine Erfindung gewesen.
 
 ### 10.1.3 Ist gegen Plan
 
@@ -2892,174 +1114,63 @@ die Aussagekraft der übrigen Zeilen mit beschädigt.
 | Dokumentation `D-01`               |      ≈ 22 |     16,5 |      − 5,5 |
 | **Gesamt**                         | **≈ 181** | **95,0** | **− 86,0** |
 
-_Die Aufschlüsselung je Maßnahme steht im Anhang (siehe 11.1 Tabellen,
-Kapazitätsplan je Maßnahme — Plan und Ist)._
+_Die Aufschlüsselung je Maßnahme steht im Anhang (siehe 11.1 Tabellen)._
 
-Die Differenz von 86 h ist **keine Einsparung**, und sie so zu lesen wäre der
-Hauptfehler bei der Auswertung dieser Tabelle. Sie setzt sich aus drei sachlich
-verschiedenen Anteilen zusammen.
-
-- **Nicht erfasst.** Der größte Anteil steht bei `S-01` (18 h geplant, 1,5 h erfasst)
-  und `S-06` (12 h geplant, 2,0 h erfasst). Beide sind weitgehend umgesetzt — die
-  Schwarmsimulation ist das Fokus-Thema des Projekts und trägt die höchste
-  Testabdeckung überhaupt (siehe 9.3 Coverage). Ihr Aufwand liegt in der Phase vor
-  dem Journal.
-- **Noch offen.** 11 h entfallen auf die drei nie begonnenen Maßnahmen `T-02`
-  (TypeScript-Prüfung), `T-05` (CI/CD-Pipeline) und `T-06` (Deployment), die je 0,0 h
-  Ist ausweisen. Sie sind in 7.6 TypeScript, 8.3 CI/CD: GitHub Actions Pipeline und
-  7.10 Deployment als begründete Negativbefunde ausgeschrieben statt verschwiegen.
-  Weitere ~6 h entfallen auf die zweite Stufe von `T-08`, deren Priorisierung
-  planmäßig von den Zahlen abhängt, die ihre erste Stufe erst erzeugt hat (siehe 8.6
-  GPU-Last: Messgrundlage vor Optimierung).
-- **Tatsächlich günstiger als geschätzt.** `S-07` (16 h geplant, 14,5 h erfasst) und
-  `S-05` einschließlich `S-05b` (22 h geplant, 15,5 h erfasst) liegen unter der
-  Schätzung, obwohl sie vollständig in der erfassten Phase liegen und vollständig
-  umgesetzt sind. Beide sind die Maßnahmen mit einer eigenen, vorab geschriebenen
-  Detail-Spezifikation.
-
-Die einzige Zeile mit einer echten Überschreitung nach oben ist `S-03` (12 h geplant,
-13,5 h erfasst) — dort ist ein Design-Handoff eingearbeitet worden, der zum
-Schätzzeitpunkt nicht vorlag. `D-01` steht mit 16,5 h von 22 h bei rund drei Vierteln,
-hat davon aber erst die Kapitel 1 bis 9 erreicht; die verbleibenden 5,5 h müssen
-Anhang, Diagramme, den Word-Zusammenbau und die Abschlusspräsentation tragen. Das ist
-knapp, und es ist dieselbe Engstelle, die die Musterdokumentation in ihren eigenen
-Lessons Learned nennt.
-
-Was die Planung insgesamt trägt: Ihre Reihenfolge hat gehalten. Von den acht
-Tooling-Maßnahmen sind genau die fünf umgesetzt, die vorn in der begründeten Liste
-standen, und die drei offenen sind genau die, die dort ans Ende gestellt wurden.
-Eine Planung, die eine erkannte Überbuchung dokumentiert und die Ausfälle an der
-vorher benannten Stelle eintreten lässt, ist die stärkere Aussage als eine, die im
-Nachhinein aufgeht.
+Die Differenz ist **keine Einsparung**; sie besteht aus drei Anteilen: **nicht erfasst**
+(vor allem S-01 und S-06, deren Aufwand vor dem Journal liegt), **noch offen** (T-02,
+T-05, T-06 und die zweite Stufe von T-08) und **tatsächlich günstiger als geschätzt** —
+S-05 und S-07 liegen unter der Schätzung, und beide sind die Maßnahmen mit vorab
+geschriebener Detail-Spezifikation. Die einzige Überschreitung ist S-03 (ein
+Design-Handoff, der zum Schätzzeitpunkt nicht vorlag). Was die Planung trägt: Ihre
+Reihenfolge hat gehalten — die drei offenen Maßnahmen sind genau die, die vorher ans Ende
+gestellt wurden.
 
 ## 10.2 Herausforderungen
 
-**Technisch** war die teuerste Herausforderung eine **Speicherverletzung an der
-Sprachgrenze**. Ein Playtest endete mitten in der Runde mit
-`RuntimeError: index out of bounds`, im Stack ausschließlich der heiße Pfad bis
-`tick()`. Die naheliegende Lesart — ein Indexfehler in der Engine — war falsch, und
-das ließ sich messen statt vermuten: Ein absichtlich provozierter Rust-Panic aus
-demselben Build meldet sich als `RuntimeError: unreachable`, die Summe aller
-Stapelrahmen des Moduls beträgt 1,5 kB gegen 1 MiB Stapel. Übrig blieb ein Zeiger auf
-eine nicht mehr gültige Struktur. Rund 4 h kostete der Fall, davon etwa dreieinhalb
-die Diagnose; zwei Millionen simulierte Schritte über vier parallele Browserläufe
-reproduzierten nichts, weil die Ursache gar nicht in der Simulation lag. Sichtbar
-wurde sie erst, als ein Testaufbau versehentlich zwei Modulinstanzen erzeugte:
-_initEngine_ zweimal nebenläufig aufgerufen ergibt **zwei** WebAssembly-Instanzen,
-weil der generierte Loader nur gegen ein abgeschlossenes Laden prüft. Beide Halden
-mischen sich, und die `FinalizationRegistry` der verworfenen Instanz gibt Adressen in
-der überlebenden frei. Erreichbar war das im Spiel über eine gehaltene Leertaste auf
-dem Startknopf. Behoben wurde es, indem der Ladevorgang als geteiltes Promise statt
-als Flag geprüft wird (siehe 5.3 Integration / Schnittstellen).
+**Technisch** war die teuerste eine **Speicherverletzung an der Sprachgrenze**: Ein
+Playtest endete mit `RuntimeError: index out of bounds`; die naheliegende Lesart — ein
+Indexfehler in der Engine — war messbar falsch. Die Ursache: `initEngine` zweimal
+nebenläufig aufgerufen ergibt zwei WebAssembly-Instanzen, deren Speicher sich mischen;
+rund 4 h, davon dreieinhalb Diagnose, behoben durch das geteilte Promise (siehe 5.3
+Integration / Schnittstellen). Die zweite trat viermal auf: **Zusicherungen, die weniger
+prüfen, als ihr Name verspricht** — eine leere Arena erfüllt jede Obergrenze und jede
+Ausschlussregel. Gefunden hat den ersten Fall keine Teststufe, sondern ein Blick auf das
+laufende Spiel.
 
-Die zweite technische Herausforderung hat kein einzelnes Datum, weil sie viermal in
-verschiedener Gestalt auftrat: **Zusicherungen, die weniger prüfen, als ihr Name
-verspricht.** Nach der Umsetzung der temporären Hindernisse waren 129 Rust-Tests
-grün, und die Arena im laufenden Spiel war leer — eine leere Welt erfüllt jede
-Obergrenze und jede Ausschlussregel, die sich formulieren lässt, und eine Untergrenze
-war nirgends formuliert. Der Test gegen das Durchtunneln einer Stange prüfte, dass
-der Boid danach nicht _innerhalb_ liegt, was ein übersprungener Boid ebenfalls
-erfüllt. Das Feststecken des Spielers in einem Hindernis war nur über **zwei
-aufeinanderfolgende** Aufrufe sichtbar, während jeder vorhandene Test einen einzelnen
-prüfte. Und die Überlappungsauflösung des Schwarms garantiert asymptotische
-Annäherung statt Erreichen, weshalb eine naheliegende `>=`-Zusicherung ein Test
-gewesen wäre, der niemals bestehen kann. Zusammen rund 2,5 h, überwiegend Diagnose.
-Gefunden hat den ersten dieser Fälle keine der drei Teststufen, sondern ein Blick auf
-einen Screenshot des laufenden Spiels.
-
-**Organisatorisch** wiegt am schwersten, dass die **Tooling-Anforderungen zu spät
-gegen den Anforderungskatalog geprüft** wurden. Die ursprüngliche Schätzung von 85 h
-enthielt keine einzige Stunde für Linter, Formatter, Coverage, E2E-Tests, CI/CD oder
-Deployment, obwohl der Katalog dafür zwei eigene Kapitel und ein eigenes
-Bewertungskriterium vorsieht. Die nachgeholte Schätzung ergab 40,5 h, die in die
-Restlaufzeit gedrängt werden mussten — und die drei zuletzt einsortierten Maßnahmen
-sind genau die, die bis heute offen sind. Der Aufwand für das Nachziehen selbst blieb
-dabei in einem Fall unter der Kontrolle der Planung und in einem nicht: Die
-JSDoc-Nachrüstung war mit 1,5–2 h geplant und lag bei 2,5 h, weil `eslint --fix` auf
-einer frisch eingeführten Regel rund 90 inhaltsleere `@param`-Zeilen an private
-Helfer hängte, bevor die Regel-Reichweite pro Regel statt einmal fürs Plugin
-eingestellt war.
-
-Die zweite organisatorische Herausforderung betrifft das eigene Prozessritual. Das
-**Prompt-Logging war lückenhaft**: Für den 29.07. war ein Prompt protokolliert,
-obwohl der Tag drei Commits inklusive einer 365-zeiligen Spezifikation hervorbrachte.
-Die Ursache ist strukturell und nicht Disziplin. _CHANGELOG.md_ verlangt einen Append
-an _eine_ Datei zur Commit-Zeit und wurde durchgehend gepflegt; das Prompt-Log
-verlangt einen Append _vor_ der Antwort, also außerhalb jedes bestehenden Takts, und
-schlief ein. Die Konsequenz war, das Journal-Ritual an die funktionierende Gewohnheit
-anzudocken — Commit-Zeit, eine Datei, ein Append — und die Vollständigkeit mit
-`npm run docs:check` beratend statt blockierend zu prüfen, weil blockierende
-Git-Hooks nachts mit `--no-verify` umgangen werden. Rückwirkend wurden **keine**
-Prompts erfunden; die Lücke ist in Kapitel 12 KI-Verzeichnis offengelegt.
+**Organisatorisch** wiegt am schwersten, dass die **Tooling-Anforderungen zu spät gegen
+den Anforderungskatalog geprüft** wurden: 40,5 h mussten nachträglich in die Restlaufzeit
+gedrängt werden. Die zweite ist das **lückenhafte Prompt-Logging** (Ursache und
+Konsequenz in 6.3 Entwicklungsprozess & Workflow); rückwirkend wurden keine Prompts
+erfunden.
 
 ## 10.3 Lessons Learned
 
-**Ein Prozessritual hält nur in einem bereits vorhandenen Takt.** Changelog und
-Prompt-Log stellten dieselbe Anforderung — eine Zeile pro Änderung — und nur eines von
-beiden wurde durchgehend erfüllt. Der Unterschied ist nicht Sorgfalt, sondern der
-Zeitpunkt: Der Append zur Commit-Zeit hängt an einer Handlung, die ohnehin stattfindet,
-der Append vor der Antwort an keiner. Für den Betrieb folgt daraus, neue Prozessvorgaben
-grundsätzlich an einen bestehenden Arbeitsschritt zu binden statt einen neuen zu
-fordern, und Vollständigkeitsprüfungen beratend statt blockierend zu bauen.
+**Ein Prozessritual hält nur in einem bereits vorhandenen Takt.** Nur der Append zur
+Commit-Zeit wurde durchgehend erfüllt; neue Prozessvorgaben gehören an einen bestehenden
+Arbeitsschritt, Vollständigkeitsprüfungen beratend statt blockierend gebaut.
 
 **Eine schmale, explizit dokumentierte Schnittstelle zahlt sich doppelt aus.** Der
-Puffer-Vertrag zwischen Engine und Frontend besteht aus flachen typisierten Arrays mit
-Zählern und sonst nichts. Er machte beide Seiten unabhängig testbar — die Engine unter
-`cargo test` ohne Browser, die Frontend-Logik unter Vitest ohne WASM-Build — und er
-machte die Erweiterung um drei zusätzliche Puffer zu einer additiven Änderung ohne
-Anpassung bestehender Aufrufer. Für zukünftige Projekte empfiehlt sich, die
-Schnittstelle zwischen zwei Technologien nicht aus dem Bedarf wachsen zu lassen,
-sondern sie vorab zu definieren und ihre Invarianten als eigene Teststufe abzusichern:
-Der teuerste Fehler des Projekts saß genau dort, wo bis dahin keine solche Stufe lag,
-nämlich im Lebenszyklus des Moduls statt in seinem Datenvertrag.
+Puffer-Vertrag machte beide Seiten unabhängig testbar und Erweiterungen additiv; der
+teuerste Fehler saß genau dort, wo keine eigene Teststufe lag — im Lebenszyklus des
+Moduls statt in seinem Datenvertrag.
 
-**Eine Zusicherung muss die Sache selbst prüfen, nicht ihre Folge.** Vier Befunde
-dieses Projekts sind Varianten desselben Musters: Obergrenzen ohne Untergrenze, ein
-Endzustand statt der Bewegung dorthin, ein einzelner Aufruf statt zweier
-aufeinanderfolgender. Alle vier Testmengen waren grün, alle vier Verhaltensweisen
-falsch. Die übertragbare Regel lautet, zu jeder Ausschlussbedingung („nichts liegt
-falsch") die zugehörige Existenzbedingung („überhaupt liegt etwas") zu formulieren und
-bei zustandsbehaftetem Code mindestens zwei Schritte zu prüfen. Ergänzend gilt: Bei
-einem sichtbaren Feature bleibt der Blick auf das laufende Programm ein Arbeitsschritt
-und keine Bequemlichkeit — er hat hier gefunden, was drei Teststufen nicht fanden.
+**Eine Zusicherung muss die Sache selbst prüfen, nicht ihre Folge.** Zu jeder
+Ausschlussbedingung gehört die Existenzbedingung, bei zustandsbehaftetem Code mindestens
+zwei Schritte — und der Blick auf das laufende Programm bleibt ein Arbeitsschritt.
 
 **Spezifikation vor Implementierung rechnet sich messbar.** Die beiden Maßnahmen mit
-einer eigenen, vorab geschriebenen Detail-Spezifikation — der Dash (_docs/spec-s05-dash.md_,
-~12 h gegen 14 h geschätzt) und die temporären Hindernisse
-(_docs/spec-s07-hindernisse.md_, 14,5 h gegen 16 h) — sind zugleich die beiden, die
-unter ihrer Schätzung geblieben sind. Bei den Hindernissen kam hinzu, dass die
-Sackgassenfreiheit in der Spezifikation als Beweisskizze formuliert und dadurch
-konstruktiv erzwungen werden konnte, statt sie zur Laufzeit zu prüfen (siehe 4.7
-Konfiguration — Wesentliche Einstellungen). Die Empfehlung ist entsprechend eng
-gefasst: nicht jede Änderung braucht eine Spezifikation, aber jede, deren erwartetes
-Verhalten sich mathematisch formulieren lässt.
+vorab geschriebener Detail-Spezifikation sind die beiden, die unter ihrer Schätzung
+geblieben sind.
 
 **Anforderungen an Werkzeuge und Prozess gehören in dieselbe erste Schätzung wie die
-Fachlichkeit.** Der Tooling-Block war nicht unterschätzt, er war schlicht nicht
-vorhanden — 40,5 h, also gut ein Fünftel des Endbudgets, kamen erst nach dem
-Projektstart hinzu. Für den Betrieb heißt das, den Abnahme- oder Anforderungskatalog
-vor der ersten Schätzung Punkt für Punkt in Arbeitspakete zu übersetzen, auch dort, wo
-er keine Fachlichkeit beschreibt. Der zweite Teil der Lehre ist der Notausgang, der
-hier tatsächlich gezogen wurde: Ein Werkzeug wegzulassen und seine Abwesenheit in drei
-belegten Sätzen zu begründen kostet Minuten statt Stunden — und ist, wie die
-Musterdokumentation zeigt, keine Abwertung, sondern eine ehrliche Aussage.
+Fachlichkeit.** Der Tooling-Block war nicht unterschätzt, er war nicht vorhanden. Der
+gezogene Notausgang: Ein Werkzeug wegzulassen und die Abwesenheit begründet zu benennen
+kostet Minuten statt Stunden.
 
-**Determinismus ist eine Architekturentscheidung, kein Implementierungsdetail.** Die
-Engine kommt ohne jede Zufallsquelle aus; Dash-Auswahl, Hindernis-Platzierung und
-Spawn-Punkte werden deterministisch aus dem Schrittzähler abgeleitet. Das wäre
-nachträglich nicht mehr einführbar gewesen, und es ist die Voraussetzung dafür, dass
-ein Simulationsfehler überhaupt reproduzierbar ist — bei einem Fehler, der erst nach
-zwei Millionen Schritten auftritt, ist Reproduzierbarkeit der Unterschied zwischen
-Diagnose und Raten. Übertragbar ist die allgemeinere Form: Eigenschaften, die die
-Testbarkeit eines Systems bestimmen, sind früh und global zu entscheiden, weil sie
-sich nicht lokal nachrüsten lassen.
+**Determinismus ist eine Architekturentscheidung, kein Implementierungsdetail.** Er wäre
+nachträglich nicht einführbar und ist die Voraussetzung dafür, dass ein Fehler nach zwei
+Millionen Schritten reproduzierbar statt erratbar ist.
 
-**Die begleitende Dokumentation hat den Zeitdruck am Projektende verringert, aber nicht
-beseitigt.** Ein Viertel aller Commits verändert ausschließlich Dokumentation (siehe
-9.4 Weitere Masszahlen), und die Entscheidungen der Kapitel 3 bis 5 mussten beim
-Schreiben nicht rekonstruiert, sondern nur aus dem Journal geholt werden. Trotzdem
-liegt `D-01` mit 16,5 von 22 h bei drei Vierteln des Budgets, während Anhang, Layout
-und Präsentation noch ausstehen. Die Lehre ist keine Korrektur des Vorgehens, sondern
-seiner Dosierung: Das Mitschreiben von **Fakten** während der Entwicklung funktioniert
-und ist beizubehalten; unterschätzt wurde der davon unabhängige Aufwand für
-Zusammenbau, Nummerierung und Layout am Ende.
+**Die begleitende Dokumentation hat den Zeitdruck am Ende verringert, aber nicht
+beseitigt.** Die Entscheidungen mussten nur aus dem Journal geholt werden; unterschätzt
+wurde der Aufwand für Zusammenbau, Nummerierung und Layout am Ende.

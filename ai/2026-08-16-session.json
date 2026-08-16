@@ -10,5 +10,11 @@
     "prompt": "Bitte ergänze doch noch passende mermaid diagramme anstatt der Platzhalter",
     "topic": "prozess-doku",
     "use": "uebernommen"
+  },
+  {
+    "model": "claude-fable-5",
+    "prompt": "So, die Dokumentation die du geschrieben hast ist gut, aber viel zu lang. Das sind laut word etwa 26000 Wörter, viel zu viel. Bitte fasse die Dokumentation so zusammen dass sie maximal 8000 Wörter lang ist. Kürze im Zweifel auch Details, kompromitiere nicht den Schreibstil.",
+    "topic": "prozess-doku",
+    "use": "uebernommen"
   }
 ]
