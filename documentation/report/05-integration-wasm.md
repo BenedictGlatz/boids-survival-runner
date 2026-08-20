@@ -254,4 +254,4 @@ Tests**, weil `#[wasm_bindgen_test]` für das Host-Ziel zu nichts expandiert; nu
 `wasm-pack test` führt sie aus. Aus demselben Grund weist `cargo llvm-cov` für
 `wasm_bridge/response.rs` 0 % aus, obwohl jeder Puffer, den die Datei zurückgibt, im Browser
 geprüft wird. Beide Befunde sind in 8.1 Unit Tests und Coverage eingeordnet; die Zahlen selbst
-stehen in 9.2b Coverage.
+stehen in 9.2 Coverage.

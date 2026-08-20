@@ -108,7 +108,7 @@ fortgeschrieben.
 
 ### Coverage je Modul — Engine
 
-Langfassung zu 9.2b Coverage, erhoben mit `cargo llvm-cov --lib --summary-only`,
+Langfassung zu 9.2 Coverage, erhoben mit `cargo llvm-cov --lib --summary-only`,
 Stand 20.08.2026, absteigend nach _Lines_ sortiert. `constants.rs` und `lib.rs`
 fehlen, weil sie keinen ausführbaren Code enthalten und der Report sie daher nicht
 ausweist.
@@ -146,11 +146,11 @@ ausweist.
 | **Gesamt**                         | 91,40 % |   92,49 % | 90,25 % |
 
 Die drei Nullen am Ende sind ein Messartefakt und kein Testloch; die Begründung
-steht in 9.2b Coverage.
+steht in 9.2 Coverage.
 
 ### Coverage je Modul — Frontend
 
-Langfassung zu 9.2b Coverage, erhoben mit `npm run test:coverage`
+Langfassung zu 9.2 Coverage, erhoben mit `npm run test:coverage`
 (`@vitest/coverage-v8`), Stand 20.08.2026, absteigend nach _Lines_ sortiert.
 `gameConfig.js` ist per `exclude` ausgenommen — es enthält ausschließlich
 Konstanten. Die Sortierung macht die zweigipfelige Verteilung sichtbar: 28 Module
@@ -264,6 +264,28 @@ Grundlage der Ist-Spalte sind 59 Journal-Zeilen über zehn Arbeitstage zwischen 
 29.07.2026 und dem 20.08.2026 mit zusammen 97,8 h, zuzüglich der noch nicht gebuchten
 Arbeit an Anhang und Zusammenbau und abzüglich der nach `D-01` umgebuchten Anteile.
 
+### Commits nach Conventional-Commit-Typ
+
+Langfassung zu 9.3 Weitere Masszahlen. Erhoben über alle 108 Commits zwischen dem
+03.05.2026 und dem 20.08.2026; die fünf Titel mit versehentlichem Präfix `@ ` sind für
+die Zählung um dieses Präfix bereinigt, damit sie ihrem inhaltlichen Typ zugeordnet
+bleiben statt als eigene Kategorie zu erscheinen.
+
+| Typ        | Anzahl |  Anteil |
+| ---------- | -----: | ------: |
+| `feat`     |     41 |  38,0 % |
+| `docs`     |     29 |  26,9 % |
+| `refactor` |     12 |  11,1 % |
+| `chore`    |      9 |   8,3 % |
+| `fix`      |      8 |   7,4 % |
+| `test`     |      5 |   4,6 % |
+| übrige     |      4 |   3,7 % |
+| **Summe**  |**108** | 100,0 % |
+
+_Übrige_ sind zwei `perf`, ein `style` und ein `revert`. Die Deutung der beiden
+auffälligen Verhältnisse — der `docs`-Anteil und `fix` unter `refactor` — steht in 9.3
+Weitere Masszahlen.
+
 ## 11.2 Abbildungen
 
 > TODO: Die gerenderten SVGs aus `rendered/`. Vorgesehen:
@@ -283,6 +305,55 @@ Arbeit an Anhang und Zusammenbau und abzüglich der nach `D-01` umgebuchten Ante
 > `frontend/playwright-report/` (`npm run test:e2e:report`).
 
 ## 11.3 Quellcode-Ausschnitte
+
+### Erhebungsbefehle der Masszahlen
+
+Quelle sämtlicher Zahlen in Kapitel 9 Quellcode-Übersicht. Die Befehle sind Teil der
+Antwort — sie machen die Angaben reproduzierbar und prüfbar statt schätzbar. Zwei
+Abgrenzungen stecken in ihnen und sind in 9.1 Größe und Verteilung begründet: `find`
+schließt das gitignorierte Build-Artefakt `frontend/src/wasm/engine/` aus, und die
+Produktiv-Zähler des Frontends schließen `__tests__/` aus, damit Produktiv- und
+Testcode nicht in einer Zahl verschmelzen.
+
+```bash
+# Engine: Dateien und Zeilen
+find engine/src -name '*.rs' | wc -l
+find engine/src -name '*.rs' -exec wc -l {} + | sort -n
+
+# Engine: Testfunktionen
+grep -rho '#[test]' engine/src --include='*.rs' | wc -l
+
+# Frontend: handgeschriebene Dateien und Zeilen (Build-Artefakte ausgenommen)
+find frontend/src -name '*.js' -not -path '*/wasm/*' -not -path '*__tests__*' | wc -l
+find frontend/src -name '*.js' -not -path '*/wasm/*' -not -path '*__tests__*' -exec wc -l {} + | sort -n
+
+# Frontend: Testfälle
+grep -rhoE '(it|test)(' frontend/src --include='*.test.js' | wc -l
+
+# Engine: Tests an der Sprachgrenze (laufen nur unter wasm-pack, nicht unter cargo test)
+grep -rho '#[wasm_bindgen_test]' engine/tests | wc -l
+
+# E2E-Fälle
+grep -rhoE 'test(' frontend/e2e --include='*.spec.js' | wc -l
+
+# Coverage, je Sprache getrennt erhoben
+cd frontend && npm run test:coverage    # Tabelle je Datei + coverage/coverage-summary.json
+cd engine   && cargo llvm-cov --lib --summary-only
+
+# Weitere Assets
+find frontend/styles -name '*.css' -exec wc -l {} +
+wc -l frontend/index.html frontend/public/locales/en.json
+
+# Ausgeliefertes Bundle
+npm run build && find dist -type f -exec ls -l {} +
+
+# Repository-Historie
+git log --oneline | wc -l
+git log --format='%s' | sed 's/^@ //' | grep -oE '^[a-z]+' | sort | uniq -c | sort -rn
+
+# Nachweis, dass die Erhebung endgültig ist: seit dem 13.08.2026 unverändert
+git log --since=2026-08-13 -- engine/ frontend/src frontend/e2e frontend/styles frontend/public
+```
 
 > TODO: Kurze, aussagekräftige Ausschnitte — je 10–25 Zeilen, keine ganzen Dateien.
 > Jeder Ausschnitt braucht eine Beschriftung und wird im Fließtext referenziert.

@@ -10,5 +10,11 @@
     "prompt": "Kapitel 9: Passe anhand der fertigen Version jetzt die Zahlen an, sodass wir die finale Dokumentation fertigstellen können",
     "topic": "prozess-doku",
     "use": "impl"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Schreibe mit diesen Infos Kapitel 9 neu: [kondensierte Fassung von Kapitel 9 mit Tabelle 8, Coverage-Absatz und Masszahlen-Absatz aus dem Word-Zusammenbau]",
+    "topic": "prozess-doku",
+    "use": "ueberarbeitet"
   }
 ]

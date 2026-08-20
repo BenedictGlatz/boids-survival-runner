@@ -42,7 +42,7 @@ Zusage, die überprüft wird: Was nur ordnerintern gebraucht wird, kommt nicht h
 `cargo clippy -- -D warnings` meldet einen Re-Export, den niemand liest.
 
 Die Modulübersicht mit einer Aufgabenzeile je Datei ist für 11.1 Tabellen vorgesehen; alle
-Zahlen zu Dateigröße und Verteilung stehen in 9.2 Größe und Verteilung.
+Zahlen zu Dateigröße und Verteilung stehen in 9.1 Größe und Verteilung.
 
 ## 4.2 Komponenten — Details & Interaktion
 
@@ -490,5 +490,5 @@ der Packung unabhängig, dichter gepackte Boids erzeugen nur mehr echte Überlap
 _innerhalb_ der Schleifen. Der eigentliche Lasthebel ist die Schwarmgröße.
 
 Die Testabdeckung dieses Kerns ist in 8.1 Unit Tests und Coverage beschrieben, die Zahlen
-stehen in 9.2b Coverage. Die deterministische Auswahl aus 4.2.1 ist als
+stehen in 9.2 Coverage. Die deterministische Auswahl aus 4.2.1 ist als
 Quellcode-Ausschnitt für 11.3 Quellcode-Ausschnitte vorgesehen.
