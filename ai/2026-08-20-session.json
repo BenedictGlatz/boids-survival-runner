@@ -1,0 +1,8 @@
+[
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Block\tSpecs\tPlan (h)\tIst (h)\tDifferenz\nFachliche Spezifikationen und Implementierung\tS-01 bis S-07\t30\t50\t+ 20\nTooling und Qualität \tT-01 bis T-08\t20\t15\t- 5\nDokumentation \tD-01\t20\t35\t+ 15\nGesamt\t\t70\t95\t+ 30\n\nIch habe die Tabelle umgeschrieben. Bitte passe die Doku anhand dessen an.",
+    "topic": "prozess-doku",
+    "use": "impl"
+  }
+]

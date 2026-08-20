@@ -116,8 +116,33 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-13 | 1,0 | D-01 | Kapitel 09 „Quellcode-Übersicht" von drei `TODO`-Blöcken auf Entwurfsstand ausgeschrieben: alle Zahlen einmal erhoben statt geschätzt, beide Punkte der Katalogfolie (Größe; Masszahlen) plus der Muster-Vorspann (Plattformen, Sprachen, Persistenzumfang, Testarten). Die Befehle in 9.1 sind gegen die tatsächliche Ausgabe nachgeschärft — die Gerüst-Fassung zählte mit `grep -rc` je Datei statt der Treffer und hätte die Testzahl falsch geliefert, und der Frontend-Zähler schloss `__tests__/` nicht aus, hätte Produktiv- und Testcode also in einer Zahl vermischt. Drei Befunde aus der Erhebung sind als Aussage ins Kapitel gewandert: der Testanteil liegt mit 45,6 % fast gleichauf mit dem Produktivcode; die Engine trägt die gesamte Simulation in 28,5 % des Produktivcodes, was die Zweischichtigkeit belegt statt ihr zu widersprechen; und fünf der 104 Commit-Titel tragen ein versehentliches Präfix `@ ` und sind damit formal nicht Conventional-Commits-konform — als Negativbefund ausgeschrieben statt per History-Rewrite kaschiert. Sechs Querverweise des Gerüsts zeigten auf nicht existierende Überschriften („1.1 Zielsetzung", „1.2 Nicht-Ziele", „2.1 Zwei Schichten", „3.2 Modularisierung", „7.4 Hard Rules", „7.7 Production Build") und sind gegen die realen Titel korrigiert. Neu im Anhang: die beiden Coverage-Tabellen je Datei, nach Wert sortiert; die Frontend-Tabelle macht die Zweigipfeligkeit sichtbar (28 Module bei 100 %, 23 bei 0 %, 9 dazwischen) |
 | 2026-08-13 | 1,5 | D-01 | Kapitel 10 „Projektbericht" von drei `TODO`-Blöcken auf Entwurfsstand ausgeschrieben, mit allen drei Punkten der Katalogfolie (Kapazitätsplan Plan und Ist, Herausforderungen, Lessons Learned). Der Ist-Aufwand ist erstmals aggregiert: 95,0 h aus 56 Journal-Zeilen über neun Arbeitstage, gegen ≈ 181 h Plan. Die Differenz von 86 h ist im Kapitel bewusst nicht als Einsparung gelesen, sondern in drei Anteile zerlegt — nicht erfasst (das Journal beginnt am 29.07., das Repository am 03.05., 24 Commits Prototyp liegen davor und sind ausdrücklich nicht rückwirkend geschätzt worden), noch offen (T-02, T-05, T-06 mit je 0,0 h plus Stufe 2 von T-08) und tatsächlich günstiger als geschätzt (S-05 und S-07, die beiden Maßnahmen mit vorab geschriebener Detail-Spezifikation). Herausforderungen und Lessons Learned sind dem Muster folgend Fließtext statt Stichpunkte. Die Aufschlüsselung je Maßnahme ist als 17-zeilige Tabelle in den Anhang gewandert, im Kapitel steht die Blockfassung mit vier Zeilen |
 | 2026-08-13 | 0,3 | D-01 | Die 20 lokalen Commits der Schreibphase (Kapitel 01–10, der Entwickler-Schalter für Unverwundbarkeit und die Verschiebung der Frontend-Tests nach `__tests__/`) nach `origin/dev` veröffentlicht, damit die Arbeit im Team fortgesetzt werden kann. Der Push ist ein reiner Vorspulschritt: `origin/dev` stand unverändert auf dem letzten gemeinsamen Stand, es gab nichts einzugliedern. Mitveröffentlicht ist `documentation/report/gesamtdokument.md`, die unveränderte Zusammenkopie der 13 Berichtsdateien und des Journals in **eine** Datei für die Abgabe. Sie ist bewusst als abgeleitetes Artefakt zu lesen: Sobald ein Kapitel unter `documentation/report/` geändert wird, ist sie veraltet und muss neu erzeugt werden — ein zweiter Bearbeiter darf sie deshalb nicht als Quelle nehmen, sondern nur die Einzeldateien |
+| 2026-08-20 | 1,0 | D-01 | Kapazitätsplan auf die vom Betreuer überarbeitete Blocktabelle umgestellt: Plan 30 / 20 / 20 = 70 h, Ist 50 / 15 / 35 = 100 h, Differenz + 30 h. Damit kehrt sich die Aussage von Kapitel 10.1 um — aus einer scheinbaren Unterschreitung wird eine Überschreitung um 43 %, und 10.1.3 ist entlang der neuen Zahlen neu geschrieben (zwei unabhängig geschätzte Blöcke um 67 % bzw. 75 % zu niedrig, das Tooling-Minus als Nicht-Umsetzung dreier Maßnahmen statt als Einsparung, die gestarteten fünf mit 15,0 h gegen 11,5 h Plan). Nachgezogen: die Schätzungen je Maßnahme in `docs/specs-overview.md` §3.1–3.4, damit die dort genannte Quelle die Blocksummen trägt; die 17-zeilige Aufschlüsselung im Anhang; die drei von den alten Zahlen getragenen Stellen in 10.2 und 10.3, darunter die Lehre zur Spezifikation vor Implementierung, die ihre Begründung („beide unter Schätzung geblieben") verliert und auf Ergebnis statt Aufwand umgestellt ist |
 
 ## Entscheidungen
+
+### 2026-08-20 — Die Ist-Zahlen werden auf Blockebene konsolidiert, nicht aus der Zeilensumme des Journals übernommen
+
+**Gewählt:** Die Blocktabelle in 10.1.3 führt 50 / 15 / 35 h, während die Aggregation
+der Journalzeilen 59,0 / 19,5 / 19,3 h ergibt. Die Differenz ist in 10.1.2 als
+Umbuchung benannt und begründet: Die Journal-ID benennt das Artefakt der Sitzung, nicht
+die Tätigkeit, weshalb Detail-Spezifikationen, Journalzeilen, Entscheidungsblöcke und
+Changelog-Einträge unter einer `S`- oder `T`-ID stehen, obwohl sie Dokumentation sind.
+
+**Verworfen:** (1) die Zeilensumme unverändert drucken und die neue Blocktabelle daneben
+stehen lassen; (2) die Journalzeilen rückwirkend umschreiben, damit die Summen von selbst
+stimmen.
+
+**Warum:** Die erste Option lässt zwei Zahlenwerke im selben Dokument
+gegeneinanderstehen, ohne zu sagen, wie sie zusammenhängen — genau der Fehler, den die
+Musterdokumentation als „Zahl ohne Deutung" führt. Die zweite fälscht ein
+Prozessartefakt: Das Journal ist die Zeitreihe der tatsächlichen Sitzungen, und ein
+rückwirkend geänderter Eintrag ist als Beleg wertlos. Übrig bleibt, beide Zahlenwerke
+stehen zu lassen und die Umrechnung offenzulegen.
+
+**Konsequenz:** Die Aufwandstabelle des Journals bleibt unverändert und ist weiterhin die
+Rohquelle; Kapitel 10.1.2 trägt die Überleitung, und der Anhang wiederholt sie in einem
+Satz, damit die Aufschlüsselung je Maßnahme für sich lesbar bleibt. Wer die Zahlen
+nachrechnet, findet die Abweichung erklärt statt unerklärt. → Kap. 10
 
 ### 2026-08-13 — Kapitel 09 wird vor dem Code-Freeze mit Stichtag geschrieben, nicht danach
 

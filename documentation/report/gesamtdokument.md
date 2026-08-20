@@ -19,7 +19,6 @@ Automatisch zusammengefuegt aus den Dateien in `documentation/report/`. Der Text
 13. Kapitel 13 - `12-ki-verzeichnis.md`
 14. Kapitel 14 - `projekt-journal.md`
 
-
 ---
 
 # Kapitel 1 - Datei: `00-index.md`
@@ -569,6 +568,7 @@ Entscheidungen mit dokumentiertem Zielkonflikt stecken: Die Dash-Taste ist flank
 und gelatcht, und die Tastatur gehört nur während einer laufenden Runde dem Spiel.
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart LR
   subgraph Browser
     KD["keydown"]
@@ -2996,25 +2996,28 @@ Schätzungen stehen in `docs/specs-overview.md` §3 und wurden **iterativ
 fortgeschrieben**, nicht einmalig festgelegt: Jede nachträglich aufgenommene Maßnahme
 trägt dort ihre Begründung und den Betrag, um den sie das Gesamtbudget erhöht hat.
 
-| Block                              |  Plan (h) |
-| ---------------------------------- | --------: |
-| Fachliche Specs `S-01`…`S-07`      |     ≈ 118 |
-| Tooling und Qualität `T-01`…`T-08` |    ≈ 40,5 |
-| Dokumentation `D-01`               |      ≈ 22 |
-| **Gesamt**                         | **≈ 181** |
+| Block                                         | Specs         | Plan (h) |
+| --------------------------------------------- | ------------- | -------: |
+| Fachliche Spezifikationen und Implementierung | `S-01`…`S-07` |     ≈ 30 |
+| Tooling und Qualität                          | `T-01`…`T-08` |     ≈ 20 |
+| Dokumentation                                 | `D-01`        |     ≈ 20 |
+| **Gesamt**                                    |               | **≈ 70** |
 
-Der ursprüngliche Umfang lag bei 85 h und wuchs in drei Schüben: `S-07` (temporäre
-Hindernisse, 16 h) und `S-05b` (Power-ups, 6 h) kamen fachlich hinzu, `T-03`, `T-07`
-und `T-08` als Qualitätsmaßnahmen (18,5 h), und der gesamte Tooling-Block war in der
-ersten Schätzung überhaupt nicht enthalten. Er ist keine eigene Idee, sondern eine
-Forderung des Anforderungskatalogs, die beim ersten Schätzen übersehen worden war.
+Der ursprünglich geschätzte Umfang des fachlichen Blocks lag bei ≈ 22 h und wuchs in
+drei Schüben: `S-07` (temporäre Hindernisse, ~5 h) und `S-05b` (Power-ups, ~2 h) kamen
+fachlich hinzu, `T-03`, `T-07` und `T-08` als Qualitätsmaßnahmen (9 h), und der
+gesamte Tooling-Block war in der ersten Schätzung überhaupt nicht enthalten. Er ist
+keine eigene Idee, sondern eine Forderung des Anforderungskatalogs, die beim ersten
+Schätzen übersehen worden war. Am Ende trägt er mit 20 h zwei Drittel dessen, was für
+die gesamte Fachlichkeit veranschlagt war.
 
-Damit lag das Budget von Anfang an **über der verfügbaren Kapazität** von realistisch
-fünf Wochen. Diese Überbuchung wurde nicht durch eine nachträgliche Gegenkürzung
-wegdefiniert, sondern durch zwei Mittel bearbeitet. Erstens die bewusste Streichung
-von _Slow-Time_ aus `S-05` — das einzige der drei angedachten Power-ups, das den
-festen Zeitschritt hätte aufweichen müssen, also ausgerechnet eine der beiden
-tragenden Invarianten (siehe 5.3 Integration / Schnittstellen). Zweitens eine
+Damit schöpfte das Budget die in realistisch fünf Wochen **verfügbare Kapazität von
+Anfang an vollständig aus** und ließ keine Reserve für Fehlschätzungen — genau die
+Reserve, die 10.1.3 Ist gegen Plan gebraucht hätte. Diese Enge wurde nicht durch eine
+nachträgliche Gegenkürzung wegdefiniert, sondern durch zwei Mittel bearbeitet. Erstens
+die bewusste Streichung von _Slow-Time_ aus `S-05` — das einzige der drei angedachten
+Power-ups, das den festen Zeitschritt hätte aufweichen müssen, also ausgerechnet eine
+der beiden tragenden Invarianten (siehe 5.3 Integration / Schnittstellen). Zweitens eine
 **begründete Reihenfolge**: Maßnahmen, die zwei Bewertungskriterien gleichzeitig
 bedienen — Tests und Coverage zahlen sowohl auf das Kapitel _Qualität_ als auch auf
 das Kriterium „hohe Testabdeckung" im Working Code ein —, liegen vor solchen, die nur
@@ -3033,62 +3036,84 @@ irreführender Aufwandsindikator, und verworfene Ansätze hinterlassen überhaup
 Commit — genau die Stunden, nach denen ein Kapazitätsplan fragt. `git log` diente als
 Gegenprobe, nicht als Quelle.
 
-Diese Erfassung hat eine **Lücke, die benannt gehört**: Das Journal beginnt am
-29.07.2026, das Repository am 03.05.2026. Die 24 Commits davor — der spielbare
-Prototyp aus Schwarmsimulation, Bridge, Renderer und Loop sowie der
+Die Zeilen des Journals ergeben aggregiert 97,8 h über 59 Einträge und zehn
+Arbeitstage, verteilt auf 59,0 h unter einer `S`-, 19,5 h unter einer `T`- und 19,3 h
+unter der `D`-ID. Die Blocktabelle unten ist daraus **konsolidiert und auf halbe
+Stunden gerundet** und weicht aus zwei benennbaren Gründen von der reinen Zeilensumme
+ab. Erstens benennt die Journal-ID das _Artefakt_ der Sitzung, nicht die
+_Tätigkeit_: Detail-Spezifikationen, Journalzeilen, Entscheidungsblöcke und
+Changelog-Einträge entstehen innerhalb einer Umsetzungssitzung und stehen deshalb
+unter deren `S`- oder `T`-ID, sind der Sache nach aber Dokumentation. Auf Blockebene
+sind sie `D-01` zugeordnet, rund 13,5 h. Zweitens steht die laufende Arbeit an Anhang,
+Diagrammen und dem Zusammenbau des Abgabedokuments zum Redaktionsschluss noch nicht als
+Journalzeile und kommt mit rund 2 h hinzu. Beide Korrekturen verschieben Aufwand in
+dieselbe Richtung, nämlich zu `D-01`.
+
+Diese Erfassung hat darüber hinaus eine **Lücke, die benannt gehört**: Das Journal
+beginnt am 29.07.2026, das Repository am 03.05.2026. Die 24 Commits davor — der
+spielbare Prototyp aus Schwarmsimulation, Bridge, Renderer und Loop sowie der
 Frametime-Graph — sind **nicht** in den Ist-Zahlen enthalten. Die unten ausgewiesenen
-95,0 h sind daher der Aufwand der dokumentierten Projektphase, nicht der
-Gesamtaufwand. Rückwirkend geschätzte Stunden wären eine Erfindung gewesen und hätten
-die Aussagekraft der übrigen Zeilen mit beschädigt.
+100 h sind daher der Aufwand der dokumentierten Projektphase, nicht der Gesamtaufwand.
+Rückwirkend geschätzte Stunden wären eine Erfindung gewesen und hätten die
+Aussagekraft der übrigen Zeilen mit beschädigt. Für die Auswertung heißt das: Jede
+Überschreitung im fachlichen Block ist eine **Untergrenze**.
 
 ### 10.1.3 Ist gegen Plan
 
-| Block                              |  Plan (h) |  Ist (h) |  Differenz |
-| ---------------------------------- | --------: | -------: | ---------: |
-| Fachliche Specs `S-01`…`S-07`      |     ≈ 118 |     59,0 |     − 59,0 |
-| Tooling und Qualität `T-01`…`T-08` |    ≈ 40,5 |     19,5 |     − 21,0 |
-| Dokumentation `D-01`               |      ≈ 22 |     16,5 |      − 5,5 |
-| **Gesamt**                         | **≈ 181** | **95,0** | **− 86,0** |
+| Block                                         | Specs         | Plan (h) | Ist (h) | Differenz |
+| --------------------------------------------- | ------------- | -------: | ------: | --------: |
+| Fachliche Spezifikationen und Implementierung | `S-01`…`S-07` |     ≈ 30 |      50 |      + 20 |
+| Tooling und Qualität                          | `T-01`…`T-08` |     ≈ 20 |      15 |       − 5 |
+| Dokumentation                                 | `D-01`        |     ≈ 20 |      35 |      + 15 |
+| **Gesamt**                                    |               | **≈ 70** | **100** |  **+ 30** |
 
 _Die Aufschlüsselung je Maßnahme steht im Anhang (siehe 11.1 Tabellen,
 Kapazitätsplan je Maßnahme — Plan und Ist)._
 
-Die Differenz von 86 h ist **keine Einsparung**, und sie so zu lesen wäre der
-Hauptfehler bei der Auswertung dieser Tabelle. Sie setzt sich aus drei sachlich
-verschiedenen Anteilen zusammen.
+Das Projekt hat sein Budget um **30 h oder 43 %** überschritten. Die Überschreitung
+verteilt sich nicht auf einen Ausreißer, sondern auf zwei Blöcke, die unabhängig
+voneinander geschätzt wurden und beide um einen ähnlichen Faktor danebenliegen: die
+Fachlichkeit um 67 %, die Dokumentation um 75 %. Wenn zwei getrennte Schätzungen um
+nahezu denselben Faktor zu niedrig ausfallen, liegt die Ursache nicht in den einzelnen
+Aufgaben, sondern in der Schätzmethode — hier in einer Schätzung, die den fertigen
+Zustand veranschlagt und den Weg dorthin nicht: Diagnose, Nachbesserung und das
+Schreiben dessen, was getan wurde. Wegen der Lücke aus 10.1.2 Erfassung des
+Ist-Aufwands ist die fachliche Überschreitung zudem eine Untergrenze; die Stunden der
+Prototyp-Phase vor dem 29.07.2026 fehlen darin vollständig.
 
-- **Nicht erfasst.** Der größte Anteil steht bei `S-01` (18 h geplant, 1,5 h erfasst)
-  und `S-06` (12 h geplant, 2,0 h erfasst). Beide sind weitgehend umgesetzt — die
-  Schwarmsimulation ist das Fokus-Thema des Projekts und trägt die höchste
-  Testabdeckung überhaupt (siehe 9.2b Coverage). Ihr Aufwand liegt in der Phase vor
-  dem Journal.
-- **Noch offen.** 11 h entfallen auf die drei nie begonnenen Maßnahmen `T-02`
-  (TypeScript-Prüfung), `T-05` (CI/CD-Pipeline) und `T-06` (Deployment), die je 0,0 h
-  Ist ausweisen. Sie sind in 7.6 TypeScript, 8.3 CI/CD: GitHub Actions Pipeline und
-  7.10 Deployment als begründete Negativbefunde ausgeschrieben statt verschwiegen.
-  Weitere ~6 h entfallen auf die zweite Stufe von `T-08`, deren Priorisierung
-  planmäßig von den Zahlen abhängt, die ihre erste Stufe erst erzeugt hat (siehe 8.6
-  GPU-Last: Messgrundlage vor Optimierung).
-- **Tatsächlich günstiger als geschätzt.** `S-07` (16 h geplant, 14,5 h erfasst) und
-  `S-05` einschließlich `S-05b` (22 h geplant, 15,5 h erfasst) liegen unter der
-  Schätzung, obwohl sie vollständig in der erfassten Phase liegen und vollständig
-  umgesetzt sind. Beide sind die Maßnahmen mit einer eigenen, vorab geschriebenen
-  Detail-Spezifikation.
+Im fachlichen Block tragen drei Zeilen den Betrag. `S-03` (3 h geplant, 11,5 h
+erfasst) hat einen Design-Handoff aufgenommen, der zum Schätzzeitpunkt nicht vorlag.
+`S-07` (4 h geplant, 12,5 h erfasst) und `S-05` einschließlich `S-05b` (5,5 h geplant,
+13,0 h erfasst) sind die beiden umfangreichsten Features des Projekts, beide
+vollständig umgesetzt und beide erst nach der ersten Schätzung aufgenommen — sie
+wurden also zu einem Zeitpunkt beziffert, zu dem ihr Umfang am wenigsten bekannt war.
+Dazu kommt Aufwand, den keine Feature-Schätzung enthielt: allein die beiden in 10.2
+Herausforderungen beschriebenen Befunde stehen für rund 6,5 h, überwiegend Diagnose.
 
-Die einzige Zeile mit einer echten Überschreitung nach oben ist `S-03` (12 h geplant,
-13,5 h erfasst) — dort ist ein Design-Handoff eingearbeitet worden, der zum
-Schätzzeitpunkt nicht vorlag. `D-01` steht mit 16,5 h von 22 h bei rund drei Vierteln,
-hat davon aber erst die Kapitel 01 bis 09 erreicht; die verbleibenden 5,5 h müssen
-Anhang, Diagramme, den Word-Zusammenbau und die Abschlusspräsentation tragen. Das ist
-knapp, und es ist dieselbe Engstelle, die die Musterdokumentation in ihren eigenen
-Lessons Learned nennt.
+Die einzige Zeile unter Plan ist der Tooling-Block, und sie ist **keine Einsparung**.
+`T-02` (TypeScript-Prüfung), `T-05` (CI/CD-Pipeline) und `T-06` (Deployment) weisen je
+0,0 h aus und stehen zusammen für 5,5 h Plan; die zweite Stufe von `T-08` für weitere
+3 h, deren Priorisierung planmäßig von den Zahlen abhängt, die ihre erste Stufe erst
+erzeugt hat (siehe 8.6 GPU-Last: Messgrundlage vor Optimierung). Alle vier sind als
+begründete Negativbefunde ausgeschrieben statt verschwiegen (siehe 7.6 TypeScript, 8.3
+CI/CD: GitHub Actions Pipeline und 7.10 Deployment). Was tatsächlich stattgefunden hat,
+liegt mit 15,0 h gegen 11,5 h geplant um 3,5 h **über** Schätzung — der Block folgt
+also demselben Muster wie die beiden anderen, und sein Minus entsteht ausschließlich
+daraus, dass drei von acht Maßnahmen nicht begonnen wurden.
 
-Was die Planung insgesamt trägt: Ihre Reihenfolge hat gehalten. Von den acht
-Tooling-Maßnahmen sind genau die fünf umgesetzt, die vorn in der begründeten Liste
-standen, und die drei offenen sind genau die, die dort ans Ende gestellt wurden.
-Eine Planung, die eine erkannte Überbuchung dokumentiert und die Ausfälle an der
-vorher benannten Stelle eintreten lässt, ist die stärkere Aussage als eine, die im
-Nachhinein aufgeht.
+`D-01` ist die größte relative Überschreitung und zugleich die einzige, die noch
+wächst: 35 h gegen 20 h Plan, und darin sind Anhang, Diagramme, der Zusammenbau des
+Abgabedokuments und die Abschlusspräsentation noch nicht enthalten. Was hier
+unterschätzt wurde, ist nicht das Mitschreiben während der Entwicklung — das hat
+funktioniert und ist in 10.3 Lessons Learned als tragfähig ausgewiesen —, sondern der
+davon unabhängige Aufwand, aus mitgeschriebenen Fakten Prosa zu machen.
+
+Was die Planung trotz der Überschreitung trägt: Ihre **Reihenfolge** hat gehalten. Von
+den acht Tooling-Maßnahmen sind genau die fünf umgesetzt, die vorn in der begründeten
+Liste standen, und die drei offenen sind genau die, die dort ans Ende gestellt wurden.
+Eine Planung, deren Betrag zu niedrig war, deren Ausfälle aber an der vorher benannten
+Stelle eintreten, ist die stärkere Aussage als eine, die im Nachhinein aufgeht, weil
+irgendwo still gekürzt wurde.
 
 ## 10.2 Herausforderungen
 
@@ -3126,11 +3151,12 @@ Gefunden hat den ersten dieser Fälle keine der drei Teststufen, sondern ein Bli
 einen Screenshot des laufenden Spiels.
 
 **Organisatorisch** wiegt am schwersten, dass die **Tooling-Anforderungen zu spät
-gegen den Anforderungskatalog geprüft** wurden. Die ursprüngliche Schätzung von 85 h
-enthielt keine einzige Stunde für Linter, Formatter, Coverage, E2E-Tests, CI/CD oder
-Deployment, obwohl der Katalog dafür zwei eigene Kapitel und ein eigenes
-Bewertungskriterium vorsieht. Die nachgeholte Schätzung ergab 40,5 h, die in die
-Restlaufzeit gedrängt werden mussten — und die drei zuletzt einsortierten Maßnahmen
+gegen den Anforderungskatalog geprüft** wurden. Die ursprüngliche Schätzung — ≈ 22 h
+für den fachlichen Block — enthielt keine einzige Stunde für Linter, Formatter,
+Coverage, E2E-Tests, CI/CD oder Deployment, obwohl der Katalog dafür zwei eigene
+Kapitel und ein eigenes Bewertungskriterium vorsieht. Die nachgeholte Schätzung ergab
+20 h, also fast noch einmal so viel wie die gesamte Fachlichkeit, und musste in die
+Restlaufzeit gedrängt werden — und die drei zuletzt einsortierten Maßnahmen
 sind genau die, die bis heute offen sind. Der Aufwand für das Nachziehen selbst blieb
 dabei in einem Fall unter der Kontrolle der Planung und in einem nicht: Die
 JSDoc-Nachrüstung war mit 1,5–2 h geplant und lag bei 2,5 h, weil `eslint --fix` auf
@@ -3181,20 +3207,26 @@ bei zustandsbehaftetem Code mindestens zwei Schritte zu prüfen. Ergänzend gilt
 einem sichtbaren Feature bleibt der Blick auf das laufende Programm ein Arbeitsschritt
 und keine Bequemlichkeit — er hat hier gefunden, was drei Teststufen nicht fanden.
 
-**Spezifikation vor Implementierung rechnet sich messbar.** Die beiden Maßnahmen mit
-einer eigenen, vorab geschriebenen Detail-Spezifikation — der Dash (`docs/spec-s05-dash.md`,
-~12 h gegen 14 h geschätzt) und die temporären Hindernisse
-(`docs/spec-s07-hindernisse.md`, 14,5 h gegen 16 h) — sind zugleich die beiden, die
-unter ihrer Schätzung geblieben sind. Bei den Hindernissen kam hinzu, dass die
-Sackgassenfreiheit in der Spezifikation als Beweisskizze formuliert und dadurch
-konstruktiv erzwungen werden konnte, statt sie zur Laufzeit zu prüfen (siehe 4.8
-Implementierung der Fachlogik). Die Empfehlung ist entsprechend eng gefasst: nicht
-jede Änderung braucht eine Spezifikation, aber jede, deren erwartetes Verhalten sich
-mathematisch formulieren lässt.
+**Spezifikation vor Implementierung zahlt auf das Ergebnis ein, nicht auf den
+Aufwand.** Die beiden Maßnahmen mit einer eigenen, vorab geschriebenen
+Detail-Spezifikation — der Dash (`docs/spec-s05-dash.md`) und die temporären
+Hindernisse (`docs/spec-s07-hindernisse.md`) — sind die beiden umfangreichsten
+Features des Projekts, beide vollständig umgesetzt und beide ohne nachträgliche
+Korrektur ihres Umfangs. Bei den Hindernissen kam hinzu, dass die Sackgassenfreiheit
+in der Spezifikation als Beweisskizze formuliert und dadurch konstruktiv erzwungen
+werden konnte, statt sie zur Laufzeit zu prüfen (siehe 4.8 Implementierung der
+Fachlogik). Billiger gemacht hat die Spezifikation sie dagegen nicht: `S-07` (4 h
+geplant, 12,5 h erfasst) und `S-05` (5,5 h geplant, 13,0 h erfasst) stellen den
+größten Teil der Überschreitung des fachlichen Blocks. Die Lehre ist deshalb enger zu
+fassen, als sie zunächst aussieht — eine vorab geschriebene Spezifikation ist eine
+Korrektheits- und keine Sparmaßnahme: Sie verhindert Nacharbeit an der falschen Sache,
+nicht den Aufwand für die richtige. Entsprechend braucht nicht jede Änderung eine
+Spezifikation, aber jede, deren erwartetes Verhalten sich mathematisch formulieren
+lässt.
 
 **Anforderungen an Werkzeuge und Prozess gehören in dieselbe erste Schätzung wie die
 Fachlichkeit.** Der Tooling-Block war nicht unterschätzt, er war schlicht nicht
-vorhanden — 40,5 h, also gut ein Fünftel des Endbudgets, kamen erst nach dem
+vorhanden — 20 h, also knapp drei Zehntel des Endbudgets, kamen erst nach dem
 Projektstart hinzu. Für den Betrieb heißt das, den Abnahme- oder Anforderungskatalog
 vor der ersten Schätzung Punkt für Punkt in Arbeitspakete zu übersetzen, auch dort, wo
 er keine Fachlichkeit beschreibt. Der zweite Teil der Lehre ist der Notausgang, der
@@ -3216,7 +3248,7 @@ sich nicht lokal nachrüsten lassen.
 beseitigt.** Ein Viertel aller Commits verändert ausschließlich Dokumentation (siehe
 9.3 Weitere Masszahlen), und die Entscheidungen der Kapitel 03 bis 05 mussten beim
 Schreiben nicht rekonstruiert, sondern nur aus dem Journal geholt werden. Trotzdem
-liegt `D-01` mit 16,5 von 22 h bei drei Vierteln des Budgets, während Anhang, Layout
+steht `D-01` mit 35 h gegen 20 h Plan bei 175 % seines Budgets, während Anhang, Layout
 und Präsentation noch ausstehen. Die Lehre ist keine Korrektur des Vorgehens, sondern
 seiner Dosierung: Das Mitschreiben von **Fakten** während der Entwicklung funktioniert
 und ist beizubehalten; unterschätzt wurde der davon unabhängige Aufwand für
@@ -3458,36 +3490,41 @@ Playwright-Suite aus 8.2 E2E Tests.
 
 Aufschlüsselung der Blocktabelle aus 10.1.3 Ist gegen Plan. _Plan_ stammt aus
 `docs/specs-overview.md` §3, _Ist_ aus der Aufwandstabelle des Journals, aggregiert je
-Maßnahmen-ID, Stand 13.08.2026. Die Journal-IDs `S-04b` (Pause) und `S-05b` (Power-ups)
-sind in `S-04` bzw. `S-05` eingerechnet, weil die Planung sie dort führt. Die
-Ist-Spalte enthält nur die dokumentierte Projektphase ab dem 29.07.2026; die Gründe
-und die Folgen für die Differenz stehen in 10.1.2 Erfassung des Ist-Aufwands.
+Maßnahmen-ID und auf halbe Stunden gerundet, Stand 20.08.2026. Die Journal-IDs `S-04b`
+(Pause) und `S-05b` (Power-ups) sind in `S-04` bzw. `S-05` eingerechnet, weil die
+Planung sie dort führt. Der in 10.1.2 Erfassung des Ist-Aufwands beschriebene
+Dokumentationsanteil, der im Journal unter einer `S`- oder `T`-ID gebucht ist, ist
+anteilig aus diesen Zeilen heraus- und in `D-01` hineingerechnet; die Zeilenwerte
+liegen deshalb unter der reinen Journal-Aggregation. Die Ist-Spalte enthält nur die
+dokumentierte Projektphase ab dem 29.07.2026 — die Gründe und die Folgen für die
+Differenz stehen ebenfalls in 10.1.2.
 
-| ID                     | Maßnahme                                    |  Plan (h) |  Ist (h) | Stand                                     |
-| ---------------------- | ------------------------------------------- | --------: | -------: | ----------------------------------------- |
-| `S-01`                 | Boid-Schwarm-Simulation                     |        18 |      1,5 | umgesetzt, überwiegend vor dem Journal    |
-| `S-02`                 | WASM-Bridge-API                             |         5 |      6,0 | umgesetzt                                 |
-| `S-03`                 | Rendering & HUD                             |        12 |     13,5 | umgesetzt, Design-Handoff eingearbeitet   |
-| `S-04` (inkl. `S-04b`) | Loop & Waves, Pause                         |        13 |      6,0 | umgesetzt, Kern vor dem Journal           |
-| `S-05` (inkl. `S-05b`) | Steuerung, Dash, Power-ups                  |        22 |     15,5 | umgesetzt, _Slow-Time_ bewusst gestrichen |
-| `S-06`                 | Querschnitt: i18n, Scoring, Build           |        12 |      2,0 | umgesetzt, überwiegend vor dem Journal    |
-| `S-07`                 | Temporäre Hindernisse                       |        16 |     14,5 | umgesetzt                                 |
-| —                      | Integrations- und Testzuschlag (~20 %)      |      ≈ 19 |        — | nicht separat erfasst, in den Zeilen      |
-| **Summe Specs**        |                                             | **≈ 118** | **59,0** |                                           |
-| `T-01`                 | ESLint, Prettier, JSDoc-Enforcement         |         5 |      4,0 | umgesetzt                                 |
-| `T-02`                 | TypeScript-Prüfung über `allowJs`/`checkJs` |         3 |      0,0 | offen, begründet in 7.6 TypeScript        |
-| `T-03`                 | Coverage beide Sprachen                     |       3,5 |      1,5 | umgesetzt                                 |
-| `T-04`                 | E2E-Tests inkl. Report                      |         6 |      5,0 | umgesetzt                                 |
-| `T-05`                 | CI/CD: GitHub-Actions-Pipeline              |         5 |      0,0 | offen, begründet in 8.3 CI/CD             |
-| `T-06`                 | Deployment auf GitHub Pages                 |         3 |      0,0 | offen, begründet in 7.10 Deployment       |
-| `T-07`                 | Unit-Test-Lücken schließen                  |         6 |      3,0 | teilweise umgesetzt                       |
-| `T-08`                 | GPU-Last messen, dann senken                |         9 |      6,0 | Stufe 1 umgesetzt, Stufe 2 offen          |
-| **Summe Tooling**      |                                             |  **40,5** | **19,5** |                                           |
-| `D-01`                 | Dokumentation, Diagramme, Layout            |        22 |     16,5 | Kapitel 01–10 im Entwurf                  |
-| **Gesamt**             |                                             | **≈ 181** | **95,0** |                                           |
+| ID                     | Maßnahme                                    | Plan (h) |  Ist (h) | Stand                                     |
+| ---------------------- | ------------------------------------------- | -------: | -------: | ----------------------------------------- |
+| `S-01`                 | Boid-Schwarm-Simulation                     |      4,5 |      1,5 | umgesetzt, überwiegend vor dem Journal    |
+| `S-02`                 | WASM-Bridge-API                             |      1,5 |      5,0 | umgesetzt                                 |
+| `S-03`                 | Rendering & HUD                             |      3,0 |     11,5 | umgesetzt, Design-Handoff eingearbeitet   |
+| `S-04` (inkl. `S-04b`) | Loop & Waves, Pause                         |      3,5 |      5,0 | umgesetzt, Kern vor dem Journal           |
+| `S-05` (inkl. `S-05b`) | Steuerung, Dash, Power-ups                  |      5,5 |     13,0 | umgesetzt, _Slow-Time_ bewusst gestrichen |
+| `S-06`                 | Querschnitt: i18n, Scoring, Build           |      3,0 |      1,5 | umgesetzt, überwiegend vor dem Journal    |
+| `S-07`                 | Temporäre Hindernisse                       |      4,0 |     12,5 | umgesetzt                                 |
+| —                      | Integrations- und Testzuschlag (~20 %)      |      ≈ 5 |        — | nicht separat erfasst, in den Zeilen      |
+| **Summe Specs**        |                                             | **≈ 30** | **50,0** |                                           |
+| `T-01`                 | ESLint, Prettier, JSDoc-Enforcement         |      2,5 |      3,0 | umgesetzt                                 |
+| `T-02`                 | TypeScript-Prüfung über `allowJs`/`checkJs` |      1,5 |      0,0 | offen, begründet in 7.6 TypeScript        |
+| `T-03`                 | Coverage beide Sprachen                     |      1,5 |      1,0 | umgesetzt                                 |
+| `T-04`                 | E2E-Tests inkl. Report                      |      3,0 |      4,0 | umgesetzt                                 |
+| `T-05`                 | CI/CD: GitHub-Actions-Pipeline              |      2,5 |      0,0 | offen, begründet in 8.3 CI/CD             |
+| `T-06`                 | Deployment auf GitHub Pages                 |      1,5 |      0,0 | offen, begründet in 7.10 Deployment       |
+| `T-07`                 | Unit-Test-Lücken schließen                  |      3,0 |      2,5 | teilweise umgesetzt                       |
+| `T-08`                 | GPU-Last messen, dann senken                |      4,5 |      4,5 | Stufe 1 umgesetzt, Stufe 2 offen          |
+| **Summe Tooling**      |                                             | **20,0** | **15,0** |                                           |
+| `D-01`                 | Dokumentation, Diagramme, Layout            |     20,0 |     35,0 | Kapitel 01–10 im Entwurf, Anhang offen    |
+| **Gesamt**             |                                             | **≈ 70** |  **100** |                                           |
 
-Die Summe der Ist-Spalte entspricht 56 Journal-Zeilen über neun Arbeitstage zwischen
-dem 29.07.2026 und dem 13.08.2026.
+Grundlage der Ist-Spalte sind 59 Journal-Zeilen über zehn Arbeitstage zwischen dem
+29.07.2026 und dem 20.08.2026 mit zusammen 97,8 h, zuzüglich der noch nicht gebuchten
+Arbeit an Anhang und Zusammenbau und abzüglich der nach `D-01` umgebuchten Anteile.
 
 ## 11.2 Abbildungen
 
@@ -3809,8 +3846,34 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-13 | 1,5 | D-01 | Kapitel 07 „Tooling" und 08 „Qualität" von zusammen zehn `TODO`-Blöcken auf Entwurfsstand ausgeschrieben — damit sind beide Kapitel erstmals vollständig, obwohl vier ihrer Maßnahmen offen sind. Neu in Kap. 7: Package Management (zwei Paketmanager, `wasm-pack` als nicht versionierte Naht, die **gar nicht vorhandene** `dependencies`-Sektion des Frontends als Entscheidung mit ihrem Preis), Branch-Struktur, Dev Build (`--target web` gegen `--target bundler` begründet: Vite 5 versteht einen nackten `.wasm`-Import nicht von sich aus) und Production Build. Neu in Kap. 8: die Pipeline als Vier-Job-Entwurf mit Begründung der Reihenfolge, und Lighthouse als Vier-Kategorien-Tabelle statt als Verzicht in einem Satz. Fünf Angaben am Artefakt statt am Gedächtnis geprüft, drei davon mit Berichtsfolge: die gebaute `index.html` verweist **absolut** auf `/assets/…`, der Locale-Abruf dagegen relativ auf `./locales/` — die beiden Hälften derselben Seite verhalten sich unter einem Pages-Unterpfad also unterschiedlich, was den `base`-Fallstrick belegbar macht statt behauptet; das generierte Glue-Modul weicht bei falschem `.wasm`-MIME-Type auf `WebAssembly.instantiate` aus und schreibt eine **Warnung**, und `watchForBrowserProblems` sammelt nur `console.error` — die E2E-Suite bliebe bei dieser Fehlkonfiguration grün, was als Grenze notiert ist; `main` steht bei **einem** Commit gegen 102 auf `dev` und es existiert kein einziger Merge-Commit, der Branch trägt seine zugewiesene Rolle also derzeit nicht. Zwei Korrekturen an bestehendem Text: 8.6.1 verwies für den Frametime-Graphen auf „Kap. 8.1", beschrieben ist er in 3.2.1 — geändert; und die Kapitelvorrede von 8 nannte statische Analyse „für Stil und Typen", was ohne T-02 nicht stimmt. Eine geplante Aussage gestrichen statt geschönt: Der Entwurf zu 7.6 sollte einen konkreten Bridge-Signaturfehler als Beleg für den Nutzen von `checkJs` anführen; ein solcher Vorfall ist im Journal nicht dokumentiert und wurde durch das strukturelle Argument ersetzt (jeder Name ist an der `snake_case`→`camelCase`-Naht einmal je Seite handgeschrieben) |
 | 2026-08-13 | 1,0 | D-01 | Kapitel 09 „Quellcode-Übersicht" von drei `TODO`-Blöcken auf Entwurfsstand ausgeschrieben: alle Zahlen einmal erhoben statt geschätzt, beide Punkte der Katalogfolie (Größe; Masszahlen) plus der Muster-Vorspann (Plattformen, Sprachen, Persistenzumfang, Testarten). Die Befehle in 9.1 sind gegen die tatsächliche Ausgabe nachgeschärft — die Gerüst-Fassung zählte mit `grep -rc` je Datei statt der Treffer und hätte die Testzahl falsch geliefert, und der Frontend-Zähler schloss `__tests__/` nicht aus, hätte Produktiv- und Testcode also in einer Zahl vermischt. Drei Befunde aus der Erhebung sind als Aussage ins Kapitel gewandert: der Testanteil liegt mit 45,6 % fast gleichauf mit dem Produktivcode; die Engine trägt die gesamte Simulation in 28,5 % des Produktivcodes, was die Zweischichtigkeit belegt statt ihr zu widersprechen; und fünf der 104 Commit-Titel tragen ein versehentliches Präfix `@ ` und sind damit formal nicht Conventional-Commits-konform — als Negativbefund ausgeschrieben statt per History-Rewrite kaschiert. Sechs Querverweise des Gerüsts zeigten auf nicht existierende Überschriften („1.1 Zielsetzung", „1.2 Nicht-Ziele", „2.1 Zwei Schichten", „3.2 Modularisierung", „7.4 Hard Rules", „7.7 Production Build") und sind gegen die realen Titel korrigiert. Neu im Anhang: die beiden Coverage-Tabellen je Datei, nach Wert sortiert; die Frontend-Tabelle macht die Zweigipfeligkeit sichtbar (28 Module bei 100 %, 23 bei 0 %, 9 dazwischen) |
 | 2026-08-13 | 1,5 | D-01 | Kapitel 10 „Projektbericht" von drei `TODO`-Blöcken auf Entwurfsstand ausgeschrieben, mit allen drei Punkten der Katalogfolie (Kapazitätsplan Plan und Ist, Herausforderungen, Lessons Learned). Der Ist-Aufwand ist erstmals aggregiert: 95,0 h aus 56 Journal-Zeilen über neun Arbeitstage, gegen ≈ 181 h Plan. Die Differenz von 86 h ist im Kapitel bewusst nicht als Einsparung gelesen, sondern in drei Anteile zerlegt — nicht erfasst (das Journal beginnt am 29.07., das Repository am 03.05., 24 Commits Prototyp liegen davor und sind ausdrücklich nicht rückwirkend geschätzt worden), noch offen (T-02, T-05, T-06 mit je 0,0 h plus Stufe 2 von T-08) und tatsächlich günstiger als geschätzt (S-05 und S-07, die beiden Maßnahmen mit vorab geschriebener Detail-Spezifikation). Herausforderungen und Lessons Learned sind dem Muster folgend Fließtext statt Stichpunkte. Die Aufschlüsselung je Maßnahme ist als 17-zeilige Tabelle in den Anhang gewandert, im Kapitel steht die Blockfassung mit vier Zeilen |
+| 2026-08-13 | 0,3 | D-01 | Die 20 lokalen Commits der Schreibphase (Kapitel 01–10, der Entwickler-Schalter für Unverwundbarkeit und die Verschiebung der Frontend-Tests nach `__tests__/`) nach `origin/dev` veröffentlicht, damit die Arbeit im Team fortgesetzt werden kann. Der Push ist ein reiner Vorspulschritt: `origin/dev` stand unverändert auf dem letzten gemeinsamen Stand, es gab nichts einzugliedern. Mitveröffentlicht ist `documentation/report/gesamtdokument.md`, die unveränderte Zusammenkopie der 13 Berichtsdateien und des Journals in **eine** Datei für die Abgabe. Sie ist bewusst als abgeleitetes Artefakt zu lesen: Sobald ein Kapitel unter `documentation/report/` geändert wird, ist sie veraltet und muss neu erzeugt werden — ein zweiter Bearbeiter darf sie deshalb nicht als Quelle nehmen, sondern nur die Einzeldateien |
+| 2026-08-20 | 1,0 | D-01 | Kapazitätsplan auf die vom Betreuer überarbeitete Blocktabelle umgestellt: Plan 30 / 20 / 20 = 70 h, Ist 50 / 15 / 35 = 100 h, Differenz + 30 h. Damit kehrt sich die Aussage von Kapitel 10.1 um — aus einer scheinbaren Unterschreitung wird eine Überschreitung um 43 %, und 10.1.3 ist entlang der neuen Zahlen neu geschrieben (zwei unabhängig geschätzte Blöcke um 67 % bzw. 75 % zu niedrig, das Tooling-Minus als Nicht-Umsetzung dreier Maßnahmen statt als Einsparung, die gestarteten fünf mit 15,0 h gegen 11,5 h Plan). Nachgezogen: die Schätzungen je Maßnahme in `docs/specs-overview.md` §3.1–3.4, damit die dort genannte Quelle die Blocksummen trägt; die 17-zeilige Aufschlüsselung im Anhang; die drei von den alten Zahlen getragenen Stellen in 10.2 und 10.3, darunter die Lehre zur Spezifikation vor Implementierung, die ihre Begründung („beide unter Schätzung geblieben") verliert und auf Ergebnis statt Aufwand umgestellt ist |
 
 ## Entscheidungen
+
+### 2026-08-20 — Die Ist-Zahlen werden auf Blockebene konsolidiert, nicht aus der Zeilensumme des Journals übernommen
+
+**Gewählt:** Die Blocktabelle in 10.1.3 führt 50 / 15 / 35 h, während die Aggregation
+der Journalzeilen 59,0 / 19,5 / 19,3 h ergibt. Die Differenz ist in 10.1.2 als
+Umbuchung benannt und begründet: Die Journal-ID benennt das Artefakt der Sitzung, nicht
+die Tätigkeit, weshalb Detail-Spezifikationen, Journalzeilen, Entscheidungsblöcke und
+Changelog-Einträge unter einer `S`- oder `T`-ID stehen, obwohl sie Dokumentation sind.
+
+**Verworfen:** (1) die Zeilensumme unverändert drucken und die neue Blocktabelle daneben
+stehen lassen; (2) die Journalzeilen rückwirkend umschreiben, damit die Summen von selbst
+stimmen.
+
+**Warum:** Die erste Option lässt zwei Zahlenwerke im selben Dokument
+gegeneinanderstehen, ohne zu sagen, wie sie zusammenhängen — genau der Fehler, den die
+Musterdokumentation als „Zahl ohne Deutung" führt. Die zweite fälscht ein
+Prozessartefakt: Das Journal ist die Zeitreihe der tatsächlichen Sitzungen, und ein
+rückwirkend geänderter Eintrag ist als Beleg wertlos. Übrig bleibt, beide Zahlenwerke
+stehen zu lassen und die Umrechnung offenzulegen.
+
+**Konsequenz:** Die Aufwandstabelle des Journals bleibt unverändert und ist weiterhin die
+Rohquelle; Kapitel 10.1.2 trägt die Überleitung, und der Anhang wiederholt sie in einem
+Satz, damit die Aufschlüsselung je Maßnahme für sich lesbar bleibt. Wer die Zahlen
+nachrechnet, findet die Abweichung erklärt statt unerklärt. → Kap. 10
 
 ### 2026-08-13 — Kapitel 09 wird vor dem Code-Freeze mit Stichtag geschrieben, nicht danach
 

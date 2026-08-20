@@ -228,36 +228,41 @@ Playwright-Suite aus 8.2 E2E Tests.
 
 Aufschlüsselung der Blocktabelle aus 10.1.3 Ist gegen Plan. _Plan_ stammt aus
 `docs/specs-overview.md` §3, _Ist_ aus der Aufwandstabelle des Journals, aggregiert je
-Maßnahmen-ID, Stand 13.08.2026. Die Journal-IDs `S-04b` (Pause) und `S-05b` (Power-ups)
-sind in `S-04` bzw. `S-05` eingerechnet, weil die Planung sie dort führt. Die
-Ist-Spalte enthält nur die dokumentierte Projektphase ab dem 29.07.2026; die Gründe
-und die Folgen für die Differenz stehen in 10.1.2 Erfassung des Ist-Aufwands.
+Maßnahmen-ID und auf halbe Stunden gerundet, Stand 20.08.2026. Die Journal-IDs `S-04b`
+(Pause) und `S-05b` (Power-ups) sind in `S-04` bzw. `S-05` eingerechnet, weil die
+Planung sie dort führt. Der in 10.1.2 Erfassung des Ist-Aufwands beschriebene
+Dokumentationsanteil, der im Journal unter einer `S`- oder `T`-ID gebucht ist, ist
+anteilig aus diesen Zeilen heraus- und in `D-01` hineingerechnet; die Zeilenwerte
+liegen deshalb unter der reinen Journal-Aggregation. Die Ist-Spalte enthält nur die
+dokumentierte Projektphase ab dem 29.07.2026 — die Gründe und die Folgen für die
+Differenz stehen ebenfalls in 10.1.2.
 
-| ID                     | Maßnahme                                    |  Plan (h) |  Ist (h) | Stand                                     |
-| ---------------------- | ------------------------------------------- | --------: | -------: | ----------------------------------------- |
-| `S-01`                 | Boid-Schwarm-Simulation                     |        18 |      1,5 | umgesetzt, überwiegend vor dem Journal    |
-| `S-02`                 | WASM-Bridge-API                             |         5 |      6,0 | umgesetzt                                 |
-| `S-03`                 | Rendering & HUD                             |        12 |     13,5 | umgesetzt, Design-Handoff eingearbeitet   |
-| `S-04` (inkl. `S-04b`) | Loop & Waves, Pause                         |        13 |      6,0 | umgesetzt, Kern vor dem Journal           |
-| `S-05` (inkl. `S-05b`) | Steuerung, Dash, Power-ups                  |        22 |     15,5 | umgesetzt, _Slow-Time_ bewusst gestrichen |
-| `S-06`                 | Querschnitt: i18n, Scoring, Build           |        12 |      2,0 | umgesetzt, überwiegend vor dem Journal    |
-| `S-07`                 | Temporäre Hindernisse                       |        16 |     14,5 | umgesetzt                                 |
-| —                      | Integrations- und Testzuschlag (~20 %)      |      ≈ 19 |        — | nicht separat erfasst, in den Zeilen      |
-| **Summe Specs**        |                                             | **≈ 118** | **59,0** |                                           |
-| `T-01`                 | ESLint, Prettier, JSDoc-Enforcement         |         5 |      4,0 | umgesetzt                                 |
-| `T-02`                 | TypeScript-Prüfung über `allowJs`/`checkJs` |         3 |      0,0 | offen, begründet in 7.6 TypeScript        |
-| `T-03`                 | Coverage beide Sprachen                     |       3,5 |      1,5 | umgesetzt                                 |
-| `T-04`                 | E2E-Tests inkl. Report                      |         6 |      5,0 | umgesetzt                                 |
-| `T-05`                 | CI/CD: GitHub-Actions-Pipeline              |         5 |      0,0 | offen, begründet in 8.3 CI/CD             |
-| `T-06`                 | Deployment auf GitHub Pages                 |         3 |      0,0 | offen, begründet in 7.10 Deployment       |
-| `T-07`                 | Unit-Test-Lücken schließen                  |         6 |      3,0 | teilweise umgesetzt                       |
-| `T-08`                 | GPU-Last messen, dann senken                |         9 |      6,0 | Stufe 1 umgesetzt, Stufe 2 offen          |
-| **Summe Tooling**      |                                             |  **40,5** | **19,5** |                                           |
-| `D-01`                 | Dokumentation, Diagramme, Layout            |        22 |     16,5 | Kapitel 01–10 im Entwurf                  |
-| **Gesamt**             |                                             | **≈ 181** | **95,0** |                                           |
+| ID                     | Maßnahme                                    | Plan (h) |  Ist (h) | Stand                                     |
+| ---------------------- | ------------------------------------------- | -------: | -------: | ----------------------------------------- |
+| `S-01`                 | Boid-Schwarm-Simulation                     |      4,5 |      1,5 | umgesetzt, überwiegend vor dem Journal    |
+| `S-02`                 | WASM-Bridge-API                             |      1,5 |      5,0 | umgesetzt                                 |
+| `S-03`                 | Rendering & HUD                             |      3,0 |     11,5 | umgesetzt, Design-Handoff eingearbeitet   |
+| `S-04` (inkl. `S-04b`) | Loop & Waves, Pause                         |      3,5 |      5,0 | umgesetzt, Kern vor dem Journal           |
+| `S-05` (inkl. `S-05b`) | Steuerung, Dash, Power-ups                  |      5,5 |     13,0 | umgesetzt, _Slow-Time_ bewusst gestrichen |
+| `S-06`                 | Querschnitt: i18n, Scoring, Build           |      3,0 |      1,5 | umgesetzt, überwiegend vor dem Journal    |
+| `S-07`                 | Temporäre Hindernisse                       |      4,0 |     12,5 | umgesetzt                                 |
+| —                      | Integrations- und Testzuschlag (~20 %)      |      ≈ 5 |        — | nicht separat erfasst, in den Zeilen      |
+| **Summe Specs**        |                                             | **≈ 30** | **50,0** |                                           |
+| `T-01`                 | ESLint, Prettier, JSDoc-Enforcement         |      2,5 |      3,0 | umgesetzt                                 |
+| `T-02`                 | TypeScript-Prüfung über `allowJs`/`checkJs` |      1,5 |      0,0 | offen, begründet in 7.6 TypeScript        |
+| `T-03`                 | Coverage beide Sprachen                     |      1,5 |      1,0 | umgesetzt                                 |
+| `T-04`                 | E2E-Tests inkl. Report                      |      3,0 |      4,0 | umgesetzt                                 |
+| `T-05`                 | CI/CD: GitHub-Actions-Pipeline              |      2,5 |      0,0 | offen, begründet in 8.3 CI/CD             |
+| `T-06`                 | Deployment auf GitHub Pages                 |      1,5 |      0,0 | offen, begründet in 7.10 Deployment       |
+| `T-07`                 | Unit-Test-Lücken schließen                  |      3,0 |      2,5 | teilweise umgesetzt                       |
+| `T-08`                 | GPU-Last messen, dann senken                |      4,5 |      4,5 | Stufe 1 umgesetzt, Stufe 2 offen          |
+| **Summe Tooling**      |                                             | **20,0** | **15,0** |                                           |
+| `D-01`                 | Dokumentation, Diagramme, Layout            |     20,0 |     35,0 | Kapitel 01–10 im Entwurf, Anhang offen    |
+| **Gesamt**             |                                             | **≈ 70** |  **100** |                                           |
 
-Die Summe der Ist-Spalte entspricht 56 Journal-Zeilen über neun Arbeitstage zwischen
-dem 29.07.2026 und dem 13.08.2026.
+Grundlage der Ist-Spalte sind 59 Journal-Zeilen über zehn Arbeitstage zwischen dem
+29.07.2026 und dem 20.08.2026 mit zusammen 97,8 h, zuzüglich der noch nicht gebuchten
+Arbeit an Anhang und Zusammenbau und abzüglich der nach `D-01` umgebuchten Anteile.
 
 ## 11.2 Abbildungen
 
