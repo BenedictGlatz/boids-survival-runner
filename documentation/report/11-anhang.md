@@ -109,7 +109,7 @@ fortgeschrieben.
 ### Coverage je Modul — Engine
 
 Langfassung zu 9.2b Coverage, erhoben mit `cargo llvm-cov --lib --summary-only`,
-Stand 13.08.2026, absteigend nach _Lines_ sortiert. `constants.rs` und `lib.rs`
+Stand 20.08.2026, absteigend nach _Lines_ sortiert. `constants.rs` und `lib.rs`
 fehlen, weil sie keinen ausführbaren Code enthalten und der Report sie daher nicht
 ausweist.
 
@@ -151,7 +151,7 @@ steht in 9.2b Coverage.
 ### Coverage je Modul — Frontend
 
 Langfassung zu 9.2b Coverage, erhoben mit `npm run test:coverage`
-(`@vitest/coverage-v8`), Stand 13.08.2026, absteigend nach _Lines_ sortiert.
+(`@vitest/coverage-v8`), Stand 20.08.2026, absteigend nach _Lines_ sortiert.
 `gameConfig.js` ist per `exclude` ausgenommen — es enthält ausschließlich
 Konstanten. Die Sortierung macht die zweigipfelige Verteilung sichtbar: 28 Module
 bei 100 %, 23 bei 0 %, nur 9 dazwischen.

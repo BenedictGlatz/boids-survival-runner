@@ -66,7 +66,7 @@ Status: `Gerüst` (nur Überschriften) → `Entwurf` (Inhalt steht, Sprache rau)
 | 06  | [KI-driven Engineering & Prozess](06-ki-engineering-und-prozess.md)      |  ~2 S. | Entwurf   | —                                             |
 | 07  | [Tooling](07-tooling.md)                                                 |  ~3 S. | Entwurf   | 7.6/7.10 nachziehen, falls T-02/T-06          |
 | 08  | [Qualität](08-qualitaet.md)                                              |  ~2 S. | Entwurf   | 8.3 falls T-05, 8.5 falls T-06, 8.6 Messreihe |
-| 09  | [Quellcode-Übersicht](09-quellcode-uebersicht.md)                        |  ~1 S. | Entwurf   | Zahlen nach Code-Freeze neu erheben           |
+| 09  | [Quellcode-Übersicht](09-quellcode-uebersicht.md)                        |  ~1 S. | Fertig    | Zahlen final erhoben, Stand 20.08.2026        |
 | 10  | [Projektbericht](10-projektbericht.md)                                   |  ~2 S. | Entwurf   | Ist-Zahlen nach Code-Freeze nachziehen        |
 | 11  | [Anhang](11-anhang.md)                                                   |      — | Gerüst    | akkretiv                                      |
 | 12  | [KI-Verzeichnis](12-ki-verzeichnis.md)                                   |      — | generiert | `npm run docs:ki-verzeichnis`                 |
@@ -2739,18 +2739,29 @@ damit über dem Ergebnis, und das ist der berichtsfähige Teil des Befunds.
 
 # 9 Quellcode-Übersicht
 
-`Seitenbudget: ~1 S. | Status: Entwurf | Quellen: die Befehle unten`
+`Seitenbudget: ~1 S. | Status: Fertig | Quellen: die Befehle unten`
 
 **Dies ist die einzige Stelle im Bericht, an der Zahlen stehen.** LOC, Dateizahlen,
 Testzahlen, Coverage-Prozente und Commit-Zahlen gehören ausschließlich hierher; alle
 anderen Kapitel verweisen zurück. Sonst tauchen dieselben Zahlen in Kap. 3, 4 und 8
 auf und laufen bis zur Abgabe auseinander.
 
-Alle folgenden Werte haben den **Stand 13.08.2026**. Sie sind nach dem Code-Freeze
-(24.08.2026) einmal neu zu erheben, und zwingend _nach_ T-01/T-02: die JSDoc-Pflicht
-erhöht die Zeilenzahlen, und die 400-Zeilen-Regel kann dadurch neue Datei-Splits
-auslösen. Die Befehle in 9.1 Methodik der Masszahlen machen diese Neuerhebung zu
-einem einzelnen Arbeitsschritt.
+Alle folgenden Werte sind an der abgabefertigen Fassung erhoben, **Stand
+20.08.2026**; es ist die abschließende Erhebung, alle Befehle aus 9.1 Methodik der
+Masszahlen sind dafür erneut ausgeführt worden. Ihr wichtigstes Ergebnis ist ein
+Nullbefund: seit dem 13.08.2026 ist keine Zeile Produktiv-, Test- oder Asset-Code mehr
+verändert worden — `git log --since=2026-08-13 -- engine/ frontend/src frontend/e2e`
+liefert keinen Commit. Sämtliche Werte in 9.2 Größe und Verteilung und 9.2b Coverage
+gelten damit unverändert; fortgeschrieben sind allein die beiden Kennzahlen, die sich
+in der reinen Schreibphase noch bewegen, nämlich Repository-Historie und
+KI-Protokollierung in 9.3 Weitere Masszahlen.
+
+Damit ist auch der Vorbehalt beantwortet, unter dem die Erhebung vom 13.08.2026 stand:
+Die JSDoc-Pflicht aus T-01 hätte die Zeilenzahlen erhöhen und über die 400-Zeilen-Regel
+neue Datei-Splits auslösen können — sie war zu diesem Zeitpunkt jedoch bereits in Kraft
+und ist in den Zahlen enthalten. T-02 (`checkJs`) ist nicht umgesetzt worden (siehe
+10.1.3 Ist gegen Plan) und hätte als reine Konfigurationsdatei ohnehin keine
+Quellzeile verändert.
 
 Das Projekt läuft auf **einer** Plattform — einem Browser mit WebAssembly- und
 Canvas-2D-Unterstützung, ohne Installation und ohne Server (siehe 1.3 Details zum
@@ -2931,23 +2942,23 @@ aus 1.2 Die Lösung nicht nur formal.
 Regel „keine hartcodierten nutzersichtbaren Strings" aus 6.2 Komponenten & Struktur — jeder im UI sichtbare
 Text hat dort einen Eintrag.
 
-**Repository-Historie.** 104 Commits zwischen dem 03.05.2026 und dem 13.08.2026.
+**Repository-Historie.** 108 Commits zwischen dem 03.05.2026 und dem 20.08.2026.
 Ihre Verteilung nach Conventional-Commit-Typ belegt die in 6.3 Entwicklungsprozess &
 Workflow beschriebene Commit-Disziplin mit Daten:
 
 | Typ        | Anzahl | Anteil |
 | ---------- | -----: | -----: |
-| `feat`     |     41 | 39,4 % |
-| `docs`     |     25 | 24,0 % |
-| `refactor` |     12 | 11,5 % |
-| `chore`    |      9 |  8,7 % |
-| `fix`      |      8 |  7,7 % |
-| `test`     |      5 |  4,8 % |
-| übrige     |      4 |  3,8 % |
+| `feat`     |     41 | 38,0 % |
+| `docs`     |     29 | 26,9 % |
+| `refactor` |     12 | 11,1 % |
+| `chore`    |      9 |  8,3 % |
+| `fix`      |      8 |  7,4 % |
+| `test`     |      5 |  4,6 % |
+| übrige     |      4 |  3,7 % |
 
 _Tabelle 10: Commits nach Conventional-Commit-Typ_
 
-Bemerkenswert sind zwei Verhältnisse. Der `docs`-Anteil von 24,0 % ist die
+Bemerkenswert sind zwei Verhältnisse. Der `docs`-Anteil von 26,9 % ist die
 messbare Folge der Entscheidung, den Bericht **begleitend** zu schreiben statt
 nachgelagert (siehe 6.3 Entwicklungsprozess & Workflow) — ein Viertel aller
 Commits verändert ausschließlich Dokumentation. Und `fix` liegt mit 8 Commits
@@ -2956,17 +2967,21 @@ was zu einem Projekt passt, dessen Architektur sich während der Entwicklung noc
 verdichtet hat (die vier Ordner-Zusammenlegungen unter `simulation/` sind vier
 dieser zwölf).
 
-Ein negativer Befund gehört dazu: **fünf der 104 Commit-Titel tragen ein
+Ein negativer Befund gehört dazu: **fünf der 108 Commit-Titel tragen ein
 versehentliches Präfix `@ `** und sind damit streng genommen nicht
-Conventional-Commits-konform. Der Anteil formal korrekter Titel liegt bei 95,2 %.
+Conventional-Commits-konform. Der Anteil formal korrekter Titel liegt bei 95,4 %.
 Inhaltlich sind auch diese fünf regelkonform aufgebaut (`docs:` bzw.
 `refactor(engine):`); korrigiert wurden sie nicht, weil ein History-Rewrite auf
 einem bereits geteilten Branch teurer wäre als der Schönheitsfehler.
 
-**KI-Nutzung.** 72 protokollierte Prompts in 12 Sitzungsdateien unter `ai/`,
-thematisch verteilt auf `prozess-doku` (26), `frontend-ui` (22), `engine` (14),
-`tooling-tests` (5), `loop-input` (3) und `wasm-bridge` (2). Die vollständige
-Auflistung ist Kapitel 12 KI-Verzeichnis und wird aus denselben Dateien generiert.
+**KI-Nutzung.** 77 protokollierte Prompts in 13 Sitzungsdateien unter `ai/`,
+thematisch verteilt auf `prozess-doku` (30), `frontend-ui` (22), `engine` (14),
+`tooling-tests` (6), `loop-input` (3) und `wasm-bridge` (2). Die Verteilung ist der
+Abdruck der Projektphasen: `prozess-doku` steht seit dem 13.08.2026 an der Spitze,
+weil in dieser Phase ausschließlich der Bericht entsteht, während `engine` und
+`wasm-bridge` mit zusammen 16 Prompts seit dem Code-Freeze der Simulation nicht mehr
+gewachsen sind. Die vollständige Auflistung ist Kapitel 12 KI-Verzeichnis und wird aus
+denselben Dateien generiert.
 
 ---
 
@@ -3371,7 +3386,7 @@ fortgeschrieben.
 ### Coverage je Modul — Engine
 
 Langfassung zu 9.2b Coverage, erhoben mit `cargo llvm-cov --lib --summary-only`,
-Stand 13.08.2026, absteigend nach _Lines_ sortiert. `constants.rs` und `lib.rs`
+Stand 20.08.2026, absteigend nach _Lines_ sortiert. `constants.rs` und `lib.rs`
 fehlen, weil sie keinen ausführbaren Code enthalten und der Report sie daher nicht
 ausweist.
 
@@ -3413,7 +3428,7 @@ steht in 9.2b Coverage.
 ### Coverage je Modul — Frontend
 
 Langfassung zu 9.2b Coverage, erhoben mit `npm run test:coverage`
-(`@vitest/coverage-v8`), Stand 13.08.2026, absteigend nach _Lines_ sortiert.
+(`@vitest/coverage-v8`), Stand 20.08.2026, absteigend nach _Lines_ sortiert.
 `gameConfig.js` ist per `exclude` ausgenommen — es enthält ausschließlich
 Konstanten. Die Sortierung macht die zweigipfelige Verteilung sichtbar: 28 Module
 bei 100 %, 23 bei 0 %, nur 9 dazwischen.
@@ -3848,6 +3863,7 @@ denen der Kapazitätsplan fragt. `git log` dient als Gegenprobe, nicht als Quell
 | 2026-08-13 | 1,5 | D-01 | Kapitel 10 „Projektbericht" von drei `TODO`-Blöcken auf Entwurfsstand ausgeschrieben, mit allen drei Punkten der Katalogfolie (Kapazitätsplan Plan und Ist, Herausforderungen, Lessons Learned). Der Ist-Aufwand ist erstmals aggregiert: 95,0 h aus 56 Journal-Zeilen über neun Arbeitstage, gegen ≈ 181 h Plan. Die Differenz von 86 h ist im Kapitel bewusst nicht als Einsparung gelesen, sondern in drei Anteile zerlegt — nicht erfasst (das Journal beginnt am 29.07., das Repository am 03.05., 24 Commits Prototyp liegen davor und sind ausdrücklich nicht rückwirkend geschätzt worden), noch offen (T-02, T-05, T-06 mit je 0,0 h plus Stufe 2 von T-08) und tatsächlich günstiger als geschätzt (S-05 und S-07, die beiden Maßnahmen mit vorab geschriebener Detail-Spezifikation). Herausforderungen und Lessons Learned sind dem Muster folgend Fließtext statt Stichpunkte. Die Aufschlüsselung je Maßnahme ist als 17-zeilige Tabelle in den Anhang gewandert, im Kapitel steht die Blockfassung mit vier Zeilen |
 | 2026-08-13 | 0,3 | D-01 | Die 20 lokalen Commits der Schreibphase (Kapitel 01–10, der Entwickler-Schalter für Unverwundbarkeit und die Verschiebung der Frontend-Tests nach `__tests__/`) nach `origin/dev` veröffentlicht, damit die Arbeit im Team fortgesetzt werden kann. Der Push ist ein reiner Vorspulschritt: `origin/dev` stand unverändert auf dem letzten gemeinsamen Stand, es gab nichts einzugliedern. Mitveröffentlicht ist `documentation/report/gesamtdokument.md`, die unveränderte Zusammenkopie der 13 Berichtsdateien und des Journals in **eine** Datei für die Abgabe. Sie ist bewusst als abgeleitetes Artefakt zu lesen: Sobald ein Kapitel unter `documentation/report/` geändert wird, ist sie veraltet und muss neu erzeugt werden — ein zweiter Bearbeiter darf sie deshalb nicht als Quelle nehmen, sondern nur die Einzeldateien |
 | 2026-08-20 | 1,0 | D-01 | Kapazitätsplan auf die vom Betreuer überarbeitete Blocktabelle umgestellt: Plan 30 / 20 / 20 = 70 h, Ist 50 / 15 / 35 = 100 h, Differenz + 30 h. Damit kehrt sich die Aussage von Kapitel 10.1 um — aus einer scheinbaren Unterschreitung wird eine Überschreitung um 43 %, und 10.1.3 ist entlang der neuen Zahlen neu geschrieben (zwei unabhängig geschätzte Blöcke um 67 % bzw. 75 % zu niedrig, das Tooling-Minus als Nicht-Umsetzung dreier Maßnahmen statt als Einsparung, die gestarteten fünf mit 15,0 h gegen 11,5 h Plan). Nachgezogen: die Schätzungen je Maßnahme in `docs/specs-overview.md` §3.1–3.4, damit die dort genannte Quelle die Blocksummen trägt; die 17-zeilige Aufschlüsselung im Anhang; die drei von den alten Zahlen getragenen Stellen in 10.2 und 10.3, darunter die Lehre zur Spezifikation vor Implementierung, die ihre Begründung („beide unter Schätzung geblieben") verliert und auf Ergebnis statt Aufwand umgestellt ist |
+| 2026-08-20 | 0,5 | D-01 | Kapitel 09 „Quellcode-Übersicht“ auf die abgabefertige Fassung nachgemessen und von ‚Entwurf‘ auf ‚Fertig‘ gesetzt. Alle Befehle aus 9.1 erneut ausgeführt; der wichtigste Befund ist ein Nullbefund: `git log --since=2026-08-13 -- engine/ frontend/src frontend/e2e frontend/styles frontend/public` ist leer, seit dem 13.08.2026 ist also keine Zeile Code mehr verändert worden. Damit gelten sämtliche Größen-, Test- und Coverage-Zahlen unverändert weiter, und die im Kapitelvorspann angekündigte Neuerhebung nach T-01/T-02 ist beantwortet statt offen gelassen — die befürchtete Zeilenzunahme durch die JSDoc-Pflicht ist ausgeblieben. Die Frontend-Coverage ist zur Gegenprobe tatsächlich neu gemessen worden und liefert exakt dieselben Werte (45,42 / 50,25 / 48,13 %). Fortgeschrieben sind nur die beiden Kennzahlen, die sich in der reinen Schreibphase noch bewegen: die Historie auf 108 Commits (03.05.–20.08.2026) mit neuer Typverteilung — der `docs`-Anteil steigt von 24,0 % auf 26,9 %, was die Aussage ‚Bericht begleitend geschrieben‘ eher stärkt — und die KI-Protokollierung auf 77 Prompts in 13 Sitzungsdateien. Der Negativbefund zu den fünf `@ `-Präfixen bleibt bestehen, sein Anteil verschiebt sich von 95,2 % auf 95,4 % korrekter Titel. `cargo llvm-cov` war lokal nicht installiert; die Engine-Coverage ist deshalb nicht neu gemessen, sondern über den Nullbefund am Code als weiterhin gültig begründet |
 
 ## Entscheidungen
 

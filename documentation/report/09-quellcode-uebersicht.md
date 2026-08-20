@@ -1,17 +1,28 @@
 # 9 Quellcode-Übersicht
 
-`Seitenbudget: ~1 S. | Status: Entwurf | Quellen: die Befehle unten`
+`Seitenbudget: ~1 S. | Status: Fertig | Quellen: die Befehle unten`
 
 **Dies ist die einzige Stelle im Bericht, an der Zahlen stehen.** LOC, Dateizahlen,
 Testzahlen, Coverage-Prozente und Commit-Zahlen gehören ausschließlich hierher; alle
 anderen Kapitel verweisen zurück. Sonst tauchen dieselben Zahlen in Kap. 3, 4 und 8
 auf und laufen bis zur Abgabe auseinander.
 
-Alle folgenden Werte haben den **Stand 13.08.2026**. Sie sind nach dem Code-Freeze
-(24.08.2026) einmal neu zu erheben, und zwingend _nach_ T-01/T-02: die JSDoc-Pflicht
-erhöht die Zeilenzahlen, und die 400-Zeilen-Regel kann dadurch neue Datei-Splits
-auslösen. Die Befehle in 9.1 Methodik der Masszahlen machen diese Neuerhebung zu
-einem einzelnen Arbeitsschritt.
+Alle folgenden Werte sind an der abgabefertigen Fassung erhoben, **Stand
+20.08.2026**; es ist die abschließende Erhebung, alle Befehle aus 9.1 Methodik der
+Masszahlen sind dafür erneut ausgeführt worden. Ihr wichtigstes Ergebnis ist ein
+Nullbefund: seit dem 13.08.2026 ist keine Zeile Produktiv-, Test- oder Asset-Code mehr
+verändert worden — `git log --since=2026-08-13 -- engine/ frontend/src frontend/e2e`
+liefert keinen Commit. Sämtliche Werte in 9.2 Größe und Verteilung und 9.2b Coverage
+gelten damit unverändert; fortgeschrieben sind allein die beiden Kennzahlen, die sich
+in der reinen Schreibphase noch bewegen, nämlich Repository-Historie und
+KI-Protokollierung in 9.3 Weitere Masszahlen.
+
+Damit ist auch der Vorbehalt beantwortet, unter dem die Erhebung vom 13.08.2026 stand:
+Die JSDoc-Pflicht aus T-01 hätte die Zeilenzahlen erhöhen und über die 400-Zeilen-Regel
+neue Datei-Splits auslösen können — sie war zu diesem Zeitpunkt jedoch bereits in Kraft
+und ist in den Zahlen enthalten. T-02 (`checkJs`) ist nicht umgesetzt worden (siehe
+10.1.3 Ist gegen Plan) und hätte als reine Konfigurationsdatei ohnehin keine
+Quellzeile verändert.
 
 Das Projekt läuft auf **einer** Plattform — einem Browser mit WebAssembly- und
 Canvas-2D-Unterstützung, ohne Installation und ohne Server (siehe 1.3 Details zum
@@ -192,23 +203,23 @@ aus 1.2 Die Lösung nicht nur formal.
 Regel „keine hartcodierten nutzersichtbaren Strings" aus 6.2 Komponenten & Struktur — jeder im UI sichtbare
 Text hat dort einen Eintrag.
 
-**Repository-Historie.** 104 Commits zwischen dem 03.05.2026 und dem 13.08.2026.
+**Repository-Historie.** 108 Commits zwischen dem 03.05.2026 und dem 20.08.2026.
 Ihre Verteilung nach Conventional-Commit-Typ belegt die in 6.3 Entwicklungsprozess &
 Workflow beschriebene Commit-Disziplin mit Daten:
 
 | Typ        | Anzahl | Anteil |
 | ---------- | -----: | -----: |
-| `feat`     |     41 | 39,4 % |
-| `docs`     |     25 | 24,0 % |
-| `refactor` |     12 | 11,5 % |
-| `chore`    |      9 |  8,7 % |
-| `fix`      |      8 |  7,7 % |
-| `test`     |      5 |  4,8 % |
-| übrige     |      4 |  3,8 % |
+| `feat`     |     41 | 38,0 % |
+| `docs`     |     29 | 26,9 % |
+| `refactor` |     12 | 11,1 % |
+| `chore`    |      9 |  8,3 % |
+| `fix`      |      8 |  7,4 % |
+| `test`     |      5 |  4,6 % |
+| übrige     |      4 |  3,7 % |
 
 _Tabelle 10: Commits nach Conventional-Commit-Typ_
 
-Bemerkenswert sind zwei Verhältnisse. Der `docs`-Anteil von 24,0 % ist die
+Bemerkenswert sind zwei Verhältnisse. Der `docs`-Anteil von 26,9 % ist die
 messbare Folge der Entscheidung, den Bericht **begleitend** zu schreiben statt
 nachgelagert (siehe 6.3 Entwicklungsprozess & Workflow) — ein Viertel aller
 Commits verändert ausschließlich Dokumentation. Und `fix` liegt mit 8 Commits
@@ -217,14 +228,18 @@ was zu einem Projekt passt, dessen Architektur sich während der Entwicklung noc
 verdichtet hat (die vier Ordner-Zusammenlegungen unter `simulation/` sind vier
 dieser zwölf).
 
-Ein negativer Befund gehört dazu: **fünf der 104 Commit-Titel tragen ein
+Ein negativer Befund gehört dazu: **fünf der 108 Commit-Titel tragen ein
 versehentliches Präfix `@ `** und sind damit streng genommen nicht
-Conventional-Commits-konform. Der Anteil formal korrekter Titel liegt bei 95,2 %.
+Conventional-Commits-konform. Der Anteil formal korrekter Titel liegt bei 95,4 %.
 Inhaltlich sind auch diese fünf regelkonform aufgebaut (`docs:` bzw.
 `refactor(engine):`); korrigiert wurden sie nicht, weil ein History-Rewrite auf
 einem bereits geteilten Branch teurer wäre als der Schönheitsfehler.
 
-**KI-Nutzung.** 72 protokollierte Prompts in 12 Sitzungsdateien unter `ai/`,
-thematisch verteilt auf `prozess-doku` (26), `frontend-ui` (22), `engine` (14),
-`tooling-tests` (5), `loop-input` (3) und `wasm-bridge` (2). Die vollständige
-Auflistung ist Kapitel 12 KI-Verzeichnis und wird aus denselben Dateien generiert.
+**KI-Nutzung.** 77 protokollierte Prompts in 13 Sitzungsdateien unter `ai/`,
+thematisch verteilt auf `prozess-doku` (30), `frontend-ui` (22), `engine` (14),
+`tooling-tests` (6), `loop-input` (3) und `wasm-bridge` (2). Die Verteilung ist der
+Abdruck der Projektphasen: `prozess-doku` steht seit dem 13.08.2026 an der Spitze,
+weil in dieser Phase ausschließlich der Bericht entsteht, während `engine` und
+`wasm-bridge` mit zusammen 16 Prompts seit dem Code-Freeze der Simulation nicht mehr
+gewachsen sind. Die vollständige Auflistung ist Kapitel 12 KI-Verzeichnis und wird aus
+denselben Dateien generiert.

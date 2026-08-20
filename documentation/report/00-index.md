@@ -39,7 +39,7 @@ Status: `Gerüst` (nur Überschriften) → `Entwurf` (Inhalt steht, Sprache rau)
 | 06  | [KI-driven Engineering & Prozess](06-ki-engineering-und-prozess.md)      |  ~2 S. | Entwurf   | —                                             |
 | 07  | [Tooling](07-tooling.md)                                                 |  ~3 S. | Entwurf   | 7.6/7.10 nachziehen, falls T-02/T-06          |
 | 08  | [Qualität](08-qualitaet.md)                                              |  ~2 S. | Entwurf   | 8.3 falls T-05, 8.5 falls T-06, 8.6 Messreihe |
-| 09  | [Quellcode-Übersicht](09-quellcode-uebersicht.md)                        |  ~1 S. | Entwurf   | Zahlen nach Code-Freeze neu erheben           |
+| 09  | [Quellcode-Übersicht](09-quellcode-uebersicht.md)                        |  ~1 S. | Fertig    | Zahlen final erhoben, Stand 20.08.2026        |
 | 10  | [Projektbericht](10-projektbericht.md)                                   |  ~2 S. | Entwurf   | Ist-Zahlen nach Code-Freeze nachziehen        |
 | 11  | [Anhang](11-anhang.md)                                                   |      — | Gerüst    | akkretiv                                      |
 | 12  | [KI-Verzeichnis](12-ki-verzeichnis.md)                                   |      — | generiert | `npm run docs:ki-verzeichnis`                 |
