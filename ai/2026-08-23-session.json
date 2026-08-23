@@ -1,0 +1,8 @@
+[
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Ich habe dir eine .pdf mit unserer bisherigen Dokumentation geschickt. Ein Kapitel fehlt noch: \"CI/CD & Git\". Ich möchte dass du für mich im Stil der bisherigen Dokumentation ein deliverable als .md schreibst, dass ich dann claude-in-word übergeben kann, damit er daraus das Kapitel in der .docx Datei ergänzt. Bitte fokussiere dich darauf dass der Text verständlich und natürlich klingt, als wäre er von einem viert-Semester Informatikstudenten geschrieben worden. Vermeide starke Ansammlungen von Fachjargon. Erstelle die .md Datei im documentation Folder. Stelle Fragen falls noch etwas unklar ist",
+    "topic": "prozess-doku",
+    "use": "uebernommen"
+  }
+]

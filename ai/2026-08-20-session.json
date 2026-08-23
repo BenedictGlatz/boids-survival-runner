@@ -1,0 +1,26 @@
+[
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Warum ist in unserem Rust Code alles public? Klassenfunktionen Attribute, Variablen etc?",
+    "topic": "engine",
+    "use": "rein-informativ"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "wofür wird fn normalize im code verwendet? Explain like im five",
+    "topic": "engine",
+    "use": "rein-informativ"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "ich möchte wissen wann das letzte mal was am code geändert wurde. Ich möchte in der Dokumentation ein code freeze datum angeben",
+    "topic": "prozess-doku",
+    "use": "rein-informativ"
+  },
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "wurde am 13.08 noch etwas verändert?",
+    "topic": "prozess-doku",
+    "use": "rein-informativ"
+  }
+]
