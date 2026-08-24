@@ -1,0 +1,7 @@
+[
+  {
+    "model": "claude-opus-5[1m]",
+    "prompt": "Ich habe dir den aktuellen Stand unserer Dokumentation als .pdf und eine neue Vorlage des Professors als .md Datei geschickt. Ich möchte dass du für mich prüfst inwiefern die neue Vorlage Themengebiete abdeckt die in unserer Dokumentation noch nicht enhalten sind. Es geht nicht darum jeden einzelnen Datenpunkt aus der Vorlage auch exakt so in unserer Dokumentation abzudecken.\n\nDas Ziel ist unserer Dokumentation gezielt kleinere Erweiterungen (einzelne Sätze, MAXIMAL kleine Absätze) hinzuzufügen, um eine größere Übereinstimmung mit der Vorlage zu erreichen. Ich möche dass du dafür ein Handoff erstellst, dass ich anschließend in Claude-for-Word nutzen kann um die neuen Teile/Sätze nachzutragen, Du musst dabei dokumentieren was wo eingefügt werden soll. Orientiere dich beim Schreibstil bitte an der bisherigen Dokumentation, schreib flüssig zu lesende Sätze ohne zu viel Fachjargon auf einem Fleck.\n\nSpäter in Word müssen die neuen Teile irgendwie markiert werden, sodass dass ich sehen kann was hinzugefügt wurde.\n\nBitte bestätige mir direkt am Anfang ob du den Inhalt beider Dateien lesen kannst",
+    "topic": "prozess-doku"
+  }
+]
