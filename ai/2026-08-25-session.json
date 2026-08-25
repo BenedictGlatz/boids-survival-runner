@@ -1,8 +1,0 @@
-[
-  {
-    "model": "GitHub Copilot",
-    "prompt": "Resolve all merge conflicts",
-    "topic": "tooling-tests",
-    "use": "impl"
-  }
-]
