@@ -19,6 +19,13 @@ The Rust engine handles all per-frame simulation logic and exposes a minimal, st
 - [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
 - [Node.js](https://nodejs.org/) (LTS)
 
+### Install the frontend dependencies
+
+```bash
+cd frontend
+npm install
+```
+
 ### Build the engine
 
 ```bash
@@ -34,11 +41,10 @@ npm run build:wasm
 
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
 
-> `npm run dev` automatically builds the WebAssembly engine first, then starts the Vite dev server at **http://localhost:5173**.
+> `npm run dev` automatically builds the WebAssembly engine first, then starts the Vite dev server at **http://localhost:5173** — so this single command is enough after `npm install`.
 
 ---
 
@@ -103,6 +109,15 @@ cargo test
 
 Covers the vector math and the simulation rules as `#[cfg(test)]` modules beside the code they test.
 
+The WASM boundary tests in `engine/tests/` are a separate case: `cargo test` compiles them but
+reports **0 tests** for those files, because `#[wasm_bindgen_test]` only runs in a browser. To
+execute them:
+
+```bash
+cd engine
+wasm-pack test --headless --firefox   # or --chrome
+```
+
 ### Frontend (JavaScript)
 
 ```bash
@@ -117,14 +132,24 @@ module they cover and are named `<module>.test.js`; the runner picks up
 `frontend/src/**/__tests__/*.test.js`. That keeps a test one directory away from its module without
 letting the test files outnumber the modules in a folder listing.
 
-The suite is scoped to the **pure logic** modules — frame timing, the player controller, and the
-like. Those have no imports, so it runs in plain Node without a browser and **without a built
-WebAssembly package**, which keeps `npm test` fast and independent of the Rust toolchain. Anything
-that touches the canvas, the DOM or the engine bridge is deliberately left out, and simulation
-behaviour belongs in `cargo test` instead.
+The suite is scoped to the **pure logic** modules — frame timing, the player controller, drawing
+arithmetic, power-ups, round records, and the like. Those have no imports, so it runs in plain Node
+without a browser and **without a built WebAssembly package**, which keeps `npm test` fast and
+independent of the Rust toolchain. Anything that touches the canvas, the DOM or the engine bridge is
+deliberately left out, and simulation behaviour belongs in `cargo test` instead.
 
-Covered so far: `src/loop/frameMetrics.js`, `src/ui/frameGraphScale.js`,
-`src/player/dashCooldown.js`, `src/renderer/dashPulse.js`.
+### End-to-end (Playwright)
+
+```bash
+cd frontend
+npx playwright install chromium   # once, downloads the browser
+npm run test:e2e
+```
+
+Uses [Playwright](https://playwright.dev/) against the **production build** — the command builds the
+WASM package and the Vite bundle itself and serves them via `vite preview`, so nothing needs to be
+running beforehand. The specs in `frontend/e2e/` cover what the unit suites structurally cannot:
+WASM module loading, the menu, the HUD, the round lifecycle, and keyboard ownership.
 
 ## Project Conventions
 
