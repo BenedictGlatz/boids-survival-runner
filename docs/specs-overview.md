@@ -29,10 +29,18 @@ Kollisionen zwischen beiden.
 
 Detail-Specs:
 
+- [S-01 — Boid-Schwarm-Simulation](spec-s01-schwarm-simulation.md)
+- [S-02 — WASM-Bridge-API (Puffer-Vertrag JS ↔ Rust)](spec-s02-wasm-bridge.md)
+- [S-03 — Rendering & HUD](spec-s03-rendering-hud.md)
 - [S-04b — Pause (Escape und Fokusverlust)](spec-s04b-pause.md)
 - [S-05a — Dash (Spieler und Boids)](spec-s05-dash.md)
 - [S-05b — Power-ups (Aegis, Overdrive und Mend)](spec-s05b-powerups.md)
 - [S-07 — Temporäre Hindernisse](spec-s07-hindernisse.md)
+
+**S-04 und S-06 haben keinen eigenen Detail-Spec.** Bei S-04 tragen der feste
+Zeitschritt und die Wellen-Progression ihre Festlegungen im Bericht (Kapitel 5) und in S-04b;
+S-06 ist ein Querschnittsposten aus i18n, Scoring und Build-Pipeline, dessen drei Teile fachlich
+nichts miteinander zu tun haben — ein gemeinsamer Spec wäre eine Sammelmappe, kein Dokument.
 
 ## 3) Aufwandsschätzung (grob)
 
